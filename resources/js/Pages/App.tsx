@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { Toaster } from "sonner";
+import { useEffect, useMemo, useState } from "react";
+import { router, usePage } from "@inertiajs/react";
+import { Toaster, toast } from "sonner";
 import { ResponsiveLayout } from "../Components/ResponsiveLayout";
-import { Login } from "../Pages/Login";
 import { Dashboard } from "../Pages/Dashboard";
 import { Agenda } from "../Pages/Agenda";
 import { Circulares } from "../Pages/Circulares";
@@ -34,56 +34,77 @@ import { CiclosEscolares } from "../Components/admin/CiclosEscolares";
 import { PeriodosEvaluacion } from "../Components/admin/PeriodosEvaluacion";
 import { ConfiguracionGeneral } from "../Components/admin/ConfiguracionGeneral";
 import { ValidarUsuarios } from "../Components/admin/ValidarUsuarios";
+import type { PageProps } from "../types";
+import { canAccessRoute, getDefaultRoute } from "../data/auth";
 
 export default function App() {
-  const [currentRoute, setCurrentRoute] = useState(window.location.hash || "#/login");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState("");
-  const [userName, setUserName] = useState("");
+  const { auth } = usePage<PageProps>().props;
+  const user = auth.user;
+
+  const permissions = useMemo(() => user?.permissions ?? [], [user?.permissions]);
+  const userRole = user?.role ?? "";
+  const userName = user?.name ?? "";
+
+  const [currentRoute, setCurrentRoute] = useState(window.location.hash || "#/dashboard");
   const [hijoSeleccionado, setHijoSeleccionado] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!user) {
+      router.visit(route("login"));
+      return;
+    }
+
+    if (userRole === "Tutor") {
+      setHijoSeleccionado(1);
+    }
+
+    const initialRoute = window.location.hash || getDefaultRoute(permissions);
+    if (canAccessRoute(initialRoute, permissions)) {
+      setCurrentRoute(initialRoute);
+      return;
+    }
+
+    const fallbackRoute = getDefaultRoute(permissions);
+    window.location.hash = fallbackRoute;
+    setCurrentRoute(fallbackRoute);
+  }, [permissions, user, userRole]);
+
+  useEffect(() => {
     const handleHashChange = () => {
-      setCurrentRoute(window.location.hash || "#/login");
+      const routeToNavigate = window.location.hash || "#/dashboard";
+
+      if (!canAccessRoute(routeToNavigate, permissions)) {
+        const fallbackRoute = getDefaultRoute(permissions);
+        toast.error("No tienes permisos para acceder a ese módulo.");
+        window.location.hash = fallbackRoute;
+        setCurrentRoute(fallbackRoute);
+        return;
+      }
+
+      setCurrentRoute(routeToNavigate);
     };
 
     window.addEventListener("hashchange", handleHashChange);
+
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+  }, [permissions]);
 
-  const handleNavigate = (route: string) => {
-    window.location.hash = route;
-    setCurrentRoute(route);
-  };
-
-  const handleLogin = (userData: { nombre: string; rol: string; usuario: string }) => {
-    setIsAuthenticated(true);
-    setUserRole(userData.rol);
-    setUserName(userData.nombre);
-    
-    // Si es tutor, seleccionar automáticamente el primer hijo (ID 2 es el tutor por defecto)
-    if (userData.rol === "Tutor") {
-      setHijoSeleccionado(1); // Juan Pérez (primer hijo del tutor ID 2)
+  const handleNavigate = (routeToNavigate: string) => {
+    if (!canAccessRoute(routeToNavigate, permissions)) {
+      toast.error("Acceso denegado: tu rol no tiene permisos para esta sección.");
+      return;
     }
-    
-    handleNavigate("#/dashboard");
+
+    window.location.hash = routeToNavigate;
+    setCurrentRoute(routeToNavigate);
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserRole("");
-    setUserName("");
-    setHijoSeleccionado(null);
-    handleNavigate("#/login");
+    router.post(route("logout"));
   };
 
-  if (!isAuthenticated) {
-    return (
-      <>
-        <Login onLogin={handleLogin} />
-        <Toaster position="top-right" />
-      </>
-    );
+  if (!user) {
+    return null;
   }
 
   return (
@@ -98,15 +119,14 @@ export default function App() {
         onHijoChange={setHijoSeleccionado}
       >
         {currentRoute === "#/dashboard" && (
-          <Dashboard 
-            onNavigate={handleNavigate} 
+          <Dashboard
+            onNavigate={handleNavigate}
             userRole={userRole}
             hijoSeleccionado={hijoSeleccionado}
             onHijoChange={setHijoSeleccionado}
           />
         )}
-        
-        {/* Rutas del Tutor */}
+
         {currentRoute === "#/dashboard/calificaciones" && userRole === "Tutor" && (
           <CalificacionesTutor alumnoId={hijoSeleccionado || 1} />
         )}
@@ -116,106 +136,47 @@ export default function App() {
         {currentRoute === "#/dashboard/asistencia" && userRole === "Tutor" && (
           <AsistenciaTutor alumnoId={hijoSeleccionado || 1} />
         )}
-        {currentRoute === "#/dashboard/reportes" && (
-          <ReportesConductaTutor alumnoId={hijoSeleccionado || 1} />
-        )}
+        {currentRoute === "#/dashboard/reportes" && <ReportesConductaTutor alumnoId={hijoSeleccionado || 1} />}
         {currentRoute === "#/dashboard/notificaciones" && userRole === "Tutor" && (
           <NotificacionesTutor alumnoId={hijoSeleccionado || 1} />
         )}
         {currentRoute === "#/dashboard/horario" && userRole === "Tutor" && (
           <HorarioTutor alumnoId={hijoSeleccionado || 1} />
         )}
-        
-        {/* Rutas del Profesor */}
-        {currentRoute === "#/dashboard/calificaciones" && userRole === "Profesor" && (
-          <RegistrarCalificaciones />
-        )}
-        {currentRoute === "#/dashboard/asistencia" && userRole === "Profesor" && (
-          <ControlAsistencia />
-        )}
-        {currentRoute === "#/dashboard/asignar-tarea" && (
-          <AsignarTarea />
-        )}
-        {currentRoute === "#/dashboard/gestionar-tareas" && (
-          <GestionarTareas />
-        )}
-        {currentRoute === "#/dashboard/mensajeria" && (
-          <MensajeriaProfesor />
-        )}
-        {currentRoute === "#/dashboard/horario" && userRole === "Profesor" && (
-          <HorarioDocente />
-        )}
-        
-        {/* Rutas compartidas */}
+
+        {currentRoute === "#/dashboard/calificaciones" && userRole === "Profesor" && <RegistrarCalificaciones />}
+        {currentRoute === "#/dashboard/asistencia" && userRole === "Profesor" && <ControlAsistencia />}
+        {currentRoute === "#/dashboard/asignar-tarea" && <AsignarTarea />}
+        {currentRoute === "#/dashboard/gestionar-tareas" && <GestionarTareas />}
+        {currentRoute === "#/dashboard/mensajeria" && <MensajeriaProfesor />}
+        {currentRoute === "#/dashboard/horario" && userRole === "Profesor" && <HorarioDocente />}
+
         {currentRoute === "#/agenda" && <Agenda userRole={userRole} />}
-        {currentRoute === "#/agenda/eventos" && (
-          <EventosAcademicos 
-            userRole={userRole} 
-            onNavigate={handleNavigate}
-          />
-        )}
+        {currentRoute === "#/agenda/eventos" && <EventosAcademicos userRole={userRole} onNavigate={handleNavigate} />}
         {currentRoute === "#/agenda/examenes" && (
-          <ExamenesView 
-            userRole={userRole}
-            hijoSeleccionado={hijoSeleccionado}
-            onNavigate={handleNavigate}
-          />
+          <ExamenesView userRole={userRole} hijoSeleccionado={hijoSeleccionado} onNavigate={handleNavigate} />
         )}
         {currentRoute === "#/agenda/entregas" && (
-          <EntregasView 
-            userRole={userRole}
-            hijoSeleccionado={hijoSeleccionado}
-            onNavigate={handleNavigate}
-          />
+          <EntregasView userRole={userRole} hijoSeleccionado={hijoSeleccionado} onNavigate={handleNavigate} />
         )}
-        
+
         {currentRoute === "#/circulares" && <Circulares userRole={userRole} />}
-        
-        {/* Rutas del Trabajador Social */}
-        {currentRoute === "#/trabajador-social/notificaciones" && (
-          <NotificacionesTS />
-        )}
-        {currentRoute === "#/trabajador-social/reportes" && (
-          <ReportesTS />
-        )}
-        {currentRoute === "#/trabajador-social/alumnos" && (
-          <AlumnosTS onNavigate={handleNavigate} />
-        )}
-        
-        {/* Rutas del Administrador */}
-        {currentRoute === "#/admin/usuarios" && (
-          <Usuarios />
-        )}
-        {currentRoute === "#/admin/roles" && (
-          <Roles />
-        )}
-        {currentRoute === "#/admin/grupos" && (
-          <Grupos />
-        )}
-        {currentRoute === "#/admin/materias" && (
-          <Materias />
-        )}
-        {currentRoute === "#/admin/horarios" && (
-          <Horarios />
-        )}
-        {currentRoute === "#/admin/alumnos" && (
-          <AlumnosAdmin />
-        )}
-        {currentRoute === "#/admin/tutores" && (
-          <TutoresAdmin />
-        )}
-        {currentRoute === "#/admin/ciclos" && (
-          <CiclosEscolares />
-        )}
-        {currentRoute === "#/admin/periodos" && (
-          <PeriodosEvaluacion />
-        )}
-        {currentRoute === "#/admin/configuracion" && (
-          <ConfiguracionGeneral />
-        )}
-        {currentRoute === "#/admin/validar-usuarios" && (
-          <ValidarUsuarios />
-        )}
+
+        {currentRoute === "#/trabajador-social/notificaciones" && <NotificacionesTS />}
+        {currentRoute === "#/trabajador-social/reportes" && <ReportesTS />}
+        {currentRoute === "#/trabajador-social/alumnos" && <AlumnosTS onNavigate={handleNavigate} />}
+
+        {currentRoute === "#/admin/usuarios" && <Usuarios />}
+        {currentRoute === "#/admin/roles" && <Roles />}
+        {currentRoute === "#/admin/grupos" && <Grupos />}
+        {currentRoute === "#/admin/materias" && <Materias />}
+        {currentRoute === "#/admin/horarios" && <Horarios />}
+        {currentRoute === "#/admin/alumnos" && <AlumnosAdmin />}
+        {currentRoute === "#/admin/tutores" && <TutoresAdmin />}
+        {currentRoute === "#/admin/ciclos" && <CiclosEscolares />}
+        {currentRoute === "#/admin/periodos" && <PeriodosEvaluacion />}
+        {currentRoute === "#/admin/configuracion" && <ConfiguracionGeneral />}
+        {currentRoute === "#/admin/validar-usuarios" && <ValidarUsuarios />}
       </ResponsiveLayout>
       <Toaster position="top-right" />
     </>

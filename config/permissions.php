@@ -1,0 +1,54 @@
+<?php
+
+return [
+    'roles' => [
+        'Tutor' => [
+            'dashboard.view',
+            'agenda.view',
+            'circulares.view',
+            'calificaciones.view',
+            'tareas.view',
+            'asistencia.view',
+            'reportes.view',
+            'notificaciones.view',
+            'horario.view',
+        ],
+        'Profesor' => [
+            'dashboard.view',
+            'agenda.view',
+            'circulares.view',
+            'calificaciones.manage',
+            'asistencia.manage',
+            'tareas.manage',
+            'notificaciones.manage',
+            'horario.view',
+        ],
+        'Trabajador Social' => [
+            'dashboard.view',
+            'agenda.view',
+            'circulares.view',
+            'reportes.manage',
+            'notificaciones.manage',
+            'alumnos.view',
+        ],
+        'Administrador' => [
+            'dashboard.view',
+            'usuarios.manage',
+            'usuarios.validate',
+            'roles.manage',
+            'ciclos.manage',
+            'periodos.manage',
+            'configuracion.manage',
+        ],
+        'Personal Administrativo' => [
+            'dashboard.view',
+            'agenda.view',
+            'circulares.view',
+            'grupos.manage',
+            'materias.manage',
+            'horarios.manage',
+            'alumnos.manage',
+            'tutores.manage',
+        ],
+    ],
+];

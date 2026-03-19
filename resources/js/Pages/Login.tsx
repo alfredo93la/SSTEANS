@@ -4,21 +4,12 @@ import { Input } from "../Components/ui/input";
 import { Label } from "../Components/ui/label";
 import { Checkbox } from "../Components/ui/checkbox";
 import { Alert, AlertDescription } from "../Components/ui/alert";
-import { AlertCircle, GraduationCap, ArrowRight, Sparkles } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
+import { AlertCircle, GraduationCap, ArrowRight } from "lucide-react";
+import { AuthUser, authenticate } from "../data/auth";
 
 interface LoginProps {
-  onLogin: (userData: { nombre: string; rol: string; usuario: string }) => void;
+  onLogin: (userData: AuthUser) => void;
 }
-
-// Usuarios de prueba con diferentes roles
-const usuariosPrueba = [
-  { usuario: "tutor", password: "", nombre: "María López", rol: "Tutor" },
-  { usuario: "profesor", password: "", nombre: "Prof. García", rol: "Profesor" },
-  { usuario: "social", password: "", nombre: "Lic. Martínez", rol: "Trabajador Social" },
-  { usuario: "admin", password: "", nombre: "Administrador", rol: "Administrador" },
-  { usuario: "administrativo", password: "", nombre: "Lic. Fernández", rol: "Personal Administrativo" }
-];
 
 export function Login({ onLogin }: LoginProps) {
   const [usuario, setUsuario] = useState("");
@@ -32,61 +23,45 @@ export function Login({ onLogin }: LoginProps) {
     setError("");
     setLoading(true);
 
-    // Simular autenticación
     setTimeout(() => {
-      const usuarioEncontrado = usuariosPrueba.find(
-        u => u.usuario === usuario && u.password === password
-      );
+      const authenticatedUser = authenticate(usuario, password);
 
-      if (usuarioEncontrado) {
-        onLogin({
-          nombre: usuarioEncontrado.nombre,
-          rol: usuarioEncontrado.rol,
-          usuario: usuarioEncontrado.usuario
-        });
-      } else {
-        setError("Credenciales no válidas. Inténtalo de nuevo.");
-        setLoading(false);
+      if (authenticatedUser) {
+        onLogin(authenticatedUser);
+        return;
       }
-    }, 800);
+
+      setError("Credenciales no válidas. Verifica usuario y contraseña.");
+      setLoading(false);
+    }, 600);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#EFF6FF] to-[#F5F3FF] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Elementos decorativos de fondo */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200/30 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-200/30 rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-blue-100/20 to-purple-100/20 rounded-full blur-3xl" />
       </div>
-      
+
       <div className="w-full max-w-md relative z-10 animate-fade-in">
-        {/* Card principal con glassmorphism */}
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 border border-white/40 shadow-2xl">
-          {/* Logo y título */}
           <div className="flex flex-col items-center mb-8">
             <div className="relative mb-5">
-              {/* Anillo decorativo */}
               <div className="absolute inset-0 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-2xl blur-lg opacity-40 animate-pulse" />
-              
-              {/* Logo */}
-              <div 
+
+              <div
                 className="relative flex items-center justify-center w-16 h-16 rounded-2xl overflow-hidden"
                 style={{ background: "var(--gradient-primary)" }}
               >
                 <GraduationCap className="absolute w-7 h-7 text-white" />
               </div>
             </div>
-            
-            <h1 className="text-center mb-2 flex items-center gap-2">
-              Iniciar Sesión
-            </h1>
-            <p className="text-sm text-[#6B7280] text-center">
-              Sistema de Seguimiento a la Trayectoria Escolar
-            </p>
+
+            <h1 className="text-center mb-2 flex items-center gap-2">Iniciar Sesión</h1>
+            <p className="text-sm text-[#6B7280] text-center">Sistema de Seguimiento a la Trayectoria Escolar</p>
           </div>
 
-          {/* Formulario */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <Alert variant="destructive" className="animate-scale-in">
@@ -100,7 +75,7 @@ export function Login({ onLogin }: LoginProps) {
               <Input
                 id="usuario"
                 type="text"
-                placeholder=""
+                placeholder="Ej. tutor"
                 value={usuario}
                 onChange={(e) => setUsuario(e.target.value)}
                 className="h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all"
@@ -112,7 +87,7 @@ export function Login({ onLogin }: LoginProps) {
               <Input
                 id="password"
                 type="password"
-                placeholder=""
+                placeholder="Ingresa tu contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all"
@@ -126,10 +101,7 @@ export function Login({ onLogin }: LoginProps) {
                   checked={recordarme}
                   onCheckedChange={(checked) => setRecordarme(checked as boolean)}
                 />
-                <Label
-                  htmlFor="recordarme"
-                  className="text-sm font-normal text-[#6B7280] cursor-pointer"
-                >
+                <Label htmlFor="recordarme" className="text-sm font-normal text-[#6B7280] cursor-pointer">
                   Recuérdame
                 </Label>
               </div>
@@ -142,17 +114,24 @@ export function Login({ onLogin }: LoginProps) {
               disabled={loading}
             >
               <span className="relative z-10 flex items-center justify-center gap-2">
-                {loading ? "Cargando..." : "Ingresar"}
+                {loading ? "Validando acceso..." : "Ingresar"}
                 {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
             </Button>
           </form>
+
+          <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-xs text-[#334155]">
+            <p className="font-semibold mb-1">Usuarios de prueba</p>
+            <p>tutor / Tutor123*</p>
+            <p>profesor / Profesor123*</p>
+            <p>social / Social123*</p>
+            <p>admin / Admin123*</p>
+            <p>administrativo / Adminva123*</p>
+          </div>
         </div>
 
-        <p className="text-xs text-center text-[#9CA3AF] mt-6">
-          Sistema de Seguimiento a la Trayectoria Escolar © 2026
-        </p>
+        <p className="text-xs text-center text-[#9CA3AF] mt-6">Sistema de Seguimiento a la Trayectoria Escolar © 2026</p>
       </div>
     </div>
   );

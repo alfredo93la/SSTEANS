@@ -15,11 +15,49 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        User::query()->updateOrCreate(
+            ['email' => 'tutor@example.com'],
+            [
+                'name' => 'María López',
+                'password' => 'Tutor123*',
+                'role' => 'Tutor',
+            ]
+        );
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        User::query()->updateOrCreate(
+            ['email' => 'profesor@example.com'],
+            [
+                'name' => 'Prof. García',
+                'password' => 'Profesor123*',
+                'role' => 'Profesor',
+            ]
+        );
+
+        User::query()->updateOrCreate(
+            ['email' => 'social@example.com'],
+            [
+                'name' => 'Lic. Martínez',
+                'password' => 'Social123*',
+                'role' => 'Trabajador Social',
+            ]
+        );
+
+        User::query()->updateOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name' => 'Administrador',
+                'password' => 'Admin123*',
+                'role' => 'Administrador',
+            ]
+        );
+
+        User::query()->updateOrCreate(
+            ['email' => 'administrativo@example.com'],
+            [
+                'name' => 'Lic. Fernández',
+                'password' => 'Adminva123*',
+                'role' => 'Personal Administrativo',
+            ]
+        );
     }
 }
