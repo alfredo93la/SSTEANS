@@ -11,7 +11,8 @@ import { toast } from "sonner";
 
 export function ConfiguracionGeneral() {
   const [config, setConfig] = useState({
-    nombreEscuela: "Secundaria General No. 1",
+    nombreEscuela: "Secundaria General",
+    num: "1",
     cct: "09DES0001X",
     turno: "Matutino",
     director: "Mtro. Alejandro Vega Hernández",
@@ -69,6 +70,15 @@ export function ConfiguracionGeneral() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
+                <Label htmlFor="cfgNum">Número</Label>
+                <Input
+                  id="cfgNum"
+                  value={config.num}
+                  onChange={(e) => setConfig({ ...config, num: e.target.value })}
+                  className="rounded-lg"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="cfgCct">Clave CCT *</Label>
                 <Input
                   id="cfgCct"
@@ -84,7 +94,6 @@ export function ConfiguracionGeneral() {
                   <SelectContent>
                     <SelectItem value="Matutino">Matutino</SelectItem>
                     <SelectItem value="Vespertino">Vespertino</SelectItem>
-                    <SelectItem value="Nocturno">Nocturno</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -109,18 +118,6 @@ export function ConfiguracionGeneral() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Sostenimiento</Label>
-                <Select value={config.sostenimiento} onValueChange={(v) => setConfig({ ...config, sostenimiento: v })}>
-                  <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Público Federal">Público Federal</SelectItem>
-                    <SelectItem value="Público Estatal">Público Estatal</SelectItem>
-                    <SelectItem value="Privado">Privado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="cfgCorreo">Correo institucional</Label>
               <Input
                 id="cfgCorreo"
@@ -130,6 +127,8 @@ export function ConfiguracionGeneral() {
                 className="rounded-lg"
               />
             </div>
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="cfgDireccion">Dirección</Label>
               <Textarea
@@ -144,55 +143,6 @@ export function ConfiguracionGeneral() {
         </Card>
 
         <div className="space-y-6">
-          {/* Parámetros académicos */}
-          <Card className="border-[#E5E7EB] rounded-3xl">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-50 rounded-xl">
-                  <BookOpen className="h-5 w-5 text-[#7C3AED]" />
-                </div>
-                <div>
-                  <CardTitle className="text-base">Parámetros Académicos</CardTitle>
-                  <CardDescription>Escala y criterios de evaluación</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Mínimo aprobatorio</Label>
-                  <Select value={config.minimoAprobatorio} onValueChange={(v) => setConfig({ ...config, minimoAprobatorio: v })}>
-                    <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {["5", "6", "7"].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Escala de calificación</Label>
-                  <Select value={config.escalaCalificacion} onValueChange={(v) => setConfig({ ...config, escalaCalificacion: v })}>
-                    <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0–10">0 – 10</SelectItem>
-                      <SelectItem value="0–100">0 – 100</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Nivel educativo</Label>
-                <Select value={config.nivelEducativo} onValueChange={(v) => setConfig({ ...config, nivelEducativo: v })}>
-                  <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Primaria">Primaria</SelectItem>
-                    <SelectItem value="Secundaria">Secundaria</SelectItem>
-                    <SelectItem value="Preparatoria">Preparatoria</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Ajustes del sistema */}
           <Card className="border-[#E5E7EB] rounded-3xl">
             <CardHeader>

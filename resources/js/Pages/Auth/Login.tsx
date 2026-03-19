@@ -1,110 +1,139 @@
-import Checkbox from '@/Components/Checkbox';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler } from "react";
+import { useForm } from "@inertiajs/react";
+import { Button } from "../../Components/ui/button";
+import { Input } from "../../Components/ui/input";
+import { Label } from "../../Components/ui/label";
+import { Checkbox } from "../../Components/ui/checkbox";
+import { Alert, AlertDescription } from "../../Components/ui/alert";
+import { AlertCircle, GraduationCap, ArrowRight } from "lucide-react";
 
-export default function Login({
-    status,
-    canResetPassword,
-}: {
-    status?: string;
-    canResetPassword: boolean;
-}) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
-        password: '',
-        remember: false as boolean,
+export default function Login() {
+  // Inicializamos useForm con los campos necesarios para Laravel Fortify/Breeze o tu controlador
+  const { data, setData, post, processing, errors, reset } = useForm({
+    // Asumimos que el backend espera 'email' o 'username' en lugar de 'usuario'
+    // Deberás ajustar 'email' al nombre del campo que espere tu AuthController en Laravel (ej. 'email' o 'username')
+    email: "", 
+    password: "",
+    remember: false,
+  });
+
+  const handleSubmit: FormEventHandler = (e) => {
+    e.preventDefault();
+    
+    // Enviamos la petición POST a la ruta de login de Laravel
+    // onSuccess no es estrictamente necesario si Laravel redirige automáticamente tras un login exitoso
+    post('/login', {
+      onFinish: () => reset('password'), // Limpiamos la contraseña si falla
     });
+  };
 
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#EFF6FF] to-[#F5F3FF] flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-200/30 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-blue-100/20 to-purple-100/20 rounded-full blur-3xl" />
+      </div>
 
-        post(route('login'), {
-            onFinish: () => reset('password'),
-        });
-    };
+      <div className="w-full max-w-md relative z-10 animate-fade-in">
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 border border-white/40 shadow-2xl">
+          <div className="flex flex-col items-center mb-8">
+            <div className="relative mb-5">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-2xl blur-lg opacity-40 animate-pulse" />
 
-    return (
-        <GuestLayout>
-            <Head title="Log in" />
+              <div
+                className="relative flex items-center justify-center w-16 h-16 rounded-2xl overflow-hidden"
+                style={{ background: "var(--gradient-primary)" }}
+              >
+                <GraduationCap className="absolute w-7 h-7 text-white" />
+              </div>
+            </div>
 
-            {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
-                    {status}
-                </div>
+            <h1 className="text-center mb-2 flex items-center gap-2">Iniciar Sesión</h1>
+            <p className="text-sm text-[#6B7280] text-center">Sistema de Seguimiento a la Trayectoria Escolar</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Si Inertia devuelve un error global, lo mostramos aquí */}
+            {errors.email && (
+              <Alert variant="destructive" className="animate-scale-in">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{errors.email}</AlertDescription>
+              </Alert>
             )}
 
-            <form onSubmit={submit}>
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
+            <div className="space-y-2">
+              <Label htmlFor="email">Usuario o Email</Label>
+              <Input
+                id="email"
+                type="text"
+                name="email"
+                placeholder="Ej. tutor@ejemplo.com"
+                value={data.email}
+                onChange={(e) => setData("email", e.target.value)}
+                className={`h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all ${errors.email ? 'border-red-500' : ''}`}
+                disabled={processing}
+                autoComplete="username"
+              />
+            </div>
 
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        className="mt-1 block w-full"
-                        autoComplete="username"
-                        isFocused={true}
-                        onChange={(e) => setData('email', e.target.value)}
-                    />
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                name="password"
+                placeholder="Ingresa tu contraseña"
+                value={data.password}
+                onChange={(e) => setData("password", e.target.value)}
+                className={`h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all ${errors.password ? 'border-red-500' : ''}`}
+                disabled={processing}
+                autoComplete="current-password"
+              />
+              {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
+            </div>
 
-                    <InputError message={errors.email} className="mt-2" />
-                </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="recordarme"
+                  name="remember"
+                  checked={data.remember}
+                  onCheckedChange={(checked) => setData("remember", checked as boolean)}
+                  disabled={processing}
+                />
+                <Label htmlFor="recordarme" className="text-sm font-normal text-[#6B7280] cursor-pointer">
+                  Recuérdame
+                </Label>
+              </div>
+            </div>
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+            <Button
+              type="submit"
+              className="w-full h-12 text-white rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all group relative overflow-hidden"
+              style={{ background: "var(--gradient-primary)" }}
+              disabled={processing}
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {processing ? "Validando acceso..." : "Ingresar"}
+                {!processing && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
+            </Button>
+          </form>
 
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        autoComplete="current-password"
-                        onChange={(e) => setData('password', e.target.value)}
-                    />
+          {/* Información de pruebas adaptada (asumiendo que los seeders usan emails) */}
+          <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-xs text-[#334155]">
+            <p className="font-semibold mb-1">Usuarios de prueba (Seeders)</p>
+            <p>tutor@ejemplo.com / password</p>
+            <p>profesor@ejemplo.com / password</p>
+            <p>social@ejemplo.com / password</p>
+            <p>admin@ejemplo.com / password</p>
+          </div>
+        </div>
 
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
-
-                <div className="mt-4 block">
-                    <label className="flex items-center">
-                        <Checkbox
-                            name="remember"
-                            checked={data.remember}
-                            onChange={(e) =>
-                                setData(
-                                    'remember',
-                                    (e.target.checked || false) as false,
-                                )
-                            }
-                        />
-                        <span className="ms-2 text-sm text-gray-600">
-                            Remember me
-                        </span>
-                    </label>
-                </div>
-
-                <div className="mt-4 flex items-center justify-end">
-                    {canResetPassword && (
-                        <Link
-                            href={route('password.request')}
-                            className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        >
-                            Forgot your password?
-                        </Link>
-                    )}
-
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Log in
-                    </PrimaryButton>
-                </div>
-            </form>
-        </GuestLayout>
-    );
+        <p className="text-xs text-center text-[#9CA3AF] mt-6">Sistema de Seguimiento a la Trayectoria Escolar © 2026</p>
+      </div>
+    </div>
+  );
 }

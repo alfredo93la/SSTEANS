@@ -606,12 +606,18 @@ export function Circulares({ userRole }: CircularesProps) {
                 <Select value={forma.prioridad} onValueChange={(v) => setForma({ ...forma, prioridad: v })}>
                   <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecciona prioridad" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Alta">🔴 Alta</SelectItem>
-                    <SelectItem value="Media">🟡 Media</SelectItem>
-                    <SelectItem value="Baja">🔵 Baja</SelectItem>
+                    <SelectItem value="Alta">Alta</SelectItem>
+                    <SelectItem value="Media">Media</SelectItem>
+                    <SelectItem value="Baja">Baja</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            
+            {/* Archivo adjunto */}
+            <div className="space-y-2">
+              <Label htmlFor="archivo">Archivo adjunto (.pdf, .doc, .docx)</Label>
+              <Input id="archivo" type="file" accept=".pdf,.doc,.docx" />
             </div>
 
             {/* Destinatarios */}
