@@ -4,6 +4,8 @@ use App\Http\Controllers\ProfileController;
 
 use App\Http\Controllers\Admin\RolePermissionManagementController;
 use App\Http\Controllers\Admin\UserRoleManagementController;
+use App\Http\Controllers\Admin\UserValidationController;
+use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Tutor\AssignedStudentsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -50,4 +52,13 @@ Route::middleware(['auth', 'verified', 'permission:usuarios.manage'])->prefix('a
     Route::get('/roles-permisos', [RolePermissionManagementController::class, 'index'])->name('admin.roles.permisos.index');
     Route::post('/roles', [RolePermissionManagementController::class, 'store'])->name('admin.roles.store');
     Route::put('/roles/{role}', [RolePermissionManagementController::class, 'update'])->name('admin.roles.update');
+
+    Route::get('/usuarios', [UserManagementController::class, 'index'])->name('admin.usuarios.index');
+    Route::post('/usuarios', [UserManagementController::class, 'store'])->name('admin.usuarios.store');
+    Route::put('/usuarios/{user}', [UserManagementController::class, 'update'])->name('admin.usuarios.update');
+    Route::delete('/usuarios/{user}', [UserManagementController::class, 'destroy'])->name('admin.usuarios.destroy');
+
+    Route::get('/validar-usuarios', [UserValidationController::class, 'index'])->name('admin.validar-usuarios.index');
+    Route::post('/validar-usuarios/{user}/aprobar', [UserValidationController::class, 'approve'])->name('admin.validar-usuarios.approve');
+    Route::post('/validar-usuarios/{user}/rechazar', [UserValidationController::class, 'reject'])->name('admin.validar-usuarios.reject');
 });

@@ -88,3 +88,40 @@ test('admin can update role permissions from roles section endpoint', function (
     $response->assertJsonPath('role.descripcion', 'Rol tutor actualizado');
     $response->assertJsonCount(2, 'role.permisos');
 });
+
+test('admin can list and create users through admin usuarios endpoint', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+
+    $admin = User::factory()->create(['role' => 'Administrador']);
+    $role = Role::query()->where('nombre', 'Tutor')->firstOrFail();
+
+    $createResponse = $this->actingAs($admin)->postJson(route('admin.usuarios.store'), [
+        'name' => 'Usuario Nuevo',
+        'email' => 'nuevo@example.com',
+        'password' => 'password123',
+        'roles' => [$role->id],
+        'status' => 'pending',
+    ]);
+
+    $createResponse->assertCreated();
+
+    $listResponse = $this->actingAs($admin)->getJson(route('admin.usuarios.index'));
+    $listResponse->assertOk();
+    $listResponse->assertJsonFragment(['email' => 'nuevo@example.com']);
+});
+
+test('admin can approve and reject users through validar usuarios endpoint', function () {
+    $admin = User::factory()->create(['role' => 'Administrador']);
+    $pendingUser = User::factory()->create(['role' => 'Tutor', 'status' => 'pending']);
+
+    $approve = $this->actingAs($admin)->postJson(route('admin.validar-usuarios.approve', $pendingUser));
+    $approve->assertOk();
+    expect($pendingUser->fresh()->status)->toBe('approved');
+
+    $reject = $this->actingAs($admin)->postJson(route('admin.validar-usuarios.reject', $pendingUser), [
+        'reason' => 'Falta documento oficial',
+    ]);
+    $reject->assertOk();
+    expect($pendingUser->fresh()->status)->toBe('rejected');
+    expect($pendingUser->fresh()->rejection_reason)->toBe('Falta documento oficial');
+});

@@ -1,114 +1,100 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { 
-  Users, 
-  Search, 
-  Filter,
-  Eye,
-  Edit,
-  Trash2,
-  Plus,
-  UserCog,
-  Mail,
-  Phone,
-  Shield,
-  CheckCircle,
-  XCircle
-} from "lucide-react";
+import { Users, Search, Filter, Eye, Edit, Plus, UserCog, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { toast } from "sonner";
+
+type Role = { id: number; nombre: string };
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  roles: Role[];
+};
 
 export function Usuarios() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [filtroRol, setFiltroRol] = useState("todos");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [modalNuevo, setModalNuevo] = useState(false);
   const [modalDetalle, setModalDetalle] = useState(false);
-  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<any>(null);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<User | null>(null);
 
-  // Datos de ejemplo
-  const usuarios = [
-    {
-      id: 1,
-      nombre: "María García López",
-      email: "maria.garcia@escuela.mx",
-      telefono: "+52 555 1234 567",
-      rol: "Profesor",
-      estado: "activo",
-      fechaCreacion: "15/01/2026",
-      ultimoAcceso: "25/02/2026 08:30",
-      gruposAsignados: ["1°A", "2°B", "3°C"],
-      materiasAsignadas: ["Matemáticas"]
-    },
-    {
-      id: 2,
-      nombre: "Juan Pérez Martínez",
-      email: "juan.perez@escuela.mx",
-      telefono: "+52 555 2345 678",
-      rol: "Tutor",
-      estado: "activo",
-      fechaCreacion: "10/01/2026",
-      ultimoAcceso: "24/02/2026 20:15",
-      hijosAsignados: ["Ana Pérez García - 1°A"]
-    },
-    {
-      id: 3,
-      nombre: "Laura Rodríguez Cruz",
-      email: "laura.rodriguez@escuela.mx",
-      telefono: "+52 555 3456 789",
-      rol: "Trabajador Social",
-      estado: "activo",
-      fechaCreacion: "05/01/2026",
-      ultimoAcceso: "25/02/2026 09:00",
-      casosAsignados: 12
-    },
-    {
-      id: 4,
-      nombre: "Roberto Sánchez Díaz",
-      email: "roberto.sanchez@escuela.mx",
-      telefono: "+52 555 4567 890",
-      rol: "Personal Administrativo",
-      estado: "activo",
-      fechaCreacion: "01/01/2026",
-      ultimoAcceso: "25/02/2026 07:45"
-    },
-    {
-      id: 5,
-      nombre: "Carmen Flores Ruiz",
-      email: "carmen.flores@escuela.mx",
-      telefono: "+52 555 5678 901",
-      rol: "Administrador",
-      estado: "activo",
-      fechaCreacion: "01/01/2026",
-      ultimoAcceso: "25/02/2026 10:30"
-    },
-    {
-      id: 6,
-      nombre: "Pedro González Mora",
-      email: "pedro.gonzalez@escuela.mx",
-      telefono: "+52 555 6789 012",
-      rol: "Profesor",
-      estado: "inactivo",
-      fechaCreacion: "15/01/2026",
-      ultimoAcceso: "10/02/2026 15:20",
-      gruposAsignados: ["2°A"],
-      materiasAsignadas: ["Física", "Química"]
+  const [nombre, setNombre] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rolId, setRolId] = useState("");
+  const [estado, setEstado] = useState<"pending" | "approved" | "rejected">("approved");
+
+  const cargar = async () => {
+    try {
+      const { data } = await window.axios.get("/admin/usuarios", {
+        params: { search: busqueda, role: filtroRol, status: filtroEstado },
+      });
+      setUsers(data.users ?? []);
+      setRoles(data.roles ?? []);
+    } catch {
+      toast.error("No se pudo cargar la lista de usuarios");
     }
-  ];
+  };
 
-  const estadisticas = {
-    total: 45,
-    activos: 42,
-    inactivos: 3,
-    administradores: 2,
-    personalAdministrativo: 5,
-    profesores: 18,
-    tutores: 15,
-    trabajadoresSociales: 5
+  useEffect(() => {
+    cargar();
+  }, [busqueda, filtroRol, filtroEstado]);
+
+  const estadisticas = useMemo(() => {
+    const total = users.length;
+    const activos = users.filter((u) => u.status === "approved").length;
+    const inactivos = users.filter((u) => u.status !== "approved").length;
+    const profesores = users.filter((u) => u.role === "Profesor").length;
+    return { total, activos, inactivos, profesores };
+  }, [users]);
+
+  const crearUsuario = async () => {
+    if (!nombre || !email || !password || !rolId) {
+      toast.error("Completa todos los campos requeridos");
+      return;
+    }
+
+    try {
+      await window.axios.post("/admin/usuarios", {
+        name: nombre,
+        email,
+        password,
+        roles: [Number(rolId)],
+        status: estado,
+      });
+      toast.success("Usuario creado correctamente");
+      setModalNuevo(false);
+      setNombre("");
+      setEmail("");
+      setPassword("");
+      setRolId("");
+      setEstado("approved");
+      await cargar();
+    } catch {
+      toast.error("No se pudo crear el usuario");
+    }
+  };
+
+  const eliminarUsuario = async (id: number) => {
+    try {
+      await window.axios.delete(`/admin/usuarios/${id}`);
+      toast.success("Usuario eliminado");
+      await cargar();
+    } catch {
+      toast.error("No se pudo eliminar");
+    }
   };
 
   const getBadgeRol = (rol: string) => {
@@ -122,296 +108,59 @@ export function Usuarios() {
     }
   };
 
-  const verDetalle = (usuario: any) => {
-    setUsuarioSeleccionado(usuario);
-    setModalDetalle(true);
-  };
+  const getEstadoLabel = (status: User["status"]) => status === "approved" ? "Activo" : status === "pending" ? "Pendiente" : "Rechazado";
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-[#111827]">Gestión de Usuarios</h1>
-          <p className="text-sm text-[#6B7280] mt-1">
-            Administra los usuarios y sus permisos del sistema
-          </p>
+          <p className="text-sm text-[#6B7280] mt-1">Administra los usuarios y sus permisos del sistema</p>
         </div>
         <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Usuario
-            </Button>
+            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]"><Plus className="h-4 w-4 mr-2" />Nuevo Usuario</Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Crear Nuevo Usuario</DialogTitle>
-              <DialogDescription>
-                Llena los campos para crear un nuevo usuario en el sistema.
-              </DialogDescription>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Crear Nuevo Usuario</DialogTitle><DialogDescription>Alta rápida de usuarios administrativos.</DialogDescription></DialogHeader>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="nombre">Nombre Completo</Label>
-                  <Input id="nombre" placeholder="Ej: María García López" />
-                </div>
-
-                <div>
-                  <Label htmlFor="email">Correo Electrónico</Label>
-                  <Input id="email" type="email" placeholder="usuario@escuela.mx" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="telefono">Teléfono</Label>
-                  <Input id="telefono" placeholder="+52 555 1234 567" />
-                </div>
-
-                <div>
-                  <Label htmlFor="rol">Rol del Usuario</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar rol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="administrador">Administrador</SelectItem>
-                      <SelectItem value="personal-admin">Personal Administrativo</SelectItem>
-                      <SelectItem value="profesor">Profesor</SelectItem>
-                      <SelectItem value="trabajador-social">Trabajador Social</SelectItem>
-                      <SelectItem value="tutor">Tutor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="password">Contraseña Temporal</Label>
-                  <Input id="password" type="password" placeholder="••••••••" />
-                </div>
-
-                <div>
-                  <Label htmlFor="confirmar-password">Confirmar Contraseña</Label>
-                  <Input id="confirmar-password" type="password" placeholder="••••••••" />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="estado">Estado</Label>
-                <Select defaultValue="activo">
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="activo">Activo</SelectItem>
-                    <SelectItem value="inactivo">Inactivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-900">
-                      Contraseña temporal
-                    </p>
-                    <p className="text-xs text-blue-700 mt-1">
-                      El usuario deberá cambiar su contraseña en el primer inicio de sesión
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setModalNuevo(false)}>
-                  Cancelar
-                </Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
-                  Crear Usuario
-                </Button>
-              </div>
+              <div><Label>Nombre Completo</Label><Input value={nombre} onChange={(e) => setNombre(e.target.value)} /></div>
+              <div><Label>Correo</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+              <div><Label>Contraseña temporal</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+              <div><Label>Rol</Label><Select value={rolId} onValueChange={setRolId}><SelectTrigger><SelectValue placeholder="Selecciona rol" /></SelectTrigger><SelectContent>{roles.map((rol) => <SelectItem key={rol.id} value={String(rol.id)}>{rol.nombre}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label>Estado</Label><Select value={estado} onValueChange={(v) => setEstado(v as User["status"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="approved">Activo</SelectItem><SelectItem value="pending">Pendiente</SelectItem><SelectItem value="rejected">Rechazado</SelectItem></SelectContent></Select></div>
+              <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setModalNuevo(false)}>Cancelar</Button><Button onClick={crearUsuario}>Crear Usuario</Button></div>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Total Usuarios</p>
-                <p className="text-2xl font-bold text-[#7C3AED] mt-1">{estadisticas.total}</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <Users className="h-6 w-6 text-[#7C3AED]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Activos</p>
-                <p className="text-2xl font-bold text-[#059669] mt-1">{estadisticas.activos}</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-xl">
-                <CheckCircle className="h-6 w-6 text-[#059669]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Inactivos</p>
-                <p className="text-2xl font-bold text-[#DC2626] mt-1">{estadisticas.inactivos}</p>
-              </div>
-              <div className="p-3 bg-red-100 rounded-xl">
-                <XCircle className="h-6 w-6 text-[#DC2626]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Profesores</p>
-                <p className="text-2xl font-bold text-[#1D4ED8] mt-1">{estadisticas.profesores}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <UserCog className="h-6 w-6 text-[#1D4ED8]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="pt-6"><p className="text-sm text-[#6B7280]">Total Usuarios</p><p className="text-2xl font-bold">{estadisticas.total}</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-sm text-[#6B7280]">Activos</p><p className="text-2xl font-bold text-[#059669]">{estadisticas.activos}</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-sm text-[#6B7280]">Inactivos</p><p className="text-2xl font-bold text-[#DC2626]">{estadisticas.inactivos}</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-sm text-[#6B7280]">Profesores</p><p className="text-2xl font-bold text-[#1D4ED8]">{estadisticas.profesores}</p></CardContent></Card>
       </div>
 
-      {/* Filtros */}
-      <Card className="border-[#E5E7EB]">
-        <CardContent className="pt-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
-                <Input
-                  placeholder="Buscar por nombre, email..."
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={filtroRol} onValueChange={setFiltroRol}>
-              <SelectTrigger className="w-full lg:w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Rol" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los roles</SelectItem>
-                <SelectItem value="administrador">Administrador</SelectItem>
-                <SelectItem value="personal-admin">Personal Administrativo</SelectItem>
-                <SelectItem value="profesor">Profesor</SelectItem>
-                <SelectItem value="trabajador-social">Trabajador Social</SelectItem>
-                <SelectItem value="tutor">Tutor</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-              <SelectTrigger className="w-full lg:w-48">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="activo">Activos</SelectItem>
-                <SelectItem value="inactivo">Inactivos</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <Card><CardContent className="pt-6"><div className="flex flex-col lg:flex-row gap-4"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" /><Input placeholder="Buscar por nombre, email..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="pl-10" /></div><Select value={filtroRol} onValueChange={setFiltroRol}><SelectTrigger className="w-full lg:w-48"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Rol" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem>{roles.map((rol) => <SelectItem key={rol.id} value={rol.nombre}>{rol.nombre}</SelectItem>)}</SelectContent></Select><Select value={filtroEstado} onValueChange={setFiltroEstado}><SelectTrigger className="w-full lg:w-44"><SelectValue placeholder="Estado" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="approved">Activo</SelectItem><SelectItem value="pending">Pendiente</SelectItem><SelectItem value="rejected">Rechazado</SelectItem></SelectContent></Select></div></CardContent></Card>
 
-      {/* Tabla de usuarios */}
-      <Card className="border-[#E5E7EB]">
-        <CardHeader>
-          <CardTitle>Lista de Usuarios</CardTitle>
-          <CardDescription>Gestiona los usuarios del sistema</CardDescription>
-        </CardHeader>
+      <Card>
+        <CardHeader><CardTitle>Usuarios</CardTitle><CardDescription>{users.length} registros</CardDescription></CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {usuarios.map((usuario) => (
-              <div
-                key={usuario.id}
-                className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-lg">
-                        <UserCog className="h-4 w-4 text-white" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-[#111827]">{usuario.nombre}</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge className={getBadgeRol(usuario.rol)}>
-                            {usuario.rol}
-                          </Badge>
-                          <Badge variant="outline" className={
-                            usuario.estado === "activo" 
-                              ? "bg-green-50 text-green-700 border-green-200"
-                              : "bg-red-50 text-red-700 border-red-200"
-                          }>
-                            {usuario.estado === "activo" ? "Activo" : "Inactivo"}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-[#6B7280] ml-12">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-3.5 w-3.5" />
-                        <span>{usuario.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-3.5 w-3.5" />
-                        <span>{usuario.telefono}</span>
-                      </div>
-                      <div className="text-xs">
-                        Creado: {usuario.fechaCreacion}
-                      </div>
-                      <div className="text-xs">
-                        Último acceso: {usuario.ultimoAcceso}
-                      </div>
-                    </div>
+            {users.map((u) => (
+              <div key={u.id} className="border border-[#E5E7EB] rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{u.name}</p>
+                  <p className="text-sm text-[#6B7280]">{u.email}</p>
+                  <div className="flex gap-2 mt-2">
+                    <Badge className={getBadgeRol(u.role)}>{u.role}</Badge>
+                    <Badge variant="outline">{getEstadoLabel(u.status)}</Badge>
                   </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => verDetalle(usuario)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => { setUsuarioSeleccionado(u); setModalDetalle(true); }}><Eye className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => eliminarUsuario(u.id)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
             ))}
@@ -419,79 +168,15 @@ export function Usuarios() {
         </CardContent>
       </Card>
 
-      {/* Modal de detalle */}
       <Dialog open={modalDetalle} onOpenChange={setModalDetalle}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalle del Usuario</DialogTitle>
-            <DialogDescription>
-              Información completa del usuario seleccionado.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Detalle de usuario</DialogTitle></DialogHeader>
           {usuarioSeleccionado && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
-                <div className="p-3 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-xl">
-                  <UserCog className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">{usuarioSeleccionado.nombre}</h3>
-                  <Badge className={getBadgeRol(usuarioSeleccionado.rol)}>
-                    {usuarioSeleccionado.rol}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-[#6B7280]">Email</Label>
-                  <p className="font-medium">{usuarioSeleccionado.email}</p>
-                </div>
-                <div>
-                  <Label className="text-[#6B7280]">Teléfono</Label>
-                  <p className="font-medium">{usuarioSeleccionado.telefono}</p>
-                </div>
-                <div>
-                  <Label className="text-[#6B7280]">Estado</Label>
-                  <Badge variant="outline" className={
-                    usuarioSeleccionado.estado === "activo" 
-                      ? "bg-green-50 text-green-700 border-green-200"
-                      : "bg-red-50 text-red-700 border-red-200"
-                  }>
-                    {usuarioSeleccionado.estado === "activo" ? "Activo" : "Inactivo"}
-                  </Badge>
-                </div>
-                <div>
-                  <Label className="text-[#6B7280]">Fecha de creación</Label>
-                  <p>{usuarioSeleccionado.fechaCreacion}</p>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-[#6B7280]">Último acceso</Label>
-                <p>{usuarioSeleccionado.ultimoAcceso}</p>
-              </div>
-
-              {usuarioSeleccionado.gruposAsignados && (
-                <div>
-                  <Label className="text-[#6B7280]">Grupos asignados</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {usuarioSeleccionado.gruposAsignados.map((grupo: string, i: number) => (
-                      <Badge key={i} variant="secondary">{grupo}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2 justify-end pt-4 border-t">
-                <Button variant="outline" onClick={() => setModalDetalle(false)}>
-                  Cerrar
-                </Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar Usuario
-                </Button>
-              </div>
+            <div className="space-y-2">
+              <p><strong>Nombre:</strong> {usuarioSeleccionado.name}</p>
+              <p><strong>Email:</strong> {usuarioSeleccionado.email}</p>
+              <p><strong>Rol:</strong> {usuarioSeleccionado.role}</p>
+              <p><strong>Estado:</strong> {getEstadoLabel(usuarioSeleccionado.status)}</p>
             </div>
           )}
         </DialogContent>
