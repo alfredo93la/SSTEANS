@@ -8,10 +8,7 @@ import { Alert, AlertDescription } from "../../Components/ui/alert";
 import { AlertCircle, GraduationCap, ArrowRight } from "lucide-react";
 
 export default function Login() {
-  // Inicializamos useForm con los campos necesarios para Laravel Fortify/Breeze o tu controlador
   const { data, setData, post, processing, errors, reset } = useForm({
-    // Asumimos que el backend espera 'email' o 'username' en lugar de 'usuario'
-    // Deberás ajustar 'email' al nombre del campo que espere tu AuthController en Laravel (ej. 'email' o 'username')
     email: "", 
     password: "",
     remember: false,
@@ -20,10 +17,8 @@ export default function Login() {
   const handleSubmit: FormEventHandler = (e) => {
     e.preventDefault();
     
-    // Enviamos la petición POST a la ruta de login de Laravel
-    // onSuccess no es estrictamente necesario si Laravel redirige automáticamente tras un login exitoso
     post('/login', {
-      onFinish: () => reset('password'), // Limpiamos la contraseña si falla
+      onFinish: () => reset('password'),
     });
   };
 
@@ -63,12 +58,12 @@ export default function Login() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Usuario o Email</Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
                 type="text"
                 name="email"
-                placeholder="Ej. tutor@ejemplo.com"
+                placeholder="Ingresa tu correo electrónico"
                 value={data.email}
                 onChange={(e) => setData("email", e.target.value)}
                 className={`h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all ${errors.email ? 'border-red-500' : ''}`}
@@ -122,14 +117,16 @@ export default function Login() {
             </Button>
           </form>
 
-          {/* Información de pruebas adaptada (asumiendo que los seeders usan emails) */}
+          {/* Información de pruebas adaptada (asumiendo que los seeders usan emails) 
           <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-xs text-[#334155]">
             <p className="font-semibold mb-1">Usuarios de prueba (Seeders)</p>
             <p>tutor@ejemplo.com / password</p>
             <p>profesor@ejemplo.com / password</p>
             <p>social@ejemplo.com / password</p>
             <p>admin@ejemplo.com / password</p>
+            <p>administrativo@ejemplo.com / password</p>
           </div>
+          */}
         </div>
 
         <p className="text-xs text-center text-[#9CA3AF] mt-6">Sistema de Seguimiento a la Trayectoria Escolar © 2026</p>

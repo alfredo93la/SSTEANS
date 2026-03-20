@@ -38,11 +38,16 @@ export function Usuarios() {
 
   const cargar = async () => {
     try {
-      const { data } = await window.axios.get("/admin/usuarios", {
-        params: { search: busqueda, role: filtroRol, status: filtroEstado },
+      const response = await window.axios.get("/admin/usuarios", {
+        params: { search: busqueda, role: filtroRol === "todos" ? "" : filtroRol, status: filtroEstado === "todos" ? "" : filtroEstado },
       });
-      setUsers(data.users ?? []);
-      setRoles(data.roles ?? []);
+
+      console.log("Respuesta servidor:", response.data);
+
+    const baseData = response.data;
+
+      setUsers(baseData.users ?? []);
+      setRoles(baseData.roles ?? []);
     } catch (error: any) {
       toast.error(error?.response?.data?.message ?? "No se pudo cargar la lista de usuarios");
     }
