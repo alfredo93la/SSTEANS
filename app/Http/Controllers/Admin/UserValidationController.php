@@ -6,14 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class UserValidationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $hasStatusColumn = Schema::hasColumn('users', 'status');
+        $hasValidationColumns = $hasStatusColumn && Schema::hasColumn('users', 'rejection_reason') && Schema::hasColumn('users', 'validated_at');
+
         $query = User::query()->with('roles:id,nombre')->orderByDesc('created_at');
 
-        if ($request->filled('status') && $request->string('status') !== 'todos') {
+        if ($hasStatusColumn && $request->filled('status') && $request->string('status') !== 'todos') {
             $query->where('status', (string) $request->string('status'));
         }
 
@@ -29,15 +33,34 @@ class UserValidationController extends Controller
             });
         }
 
+        $columns = ['id', 'name', 'email', 'role', 'created_at'];
+        if ($hasValidationColumns) {
+            $columns = [...$columns, 'status', 'rejection_reason', 'validated_at'];
+        }
+
+        $requests = $query->get($columns)->map(function (User $user) use ($hasValidationColumns) {
+            if (! $hasValidationColumns) {
+                $user->setAttribute('status', 'pending');
+                $user->setAttribute('rejection_reason', null);
+                $user->setAttribute('validated_at', null);
+            }
+
+            return $user;
+        });
+
         return response()->json([
-            'requests' => $query->get([
-                'id', 'name', 'email', 'role', 'status', 'rejection_reason', 'created_at', 'validated_at',
-            ]),
+            'requests' => $requests,
         ]);
     }
 
     public function approve(Request $request, User $user): JsonResponse
     {
+        if (! Schema::hasColumn('users', 'status')) {
+            return response()->json([
+                'message' => 'La tabla users no tiene columnas de validación. Ejecuta migraciones pendientes.',
+            ], 409);
+        }
+
         $user->update([
             'status' => 'approved',
             'rejection_reason' => null,
@@ -56,6 +79,12 @@ class UserValidationController extends Controller
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:1000'],
         ]);
+
+        if (! Schema::hasColumn('users', 'status')) {
+            return response()->json([
+                'message' => 'La tabla users no tiene columnas de validación. Ejecuta migraciones pendientes.',
+            ], 409);
+        }
 
         $user->update([
             'status' => 'rejected',

@@ -60,8 +60,8 @@ export function ValidarUsuarios() {
         params: { search: busqueda, status: filtroEstado, role: filtroRol },
       });
       setSolicitudes(data.requests ?? []);
-    } catch {
-      toast.error("No se pudieron cargar las solicitudes");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "No se pudieron cargar las solicitudes");
     }
   };
 

@@ -43,8 +43,8 @@ export function Usuarios() {
       });
       setUsers(data.users ?? []);
       setRoles(data.roles ?? []);
-    } catch {
-      toast.error("No se pudo cargar la lista de usuarios");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "No se pudo cargar la lista de usuarios");
     }
   };
 

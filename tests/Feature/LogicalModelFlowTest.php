@@ -125,3 +125,17 @@ test('admin can approve and reject users through validar usuarios endpoint', fun
     expect($pendingUser->fresh()->status)->toBe('rejected');
     expect($pendingUser->fresh()->rejection_reason)->toBe('Falta documento oficial');
 });
+
+test('admin usuarios endpoint filters by role without breaking query logic', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+
+    $admin = User::factory()->create(['role' => 'Administrador']);
+    User::factory()->create(['name' => 'Profe Uno', 'role' => 'Profesor']);
+    User::factory()->create(['name' => 'Tutor Uno', 'role' => 'Tutor']);
+
+    $response = $this->actingAs($admin)->getJson(route('admin.usuarios.index', ['role' => 'Profesor']));
+
+    $response->assertOk();
+    $response->assertJsonMissing(['name' => 'Tutor Uno']);
+    $response->assertJsonFragment(['name' => 'Profe Uno']);
+});

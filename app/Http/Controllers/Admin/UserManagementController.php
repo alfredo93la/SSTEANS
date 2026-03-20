@@ -8,12 +8,16 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class UserManagementController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $hasStatusColumn = Schema::hasColumn('users', 'status');
+        $hasValidationColumns = $hasStatusColumn && Schema::hasColumn('users', 'rejection_reason') && Schema::hasColumn('users', 'validated_at');
+
         $query = User::query()->with('roles:id,nombre')->orderBy('name');
 
         if ($request->filled('search')) {
@@ -24,19 +28,35 @@ class UserManagementController extends Controller
             });
         }
 
-        if ($request->filled('status') && $request->string('status') !== 'todos') {
+        if ($hasStatusColumn && $request->filled('status') && $request->string('status') !== 'todos') {
             $query->where('status', (string) $request->string('status'));
         }
 
         if ($request->filled('role') && $request->string('role') !== 'todos') {
-            $query->whereHas('roles', fn ($q) => $q->where('nombre', (string) $request->string('role')))
-                ->orWhere('role', (string) $request->string('role'));
+            $roleName = (string) $request->string('role');
+            $query->where(function ($builder) use ($roleName): void {
+                $builder->whereHas('roles', fn ($q) => $q->where('nombre', $roleName))
+                    ->orWhere('role', $roleName);
+            });
         }
 
+        $columns = ['id', 'name', 'email', 'role', 'persona_id', 'created_at'];
+        if ($hasValidationColumns) {
+            $columns = [...$columns, 'status', 'rejection_reason', 'validated_at'];
+        }
+
+        $users = $query->get($columns)->map(function (User $user) use ($hasValidationColumns) {
+            if (! $hasValidationColumns) {
+                $user->setAttribute('status', 'approved');
+                $user->setAttribute('rejection_reason', null);
+                $user->setAttribute('validated_at', null);
+            }
+
+            return $user;
+        });
+
         return response()->json([
-            'users' => $query->get([
-                'id', 'name', 'email', 'role', 'status', 'rejection_reason', 'validated_at', 'persona_id', 'created_at',
-            ]),
+            'users' => $users,
             'roles' => Role::query()->orderBy('nombre')->get(['id', 'nombre']),
         ]);
     }
