@@ -57,7 +57,11 @@ export function ValidarUsuarios() {
   const cargarSolicitudes = async () => {
     try {
       const { data } = await window.axios.get("/admin/validar-usuarios", {
-        params: { search: busqueda, status: filtroEstado, role: filtroRol },
+        params: {
+          search: busqueda,
+          status: filtroEstado === "todos" ? "" : filtroEstado,
+          role: filtroRol === "todos" ? "" : filtroRol,
+        },
       });
       setSolicitudes(data.requests ?? []);
     } catch (error: any) {
@@ -118,9 +122,9 @@ export function ValidarUsuarios() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card><CardContent className="pt-5"><p className="text-xs text-[#6B7280]">Pendientes</p><p className="text-2xl font-bold text-[#D97706] mt-1">{pendientes}</p></CardContent></Card>
-        <Card><CardContent className="pt-5"><p className="text-xs text-[#6B7280]">Aprobados</p><p className="text-2xl font-bold text-[#059669] mt-1">{aprobados}</p></CardContent></Card>
-        <Card><CardContent className="pt-5"><p className="text-xs text-[#6B7280]">Rechazados</p><p className="text-2xl font-bold text-[#E11D48] mt-1">{rechazados}</p></CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardContent className="pt-5"><div className="flex items-center justify-between"><div><p className="text-xs text-[#6B7280]">Pendientes</p><p className="text-2xl font-bold text-[#D97706] mt-1">{pendientes}</p></div><div className="p-2.5 rounded-xl bg-amber-100"><Clock className="h-5 w-5 text-amber-600" /></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardContent className="pt-5"><div className="flex items-center justify-between"><div><p className="text-xs text-[#6B7280]">Aprobados</p><p className="text-2xl font-bold text-[#059669] mt-1">{aprobados}</p></div><div className="p-2.5 rounded-xl bg-emerald-100"><CheckCircle className="h-5 w-5 text-emerald-600" /></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardContent className="pt-5"><div className="flex items-center justify-between"><div><p className="text-xs text-[#6B7280]">Rechazados</p><p className="text-2xl font-bold text-[#E11D48] mt-1">{rechazados}</p></div><div className="p-2.5 rounded-xl bg-rose-100"><XCircle className="h-5 w-5 text-rose-600" /></div></div></CardContent></Card>
       </div>
 
       <Card>
@@ -147,6 +151,11 @@ export function ValidarUsuarios() {
                 <Button variant="outline" size="sm" onClick={() => handleVerDetalle(s)}><Eye className="h-4 w-4 mr-2" />Ver</Button>
               </div>
             ))}
+            {!solicitudes.length && (
+              <div className="border border-dashed border-[#D1D5DB] rounded-xl p-8 text-center">
+                <p className="text-sm text-[#6B7280]">No hay solicitudes para los filtros seleccionados.</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

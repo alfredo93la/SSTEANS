@@ -58,12 +58,12 @@ export default function Login() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Correo electrónico</Label>
+              <Label htmlFor="email">Usuario o Email</Label>
               <Input
                 id="email"
                 type="text"
                 name="email"
-                placeholder="Ingresa tu correo electrónico"
+                placeholder="Ej. tutor@ejemplo.com"
                 value={data.email}
                 onChange={(e) => setData("email", e.target.value)}
                 className={`h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all ${errors.email ? 'border-red-500' : ''}`}
@@ -117,7 +117,6 @@ export default function Login() {
             </Button>
           </form>
 
-          {/* Información de pruebas adaptada (asumiendo que los seeders usan emails) 
           <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-xs text-[#334155]">
             <p className="font-semibold mb-1">Usuarios de prueba (Seeders)</p>
             <p>tutor@ejemplo.com / password</p>
@@ -126,7 +125,6 @@ export default function Login() {
             <p>admin@ejemplo.com / password</p>
             <p>administrativo@ejemplo.com / password</p>
           </div>
-          */}
         </div>
 
         <p className="text-xs text-center text-[#9CA3AF] mt-6">Sistema de Seguimiento a la Trayectoria Escolar © 2026</p>

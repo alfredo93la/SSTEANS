@@ -84,6 +84,23 @@ export function Roles() {
     });
   };
 
+  const getRoleTheme = (nombreRol: string) => {
+    switch (nombreRol) {
+      case "Administrador":
+        return { icon: "bg-purple-500", badge: "bg-purple-100 text-purple-700 border-purple-200" };
+      case "Personal Administrativo":
+        return { icon: "bg-blue-500", badge: "bg-blue-100 text-blue-700 border-blue-200" };
+      case "Profesor":
+        return { icon: "bg-green-500", badge: "bg-green-100 text-green-700 border-green-200" };
+      case "Trabajador Social":
+        return { icon: "bg-orange-500", badge: "bg-orange-100 text-orange-700 border-orange-200" };
+      case "Tutor":
+        return { icon: "bg-pink-500", badge: "bg-pink-100 text-pink-700 border-pink-200" };
+      default:
+        return { icon: "bg-indigo-500", badge: "bg-indigo-100 text-indigo-700 border-indigo-200" };
+    }
+  };
+
   const crearRol = async () => {
     if (!nuevoNombre.trim()) {
       toast.error("El nombre del rol es obligatorio");
@@ -230,12 +247,12 @@ export function Roles() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 bg-indigo-500 rounded-xl">
+                    <div className={`p-3 rounded-xl ${getRoleTheme(rol.nombre).icon}`}>
                       <Shield className="h-6 w-6 text-white" />
                     </div>
                     <div>
                       <CardTitle className="text-lg">{rol.nombre}</CardTitle>
-                      <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 mt-1">
+                      <Badge className={`mt-1 ${getRoleTheme(rol.nombre).badge}`}>
                         {rol.users_count} {rol.users_count === 1 ? "usuario" : "usuarios"}
                       </Badge>
                     </div>
@@ -261,6 +278,11 @@ export function Roles() {
               </CardContent>
             </Card>
           ))}
+          {!roles.length && (
+            <div className="lg:col-span-2 border border-dashed border-[#D1D5DB] rounded-xl p-10 text-center text-[#6B7280]">
+              No hay roles disponibles para mostrar.
+            </div>
+          )}
         </div>
       )}
 

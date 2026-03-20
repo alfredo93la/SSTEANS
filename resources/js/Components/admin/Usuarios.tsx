@@ -41,10 +41,7 @@ export function Usuarios() {
       const response = await window.axios.get("/admin/usuarios", {
         params: { search: busqueda, role: filtroRol === "todos" ? "" : filtroRol, status: filtroEstado === "todos" ? "" : filtroEstado },
       });
-
-      console.log("Respuesta servidor:", response.data);
-
-    const baseData = response.data;
+      const baseData = response.data;
 
       setUsers(baseData.users ?? []);
       setRoles(baseData.roles ?? []);
@@ -141,10 +138,10 @@ export function Usuarios() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-6"><p className="text-sm text-[#6B7280]">Total Usuarios</p><p className="text-2xl font-bold">{estadisticas.total}</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><p className="text-sm text-[#6B7280]">Activos</p><p className="text-2xl font-bold text-[#059669]">{estadisticas.activos}</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><p className="text-sm text-[#6B7280]">Inactivos</p><p className="text-2xl font-bold text-[#DC2626]">{estadisticas.inactivos}</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><p className="text-sm text-[#6B7280]">Profesores</p><p className="text-2xl font-bold text-[#1D4ED8]">{estadisticas.profesores}</p></CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Total Usuarios</p><p className="text-2xl font-bold">{estadisticas.total}</p></div><div className="p-2.5 rounded-xl bg-indigo-100"><Users className="h-5 w-5 text-indigo-600" /></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Activos</p><p className="text-2xl font-bold text-[#059669]">{estadisticas.activos}</p></div><div className="p-2.5 rounded-xl bg-emerald-100"><CheckCircle className="h-5 w-5 text-emerald-600" /></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Inactivos</p><p className="text-2xl font-bold text-[#DC2626]">{estadisticas.inactivos}</p></div><div className="p-2.5 rounded-xl bg-rose-100"><XCircle className="h-5 w-5 text-rose-600" /></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Profesores</p><p className="text-2xl font-bold text-[#1D4ED8]">{estadisticas.profesores}</p></div><div className="p-2.5 rounded-xl bg-blue-100"><UserCog className="h-5 w-5 text-blue-600" /></div></div></CardContent></Card>
       </div>
 
       <Card><CardContent className="pt-6"><div className="flex flex-col lg:flex-row gap-4"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" /><Input placeholder="Buscar por nombre, email..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="pl-10" /></div><Select value={filtroRol} onValueChange={setFiltroRol}><SelectTrigger className="w-full lg:w-48"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Rol" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem>{roles.map((rol) => <SelectItem key={rol.id} value={rol.nombre}>{rol.nombre}</SelectItem>)}</SelectContent></Select><Select value={filtroEstado} onValueChange={setFiltroEstado}><SelectTrigger className="w-full lg:w-44"><SelectValue placeholder="Estado" /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="approved">Activo</SelectItem><SelectItem value="pending">Pendiente</SelectItem><SelectItem value="rejected">Rechazado</SelectItem></SelectContent></Select></div></CardContent></Card>
@@ -169,6 +166,11 @@ export function Usuarios() {
                 </div>
               </div>
             ))}
+            {!users.length && (
+              <div className="border border-dashed border-[#D1D5DB] rounded-xl p-8 text-center">
+                <p className="text-sm text-[#6B7280]">No hay usuarios para los filtros seleccionados.</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
