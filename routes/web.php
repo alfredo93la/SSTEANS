@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+
+use App\Http\Controllers\Admin\RolePermissionManagementController;
+use App\Http\Controllers\Admin\UserRoleManagementController;
+use App\Http\Controllers\Tutor\AssignedStudentsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -31,3 +35,19 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+
+Route::middleware(['auth', 'verified', 'permission:dashboard.view'])->group(function () {
+    Route::get('/tutor/alumnos-asignados', AssignedStudentsController::class)
+        ->middleware('permission:calificaciones.view')
+        ->name('tutor.alumnos.asignados');
+});
+
+Route::middleware(['auth', 'verified', 'permission:usuarios.manage'])->prefix('admin')->group(function () {
+    Route::get('/usuarios-roles', [UserRoleManagementController::class, 'index'])->name('admin.usuarios.roles.index');
+    Route::put('/usuarios/{user}/roles', [UserRoleManagementController::class, 'update'])->name('admin.usuarios.roles.update');
+
+    Route::get('/roles-permisos', [RolePermissionManagementController::class, 'index'])->name('admin.roles.permisos.index');
+    Route::post('/roles', [RolePermissionManagementController::class, 'store'])->name('admin.roles.store');
+    Route::put('/roles/{role}', [RolePermissionManagementController::class, 'update'])->name('admin.roles.update');
+});

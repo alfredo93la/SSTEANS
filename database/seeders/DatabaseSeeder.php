@@ -59,5 +59,7 @@ class DatabaseSeeder extends Seeder
                 'role' => 'Personal Administrativo',
             ]
         );
+
+        $this->call(RolesAndPermissionsSeeder::class);
     }
 }
