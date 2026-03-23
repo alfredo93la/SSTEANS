@@ -53,7 +53,7 @@ export function Agenda({ permissions }: AgendaProps) {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filterTipo, setFilterTipo] = useState<string>("todos");
-  const [selectedDate, setSelectedDate] = useState(new Date(2025, 10, 13)); // 13 de noviembre 2025
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [eventoDetalleOpen, setEventoDetalleOpen] = useState(false);
   const [eventoSeleccionado, setEventoSeleccionado] = useState<Evento | null>(null);
   const [eventoEliminar, setEventoEliminar] = useState<number | null>(null);
