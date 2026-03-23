@@ -11,6 +11,8 @@ class Circular extends Model
 {
     use HasFactory;
 
+    protected $table = 'circulares';
+
     protected $fillable = [
         'titulo',
         'descripcion',
