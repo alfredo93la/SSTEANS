@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
 import { Checkbox } from "../Components/ui/checkbox";
 import { FileText, Download, AlertCircle, Info, CheckCircle, Filter, Calendar, Tag, Plus, Edit, Trash2, Send, Eye } from "lucide-react";
-import { getUsuarioById } from "../data/mockData";
 import { PageTitle } from "../Components/PageTitle";
 import { ScrollText } from "lucide-react";
 import { toast } from "sonner";
@@ -32,6 +31,7 @@ interface CircularItem {
   destinatarios: string[];
   adjuntos: string[];
   publicadoPor: number | null;
+  publicadoPorNombre: string;
   leida: boolean;
 }
 
@@ -345,7 +345,6 @@ export function Circulares({ permissions }: CircularesProps) {
         ) : (
           circularesFiltradas.map((circular) => {
             const PrioridadIcon = prioridadColors[circular.prioridad].icon;
-            const publicadoPor = getUsuarioById(circular.publicadoPor);
 
             return (
               <Card
@@ -437,7 +436,7 @@ export function Circulares({ permissions }: CircularesProps) {
 
                       <div className="flex items-center justify-between mt-2">
                         <p className="text-xs text-[#6B7280]">
-                          Publicado por: {publicadoPor?.nombre || "Personal Administrativo"}
+                          Publicado por: {circular.publicadoPorNombre || "Personal Administrativo"}
                         </p>
                         {esPublicador && (
                           <div className="flex flex-wrap gap-1">
@@ -471,7 +470,7 @@ export function Circulares({ permissions }: CircularesProps) {
                   <SheetTitle className="text-left">{circularSeleccionada.titulo}</SheetTitle>
                   <SheetDescription className="text-left mt-2">
                     Publicado el {circularSeleccionada.fechaPublicacion} por{" "}
-                    {getUsuarioById(circularSeleccionada.publicadoPor)?.nombre || "Personal Administrativo"}
+                    {circularSeleccionada.publicadoPorNombre || "Personal Administrativo"}
                   </SheetDescription>
                 </div>
               </div>

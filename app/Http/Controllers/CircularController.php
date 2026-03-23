@@ -36,6 +36,7 @@ class CircularController extends Controller
                     'destinatarios' => $circular->destinatarios->pluck('rol')->values()->all(),
                     'adjuntos' => [],
                     'publicadoPor' => $circular->publicado_por,
+                    'publicadoPorNombre' => $circular->autor?->name ?? 'Personal Administrativo',
                     'leida' => true,
                 ];
             }),
