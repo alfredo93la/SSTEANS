@@ -62,6 +62,7 @@ export function Agenda({ permissions }: AgendaProps) {
   const [eventoEliminar, setEventoEliminar] = useState<number | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [viewMode, setViewMode] = useState<"calendario" | "lista">("lista");
+  const [fechaFiltro, setFechaFiltro] = useState<string | null>(null);
   
   const [nuevoEvento, setNuevoEvento] = useState({
     titulo: "",
@@ -107,6 +108,12 @@ export function Agenda({ permissions }: AgendaProps) {
   const getEventosDelDia = (dia: number) => {
     const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
     return eventos.filter(e => e.fecha === dateStr);
+  };
+
+  const seleccionarDia = (dia: number) => {
+    const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+    setFechaFiltro(dateStr);
+    setViewMode("lista");
   };
 
   const cambiarMes = (direction: number) => {
@@ -210,7 +217,11 @@ export function Agenda({ permissions }: AgendaProps) {
     ? eventos 
     : eventos.filter(e => e.tipo === filterTipo);
 
-  const eventosOrdenados = [...eventosFiltrados].sort((a, b) => {
+  const eventosFiltradosPorFecha = fechaFiltro
+    ? eventosFiltrados.filter((e) => e.fecha === fechaFiltro)
+    : eventosFiltrados;
+
+  const eventosOrdenados = [...eventosFiltradosPorFecha].sort((a, b) => {
     const dateCompare = new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
     if (dateCompare !== 0) return dateCompare;
     if (a.horaInicio && b.horaInicio) {
@@ -452,7 +463,10 @@ export function Agenda({ permissions }: AgendaProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => cambiarMes(-1)}
+                  onClick={() => {
+                    cambiarMes(-1);
+                    setFechaFiltro(null);
+                  }}
                   className="rounded-lg"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -460,7 +474,10 @@ export function Agenda({ permissions }: AgendaProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelectedDate(new Date())}
+                  onClick={() => {
+                    setSelectedDate(new Date());
+                    setFechaFiltro(null);
+                  }}
                   className="rounded-lg"
                 >
                   Hoy
@@ -468,7 +485,10 @@ export function Agenda({ permissions }: AgendaProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => cambiarMes(1)}
+                  onClick={() => {
+                    cambiarMes(1);
+                    setFechaFiltro(null);
+                  }}
                   className="rounded-lg"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -505,13 +525,7 @@ export function Agenda({ permissions }: AgendaProps) {
                 return (
                   <button
                     key={dia}
-                    onClick={() => {
-                      const primerEvento = eventosDelDia[0];
-                      if (primerEvento) {
-                        setEventoSeleccionado(primerEvento);
-                        setEventoDetalleOpen(true);
-                      }
-                    }}
+                    onClick={() => seleccionarDia(dia)}
                     className={`aspect-square p-2 rounded-lg text-sm transition-all hover:shadow-md ${
                       esHoy
                         ? "bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] text-white font-bold"
@@ -550,7 +564,9 @@ export function Agenda({ permissions }: AgendaProps) {
         <Card className="border-[#E5E7EB]">
           <CardHeader>
             <CardTitle>Próximos Eventos</CardTitle>
-            <CardDescription>{eventosOrdenados.length} eventos</CardDescription>
+            <CardDescription>
+              {fechaFiltro ? `Eventos del ${formatearFecha(fechaFiltro)}` : `${eventosOrdenados.length} eventos`}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
@@ -608,7 +624,9 @@ export function Agenda({ permissions }: AgendaProps) {
           <Card className="border-[#E5E7EB]">
             <CardHeader>
               <CardTitle>Próximos Eventos</CardTitle>
-              <CardDescription>{eventosOrdenados.length} eventos programados</CardDescription>
+              <CardDescription>
+                {fechaFiltro ? `Eventos del ${formatearFecha(fechaFiltro)}` : `${eventosOrdenados.length} eventos programados`}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveTable
@@ -666,7 +684,10 @@ export function Agenda({ permissions }: AgendaProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => cambiarMes(-1)}
+                    onClick={() => {
+                    cambiarMes(-1);
+                    setFechaFiltro(null);
+                  }}
                     className="h-8 w-8 p-0"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -674,7 +695,10 @@ export function Agenda({ permissions }: AgendaProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => cambiarMes(1)}
+                    onClick={() => {
+                    cambiarMes(1);
+                    setFechaFiltro(null);
+                  }}
                     className="h-8 w-8 p-0"
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -711,13 +735,7 @@ export function Agenda({ permissions }: AgendaProps) {
                   return (
                     <button
                       key={dia}
-                      onClick={() => {
-                        const primerEvento = eventosDelDia[0];
-                        if (primerEvento) {
-                          setEventoSeleccionado(primerEvento);
-                          setEventoDetalleOpen(true);
-                        }
-                      }}
+                      onClick={() => seleccionarDia(dia)}
                       className={`aspect-square p-1 rounded-lg text-xs transition-all ${
                         esHoy
                           ? "bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] text-white font-bold"
