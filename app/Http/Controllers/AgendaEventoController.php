@@ -10,10 +10,19 @@ class AgendaEventoController extends Controller
 {
     public function index(): JsonResponse
     {
-        $eventos = AgendaEvento::query()
+        $user = request()->user();
+        $canManage = $user?->hasPermission('agenda.manage') ?? false;
+
+        $query = AgendaEvento::query()
+            ->with('destinatarios:id,agenda_evento_id,rol')
             ->orderBy('fecha')
-            ->orderBy('hora_inicio')
-            ->get();
+            ->orderBy('hora_inicio');
+
+        if (! $canManage && $user) {
+            $query->whereHas('destinatarios', fn ($q) => $q->where('rol', $user->role));
+        }
+
+        $eventos = $query->get();
 
         return response()->json([
             'eventos' => $eventos->map(fn (AgendaEvento $evento) => [
@@ -26,6 +35,7 @@ class AgendaEventoController extends Controller
                 'grupo' => $evento->grupo,
                 'materia' => $evento->materia,
                 'tipo' => $evento->tipo,
+                'destinatarios' => $evento->destinatarios->pluck('rol')->values()->all(),
             ]),
         ]);
     }
@@ -41,6 +51,8 @@ class AgendaEventoController extends Controller
             'grupo' => ['nullable', 'string', 'max:255'],
             'materia' => ['nullable', 'string', 'max:255'],
             'tipo' => ['required', 'string', 'max:255'],
+            'destinatarios' => ['required', 'array', 'min:1'],
+            'destinatarios.*' => ['required', 'string', 'max:255'],
         ]);
 
         $evento = AgendaEvento::query()->create([
@@ -54,6 +66,13 @@ class AgendaEventoController extends Controller
             'tipo' => $validated['tipo'],
         ]);
 
+        $evento->destinatarios()->createMany(
+            collect($validated['destinatarios'])
+                ->unique()
+                ->map(fn (string $rol) => ['rol' => $rol])
+                ->all()
+        );
+
         return response()->json([
             'message' => 'Evento creado correctamente.',
             'evento' => [
@@ -66,6 +85,7 @@ class AgendaEventoController extends Controller
                 'grupo' => $evento->grupo,
                 'materia' => $evento->materia,
                 'tipo' => $evento->tipo,
+                'destinatarios' => $evento->destinatarios()->pluck('rol')->values()->all(),
             ],
         ], 201);
     }
@@ -81,6 +101,8 @@ class AgendaEventoController extends Controller
             'grupo' => ['nullable', 'string', 'max:255'],
             'materia' => ['nullable', 'string', 'max:255'],
             'tipo' => ['required', 'string', 'max:255'],
+            'destinatarios' => ['required', 'array', 'min:1'],
+            'destinatarios.*' => ['required', 'string', 'max:255'],
         ]);
 
         $evento->update([
@@ -93,6 +115,14 @@ class AgendaEventoController extends Controller
             'materia' => $validated['materia'] ?? '-',
             'tipo' => $validated['tipo'],
         ]);
+
+        $evento->destinatarios()->delete();
+        $evento->destinatarios()->createMany(
+            collect($validated['destinatarios'])
+                ->unique()
+                ->map(fn (string $rol) => ['rol' => $rol])
+                ->all()
+        );
 
         return response()->json([
             'message' => 'Evento actualizado correctamente.',

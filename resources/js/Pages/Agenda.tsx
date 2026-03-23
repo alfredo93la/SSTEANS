@@ -11,6 +11,7 @@ import { Input } from "../Components/ui/input";
 import { Label } from "../Components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
 import { Textarea } from "../Components/ui/textarea";
+import { Checkbox } from "../Components/ui/checkbox";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../Components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
@@ -30,6 +31,7 @@ interface Evento {
   grupo: string;
   materia: string;
   tipo: string;
+  destinatarios: string[];
 }
 
 
@@ -47,6 +49,7 @@ const meses = [
 ];
 
 const diasSemana = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const ROLES_DESTINATARIOS = ["Tutor", "Profesor", "Trabajador Social"];
 
 export function Agenda({ permissions }: AgendaProps) {
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -68,7 +71,8 @@ export function Agenda({ permissions }: AgendaProps) {
     horaFin: "",
     tipo: "",
     grupo: "",
-    materia: ""
+    materia: "",
+    destinatarios: [] as string[],
   });
 
   const puedeCrearEventos = permissions.includes("agenda.manage");
@@ -114,6 +118,10 @@ export function Agenda({ permissions }: AgendaProps) {
       toast.error("Por favor completa los campos obligatorios");
       return;
     }
+    if (nuevoEvento.destinatarios.length === 0) {
+      toast.error("Selecciona al menos un destinatario");
+      return;
+    }
 
     const payload = {
       fecha: nuevoEvento.fecha,
@@ -124,6 +132,7 @@ export function Agenda({ permissions }: AgendaProps) {
       grupo: nuevoEvento.grupo || "General",
       materia: nuevoEvento.materia || "-",
       tipo: nuevoEvento.tipo,
+      destinatarios: nuevoEvento.destinatarios,
     };
 
     try {
@@ -146,7 +155,8 @@ export function Agenda({ permissions }: AgendaProps) {
         horaFin: "",
         tipo: "",
         grupo: "",
-        materia: ""
+        materia: "",
+        destinatarios: [],
       });
     } catch (error) {
       toast.error("No se pudo guardar el evento");
@@ -162,7 +172,8 @@ export function Agenda({ permissions }: AgendaProps) {
       horaFin: evento.horaFin || "",
       tipo: evento.tipo,
       grupo: evento.grupo,
-      materia: evento.materia
+      materia: evento.materia,
+      destinatarios: evento.destinatarios ?? [],
     });
     setEventoSeleccionado(evento);
     setEditMode(true);
@@ -364,6 +375,27 @@ export function Agenda({ permissions }: AgendaProps) {
                       />
                     </div>
                     <div className="space-y-2">
+                      <Label>Destinatarios *</Label>
+                      <div className="grid grid-cols-1 gap-2 rounded-lg border p-3">
+                        {ROLES_DESTINATARIOS.map((rol) => (
+                          <label key={rol} className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                              checked={nuevoEvento.destinatarios.includes(rol)}
+                              onCheckedChange={(checked) => {
+                                setNuevoEvento((prev) => ({
+                                  ...prev,
+                                  destinatarios: checked
+                                    ? [...prev.destinatarios, rol]
+                                    : prev.destinatarios.filter((d) => d !== rol),
+                                }));
+                              }}
+                            />
+                            {rol}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="descripcion">Descripción</Label>
                       <Textarea
                         id="descripcion"
@@ -388,7 +420,8 @@ export function Agenda({ permissions }: AgendaProps) {
                           horaFin: "",
                           tipo: "",
                           grupo: "",
-                          materia: ""
+                          materia: "",
+                          destinatarios: [],
                         });
                       }} 
                       className="w-full sm:w-auto"

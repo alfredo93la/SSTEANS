@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AgendaEvento extends Model
 {
@@ -21,4 +22,9 @@ class AgendaEvento extends Model
         'materia',
         'tipo',
     ];
+
+    public function destinatarios(): HasMany
+    {
+        return $this->hasMany(AgendaEventoDestinatario::class);
+    }
 }
