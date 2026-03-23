@@ -839,6 +839,17 @@ export function Agenda({ permissions }: AgendaProps) {
                 </div>
               )}
 
+              <div>
+                <Label className="text-sm text-[#6B7280]">Dirigido a</Label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(eventoSeleccionado.destinatarios ?? []).map((rol, index) => (
+                    <Badge key={`${rol}-${index}`} className="bg-gray-100 text-[#6B7280] border-0">
+                      {rol}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
               {puedeCrearEventos && (
                 <div className="flex gap-2 pt-4 border-t border-gray-200">
                   <Button
