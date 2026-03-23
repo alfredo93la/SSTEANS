@@ -16,6 +16,7 @@ return [
         'Profesor' => [
             'dashboard.view',
             'agenda.view',
+            'agenda.manage',
             'circulares.view',
             'calificaciones.manage',
             'asistencia.manage',
@@ -33,6 +34,10 @@ return [
         ],
         'Administrador' => [
             'dashboard.view',
+            'agenda.view',
+            'agenda.manage',
+            'circulares.view',
+            'circulares.manage',
             'usuarios.manage',
             'usuarios.validate',
             'roles.manage',
@@ -43,7 +48,9 @@ return [
         'Personal Administrativo' => [
             'dashboard.view',
             'agenda.view',
+            'agenda.manage',
             'circulares.view',
+            'circulares.manage',
             'grupos.manage',
             'materias.manage',
             'horarios.manage',

@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Agenda\EventoController;
+use App\Http\Controllers\Circulares\CircularController;
 
 use App\Http\Controllers\Admin\RolePermissionManagementController;
 use App\Http\Controllers\Admin\UserRoleManagementController;
@@ -61,4 +63,39 @@ Route::middleware(['auth', 'verified', 'permission:usuarios.manage'])->prefix('a
     Route::get('/validar-usuarios', [UserValidationController::class, 'index'])->name('admin.validar-usuarios.index');
     Route::post('/validar-usuarios/{user}/aprobar', [UserValidationController::class, 'approve'])->name('admin.validar-usuarios.approve');
     Route::post('/validar-usuarios/{user}/rechazar', [UserValidationController::class, 'reject'])->name('admin.validar-usuarios.reject');
+});
+
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/agenda/eventos', [EventoController::class, 'index'])
+        ->middleware('permission:agenda.view')
+        ->name('agenda.eventos.index');
+
+    Route::post('/agenda/eventos', [EventoController::class, 'store'])
+        ->middleware('permission:agenda.manage')
+        ->name('agenda.eventos.store');
+
+    Route::put('/agenda/eventos/{evento}', [EventoController::class, 'update'])
+        ->middleware('permission:agenda.manage')
+        ->name('agenda.eventos.update');
+
+    Route::delete('/agenda/eventos/{evento}', [EventoController::class, 'destroy'])
+        ->middleware('permission:agenda.manage')
+        ->name('agenda.eventos.destroy');
+
+    Route::get('/circulares', [CircularController::class, 'index'])
+        ->middleware('permission:circulares.view')
+        ->name('circulares.index');
+
+    Route::post('/circulares', [CircularController::class, 'store'])
+        ->middleware('permission:circulares.manage')
+        ->name('circulares.store');
+
+    Route::put('/circulares/{circular}', [CircularController::class, 'update'])
+        ->middleware('permission:circulares.manage')
+        ->name('circulares.update');
+
+    Route::delete('/circulares/{circular}', [CircularController::class, 'destroy'])
+        ->middleware('permission:circulares.manage')
+        ->name('circulares.destroy');
 });
