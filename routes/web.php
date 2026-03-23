@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AgendaEventoController;
+use App\Http\Controllers\CircularController;
 
 use App\Http\Controllers\Admin\RolePermissionManagementController;
 use App\Http\Controllers\Admin\UserRoleManagementController;
@@ -61,4 +63,24 @@ Route::middleware(['auth', 'verified', 'permission:usuarios.manage'])->prefix('a
     Route::get('/validar-usuarios', [UserValidationController::class, 'index'])->name('admin.validar-usuarios.index');
     Route::post('/validar-usuarios/{user}/aprobar', [UserValidationController::class, 'approve'])->name('admin.validar-usuarios.approve');
     Route::post('/validar-usuarios/{user}/rechazar', [UserValidationController::class, 'reject'])->name('admin.validar-usuarios.reject');
+});
+
+Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
+    Route::get('/agenda/eventos', [AgendaEventoController::class, 'index'])
+        ->middleware('permission:agenda.view');
+    Route::post('/agenda/eventos', [AgendaEventoController::class, 'store'])
+        ->middleware('permission:agenda.manage');
+    Route::put('/agenda/eventos/{evento}', [AgendaEventoController::class, 'update'])
+        ->middleware('permission:agenda.manage');
+    Route::delete('/agenda/eventos/{evento}', [AgendaEventoController::class, 'destroy'])
+        ->middleware('permission:agenda.manage');
+
+    Route::get('/circulares', [CircularController::class, 'index'])
+        ->middleware('permission:circulares.view');
+    Route::post('/circulares', [CircularController::class, 'store'])
+        ->middleware('permission:circulares.manage');
+    Route::put('/circulares/{circular}', [CircularController::class, 'update'])
+        ->middleware('permission:circulares.manage');
+    Route::delete('/circulares/{circular}', [CircularController::class, 'destroy'])
+        ->middleware('permission:circulares.manage');
 });

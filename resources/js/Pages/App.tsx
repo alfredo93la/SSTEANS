@@ -151,7 +151,7 @@ export default function App() {
         {currentRoute === "#/dashboard/mensajeria" && <MensajeriaProfesor />}
         {currentRoute === "#/dashboard/horario" && userRole === "Profesor" && <HorarioDocente />}
 
-        {currentRoute === "#/agenda" && <Agenda userRole={userRole} />}
+        {currentRoute === "#/agenda" && <Agenda permissions={permissions} />}
         {currentRoute === "#/agenda/eventos" && <EventosAcademicos userRole={userRole} onNavigate={handleNavigate} />}
         {currentRoute === "#/agenda/examenes" && (
           <ExamenesView userRole={userRole} hijoSeleccionado={hijoSeleccionado} onNavigate={handleNavigate} />
@@ -160,7 +160,7 @@ export default function App() {
           <EntregasView userRole={userRole} hijoSeleccionado={hijoSeleccionado} onNavigate={handleNavigate} />
         )}
 
-        {currentRoute === "#/circulares" && <Circulares userRole={userRole} />}
+        {currentRoute === "#/circulares" && <Circulares permissions={permissions} />}
 
         {currentRoute === "#/trabajador-social/notificaciones" && <NotificacionesTS />}
         {currentRoute === "#/trabajador-social/reportes" && <ReportesTS />}

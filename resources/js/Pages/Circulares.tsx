@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../Components/ui/card";
 import { Button } from "../Components/ui/button";
 import { Badge } from "../Components/ui/badge";
@@ -11,13 +12,27 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
 import { Checkbox } from "../Components/ui/checkbox";
 import { FileText, Download, AlertCircle, Info, CheckCircle, Filter, Calendar, Tag, Plus, Edit, Trash2, Send, Eye } from "lucide-react";
-import { circulares as circularesData, getUsuarioById } from "../data/mockData";
+import { getUsuarioById } from "../data/mockData";
 import { PageTitle } from "../Components/PageTitle";
 import { ScrollText } from "lucide-react";
 import { toast } from "sonner";
 
 interface CircularesProps {
-  userRole: string;
+  permissions: string[];
+}
+
+interface CircularItem {
+  id: number;
+  titulo: string;
+  descripcion: string;
+  contenido: string;
+  fechaPublicacion: string;
+  prioridad: string;
+  categoria: string;
+  destinatarios: string[];
+  adjuntos: string[];
+  publicadoPor: number | null;
+  leida: boolean;
 }
 
 const prioridadColors: Record<string, { bg: string; text: string; icon: any }> = {
@@ -45,11 +60,12 @@ const circularVacia = {
   destinatarios: [] as string[],
 };
 
-export function Circulares({ userRole }: CircularesProps) {
-  const esPublicador = userRole === "Personal Administrativo";
+export function Circulares({ permissions }: CircularesProps) {
+  const esPublicador = permissions.includes("circulares.manage");
 
-  const [circulares, setCirculares] = useState(circularesData);
-  const [circularSeleccionada, setCircularSeleccionada] = useState<typeof circularesData[0] | null>(null);
+  const [circulares, setCirculares] = useState<CircularItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [circularSeleccionada, setCircularSeleccionada] = useState<CircularItem | null>(null);
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
   const [filtroPrioridad, setFiltroPrioridad] = useState<string>("todas");
   const [busqueda, setBusqueda] = useState("");
@@ -63,9 +79,23 @@ export function Circulares({ userRole }: CircularesProps) {
   // Estado de eliminar
   const [eliminarId, setEliminarId] = useState<number | null>(null);
 
+  const cargarCirculares = async () => {
+    try {
+      const { data } = await axios.get<{ circulares: CircularItem[] }>("/api/circulares");
+      setCirculares(data.circulares || []);
+    } catch (error) {
+      toast.error("No se pudieron cargar las circulares");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void cargarCirculares();
+  }, []);
+
   // Filtrar circulares según rol
   const circularesFiltradas = circulares
-    .filter(c => esPublicador ? true : c.destinatarios.includes(userRole))
     .filter(c => filtroCategoria === "todas" || c.categoria === filtroCategoria)
     .filter(c => filtroPrioridad === "todas" || c.prioridad === filtroPrioridad)
     .filter(c =>
@@ -88,7 +118,7 @@ export function Circulares({ userRole }: CircularesProps) {
     setDialogOpen(true);
   };
 
-  const abrirEditar = (circular: typeof circularesData[0], e: React.MouseEvent) => {
+  const abrirEditar = (circular: CircularItem, e: React.MouseEvent) => {
     e.stopPropagation();
     setForma({
       titulo: circular.titulo,
@@ -112,7 +142,7 @@ export function Circulares({ userRole }: CircularesProps) {
     }));
   };
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     if (!forma.titulo || !forma.descripcion || !forma.contenido || !forma.categoria || !forma.prioridad) {
       toast.error("Por favor completa todos los campos obligatorios");
       return;
@@ -122,42 +152,51 @@ export function Circulares({ userRole }: CircularesProps) {
       return;
     }
 
-    if (modoEdicion && circularEditandoId !== null) {
-      setCirculares(circulares.map(c =>
-        c.id === circularEditandoId
-          ? { ...c, ...forma }
-          : c
-      ));
-      toast.success("Circular actualizada exitosamente");
-    } else {
-      const hoy = new Date();
-      const fecha = `${String(hoy.getDate()).padStart(2, "0")}/${String(hoy.getMonth() + 1).padStart(2, "0")}/${hoy.getFullYear()}`;
-      const nueva = {
-        id: Math.max(...circulares.map(c => c.id)) + 1,
-        ...forma,
-        adjuntos: [],
-        publicadoPor: 7,
-        fechaPublicacion: fecha,
-        leida: true,
-      };
-      setCirculares([nueva, ...circulares]);
-      toast.success("Circular publicada exitosamente");
-    }
+    try {
+      if (modoEdicion && circularEditandoId !== null) {
+        await axios.put(`/api/circulares/${circularEditandoId}`, forma);
+        toast.success("Circular actualizada exitosamente");
+      } else {
+        await axios.post("/api/circulares", forma);
+        toast.success("Circular publicada exitosamente");
+      }
 
-    setDialogOpen(false);
-    setForma(circularVacia);
+      await cargarCirculares();
+      setDialogOpen(false);
+      setForma(circularVacia);
+    } catch (error) {
+      toast.error("No se pudo guardar la circular");
+    }
   };
 
-  const handleEliminar = () => {
+  const handleEliminar = async () => {
     if (eliminarId !== null) {
-      setCirculares(circulares.filter(c => c.id !== eliminarId));
-      toast.success("Circular eliminada exitosamente");
-      setEliminarId(null);
+      try {
+        await axios.delete(`/api/circulares/${eliminarId}`);
+        await cargarCirculares();
+        toast.success("Circular eliminada exitosamente");
+        setEliminarId(null);
+      } catch (error) {
+        toast.error("No se pudo eliminar la circular");
+      }
     }
   };
 
   const categorias = ["Académico", "Administrativo", "Cultural", "Seguridad", "General"];
   const prioridades = ["Alta", "Media", "Baja"];
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PageTitle
+          icon={ScrollText}
+          title="Circulares Escolares"
+          description="Documentos oficiales y avisos de la escuela"
+          color="bg-[#1D4ED8]"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">

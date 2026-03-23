@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Button } from "../Components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../Components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../Components/ui/card";
@@ -16,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PageTitle } from "../Components/PageTitle";
 
 interface AgendaProps {
-  userRole: string;
+  permissions: string[];
 }
 
 interface Evento {
@@ -31,28 +32,6 @@ interface Evento {
   tipo: string;
 }
 
-const eventosData: Evento[] = [
-  {
-    id: 3,
-    fecha: "2025-11-25",
-    titulo: "Reunión con tutores",
-    descripcion: "Junta informativa trimestral",
-    horaInicio: "10:00",
-    horaFin: "12:00",
-    grupo: "General",
-    materia: "-",
-    tipo: "Junta"
-  },
-  {
-    id: 4,
-    fecha: "2025-11-28",
-    titulo: "Día sin clases",
-    descripcion: "Suspensión de actividades por festividad",
-    grupo: "General",
-    materia: "-",
-    tipo: "Suspensión"
-  }
-];
 
 const tipoColors: Record<string, string> = {
   Examen: "bg-[#FEE2E2] text-[#E11D48] border-[#FCA5A5]",
@@ -69,8 +48,9 @@ const meses = [
 
 const diasSemana = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
-export function Agenda({ userRole }: AgendaProps) {
-  const [eventos, setEventos] = useState<Evento[]>(eventosData);
+export function Agenda({ permissions }: AgendaProps) {
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filterTipo, setFilterTipo] = useState<string>("todos");
   const [selectedDate, setSelectedDate] = useState(new Date(2025, 10, 13)); // 13 de noviembre 2025
@@ -91,7 +71,22 @@ export function Agenda({ userRole }: AgendaProps) {
     materia: ""
   });
 
-  const puedeCrearEventos = userRole === "Profesor" || userRole === "Administrador" || userRole === "Personal Administrativo";
+  const puedeCrearEventos = permissions.includes("agenda.manage");
+
+  const cargarEventos = async () => {
+    try {
+      const { data } = await axios.get<{ eventos: Evento[] }>("/api/agenda/eventos");
+      setEventos(data.eventos || []);
+    } catch (error) {
+      toast.error("No se pudieron cargar los eventos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void cargarEventos();
+  }, []);
 
   // Funciones del calendario
   const getDaysInMonth = (date: Date) => {
@@ -114,14 +109,13 @@ export function Agenda({ userRole }: AgendaProps) {
     setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + direction, 1));
   };
 
-  const handleCrearEvento = () => {
+  const handleCrearEvento = async () => {
     if (!nuevoEvento.titulo || !nuevoEvento.fecha || !nuevoEvento.tipo) {
       toast.error("Por favor completa los campos obligatorios");
       return;
     }
 
-    const evento: Evento = {
-      id: editMode && eventoSeleccionado ? eventoSeleccionado.id : eventos.length + 1,
+    const payload = {
       fecha: nuevoEvento.fecha,
       titulo: nuevoEvento.titulo,
       descripcion: nuevoEvento.descripcion,
@@ -129,29 +123,34 @@ export function Agenda({ userRole }: AgendaProps) {
       horaFin: nuevoEvento.horaFin || undefined,
       grupo: nuevoEvento.grupo || "General",
       materia: nuevoEvento.materia || "-",
-      tipo: nuevoEvento.tipo
+      tipo: nuevoEvento.tipo,
     };
 
-    if (editMode && eventoSeleccionado) {
-      setEventos(eventos.map(e => e.id === eventoSeleccionado.id ? evento : e));
-      toast.success("Evento actualizado exitosamente");
-    } else {
-      setEventos([...eventos, evento]);
-      toast.success("Evento creado exitosamente");
-    }
+    try {
+      if (editMode && eventoSeleccionado) {
+        await axios.put(`/api/agenda/eventos/${eventoSeleccionado.id}`, payload);
+        toast.success("Evento actualizado exitosamente");
+      } else {
+        await axios.post("/api/agenda/eventos", payload);
+        toast.success("Evento creado exitosamente");
+      }
 
-    setDialogOpen(false);
-    setEditMode(false);
-    setNuevoEvento({
-      titulo: "",
-      descripcion: "",
-      fecha: "",
-      horaInicio: "",
-      horaFin: "",
-      tipo: "",
-      grupo: "",
-      materia: ""
-    });
+      await cargarEventos();
+      setDialogOpen(false);
+      setEditMode(false);
+      setNuevoEvento({
+        titulo: "",
+        descripcion: "",
+        fecha: "",
+        horaInicio: "",
+        horaFin: "",
+        tipo: "",
+        grupo: "",
+        materia: ""
+      });
+    } catch (error) {
+      toast.error("No se pudo guardar el evento");
+    }
   };
 
   const handleEditarEvento = (evento: Evento) => {
@@ -171,12 +170,30 @@ export function Agenda({ userRole }: AgendaProps) {
     setEventoDetalleOpen(false);
   };
 
-  const handleEliminarEvento = (id: number) => {
-    setEventos(eventos.filter(e => e.id !== id));
-    setEventoEliminar(null);
-    setEventoDetalleOpen(false);
-    toast.success("Evento eliminado exitosamente");
+  const handleEliminarEvento = async (id: number) => {
+    try {
+      await axios.delete(`/api/agenda/eventos/${id}`);
+      await cargarEventos();
+      setEventoEliminar(null);
+      setEventoDetalleOpen(false);
+      toast.success("Evento eliminado exitosamente");
+    } catch (error) {
+      toast.error("No se pudo eliminar el evento");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PageTitle
+          icon={CalendarDays}
+          title="Agenda Escolar"
+          description="Calendario de eventos"
+          color="bg-[#1D4ED8]"
+        ></PageTitle>
+      </div>
+    );
+  }
 
   const eventosFiltrados = filterTipo === "todos" 
     ? eventos 
