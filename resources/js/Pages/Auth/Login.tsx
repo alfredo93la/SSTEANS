@@ -44,8 +44,10 @@ export default function Login() {
               </div>
             </div>
 
-            <h1 className="text-center mb-2 flex items-center gap-2">Iniciar Sesión</h1>
-            <p className="text-sm text-[#6B7280] text-center">Sistema de Seguimiento a la Trayectoria Escolar</p>
+            <h1 className="text-xl text-[#1F2937] text-center">Sistema de Seguimiento a la Trayectoria Escolar</h1>
+
+            <p className="text-center mb-2 flex items-center gap-2">Iniciar Sesión</p>
+            
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -58,12 +60,12 @@ export default function Login() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Usuario o Email</Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
                 type="text"
                 name="email"
-                placeholder="Ej. tutor@ejemplo.com"
+                placeholder="Ingresa tu correo electrónico"
                 value={data.email}
                 onChange={(e) => setData("email", e.target.value)}
                 className={`h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all ${errors.email ? 'border-red-500' : ''}`}
@@ -116,15 +118,6 @@ export default function Login() {
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
             </Button>
           </form>
-
-          <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-xs text-[#334155]">
-            <p className="font-semibold mb-1">Usuarios de prueba (Seeders)</p>
-            <p>tutor@ejemplo.com / password</p>
-            <p>profesor@ejemplo.com / password</p>
-            <p>social@ejemplo.com / password</p>
-            <p>admin@ejemplo.com / password</p>
-            <p>administrativo@ejemplo.com / password</p>
-          </div>
         </div>
 
         <p className="text-xs text-center text-[#9CA3AF] mt-6">Sistema de Seguimiento a la Trayectoria Escolar © 2026</p>
