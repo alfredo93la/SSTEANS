@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { router, usePage } from "@inertiajs/react";
+import { Head, router, usePage } from "@inertiajs/react";
 import { Toaster, toast } from "sonner";
 import { ResponsiveLayout } from "../Components/ResponsiveLayout";
 import { Dashboard } from "../Pages/Dashboard";
@@ -25,15 +25,16 @@ import { ReportesTS } from "../Components/trabajador-social/ReportesTS";
 import { AlumnosTS } from "../Components/trabajador-social/AlumnosTS";
 import { Usuarios } from "../Components/admin/Usuarios";
 import { Roles } from "../Components/admin/Roles";
-import { Grupos } from "../Components/admin/Grupos";
-import { Materias } from "../Components/admin/Materias";
-import { Horarios } from "../Components/admin/Horarios";
-import { AlumnosAdmin } from "../Components/admin/AlumnosAdmin";
-import { TutoresAdmin } from "../Components/admin/TutoresAdmin";
+import { Grupos } from "../Components/administrativo/Grupos";
+import { Materias } from "../Components/administrativo/Materias";
+import { Horarios } from "../Components/administrativo/Horarios";
+import { AlumnosAdmin } from "../Components/administrativo/AlumnosAdmin";
+import { TutoresAdmin } from "../Components/administrativo/TutoresAdmin";
 import { CiclosEscolares } from "../Components/admin/CiclosEscolares";
 import { PeriodosEvaluacion } from "../Components/admin/PeriodosEvaluacion";
 import { ConfiguracionGeneral } from "../Components/admin/ConfiguracionGeneral";
 import { ValidarUsuarios } from "../Components/admin/ValidarUsuarios";
+import { MyProfile } from "../Components/profile/MyProfile";
 import type { PageProps } from "../types";
 import { canAccessRoute, getDefaultRoute } from "../data/auth";
 
@@ -103,12 +104,46 @@ export default function App() {
     router.post(route("logout"));
   };
 
+  const pageTitles: Record<string, string> = {
+    "#/dashboard": "Inicio",
+    "#/dashboard/calificaciones": "Calificaciones",
+    "#/dashboard/tareas": "Tareas",
+    "#/dashboard/asistencia": "Asistencia",
+    "#/dashboard/reportes": "Reportes",
+    "#/dashboard/notificaciones": "Notificaciones",
+    "#/dashboard/horario": "Horario",
+    "#/dashboard/asignar-tarea": "Asignar Tarea",
+    "#/dashboard/gestionar-tareas": "Gestionar Tareas",
+    "#/dashboard/mensajeria": "Mensajería",
+    "#/agenda": "Agenda",
+    "#/agenda/eventos": "Eventos Académicos",
+    "#/agenda/examenes": "Exámenes",
+    "#/agenda/entregas": "Entregas",
+    "#/circulares": "Circulares",
+    "#/perfil": "Mi Perfil",
+    "#/trabajador-social/notificaciones": "Notificaciones",
+    "#/trabajador-social/reportes": "Reportes",
+    "#/trabajador-social/alumnos": "Alumnos",
+    "#/admin/usuarios": "Usuarios",
+    "#/admin/roles": "Roles",
+    "#/administrativo/grupos": "Grupos",
+    "#/administrativo/materias": "Materias",
+    "#/administrativo/horarios": "Horarios",
+    "#/administrativo/alumnos": "Alumnos",
+    "#/administrativo/tutores": "Tutores",
+    "#/admin/ciclos": "Ciclos Escolares",
+    "#/admin/periodos": "Períodos de Evaluación",
+    "#/admin/configuracion": "Configuración",
+    "#/admin/validar-usuarios": "Validar Usuarios",
+  };
+
   if (!user) {
     return null;
   }
 
   return (
     <>
+      <Head title={pageTitles[currentRoute] ?? "Inicio"} />
       <ResponsiveLayout
         currentRoute={currentRoute}
         onNavigate={handleNavigate}
@@ -161,6 +196,7 @@ export default function App() {
         )}
 
         {currentRoute === "#/circulares" && <Circulares permissions={permissions} />}
+        {currentRoute === "#/perfil" && <MyProfile user={user} />}
 
         {currentRoute === "#/trabajador-social/notificaciones" && <NotificacionesTS />}
         {currentRoute === "#/trabajador-social/reportes" && <ReportesTS />}
@@ -168,11 +204,11 @@ export default function App() {
 
         {currentRoute === "#/admin/usuarios" && <Usuarios />}
         {currentRoute === "#/admin/roles" && <Roles />}
-        {currentRoute === "#/admin/grupos" && <Grupos />}
-        {currentRoute === "#/admin/materias" && <Materias />}
-        {currentRoute === "#/admin/horarios" && <Horarios />}
-        {currentRoute === "#/admin/alumnos" && <AlumnosAdmin />}
-        {currentRoute === "#/admin/tutores" && <TutoresAdmin />}
+        {currentRoute === "#/administrativo/grupos" && <Grupos />}
+        {currentRoute === "#/administrativo/materias" && <Materias />}
+        {currentRoute === "#/administrativo/horarios" && <Horarios />}
+        {currentRoute === "#/administrativo/alumnos" && <AlumnosAdmin userRole={userRole} />}
+        {currentRoute === "#/administrativo/tutores" && <TutoresAdmin />}
         {currentRoute === "#/admin/ciclos" && <CiclosEscolares />}
         {currentRoute === "#/admin/periodos" && <PeriodosEvaluacion />}
         {currentRoute === "#/admin/configuracion" && <ConfiguracionGeneral />}

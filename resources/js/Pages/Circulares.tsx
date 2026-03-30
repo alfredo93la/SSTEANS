@@ -190,7 +190,7 @@ export function Circulares({ permissions }: CircularesProps) {
       <div className="space-y-6 animate-fade-in">
         <PageTitle
           icon={ScrollText}
-          title="Circulares Escolares"
+          title="Circulares"
           description="Documentos oficiales y avisos de la escuela"
           color="bg-[#1D4ED8]"
         />
@@ -202,7 +202,7 @@ export function Circulares({ permissions }: CircularesProps) {
     <div className="space-y-6 animate-fade-in">
       <PageTitle
         icon={ScrollText}
-        title="Circulares Escolares"
+        title="Circulares"
         description={
           esPublicador
             ? "Publica y administra las circulares oficiales de la institución"

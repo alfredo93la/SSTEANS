@@ -8,6 +8,7 @@ import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { toast } from "sonner";
 import { Send, Mail, Users, User, AlertCircle, X } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { grupos, alumnos, usuarios } from "../../data/mockData";
 
 export function MensajeriaProfesor() {
@@ -76,13 +77,7 @@ export function MensajeriaProfesor() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h2 className="text-[#111827]">Enviar Notificación</h2>
-        <p className="text-sm text-[#6B7280] mt-1">
-          Comunícate con tutores o grupos de alumnos
-        </p>
-      </div>
+      <PageTitle icon={Send} title="Enviar Notificación" description="Comunícate con tutores o grupos de alumnos" color="bg-[#1D4ED8]" />
 
       {/* Formulario */}
       <Card className="border-[#E5E7EB]">

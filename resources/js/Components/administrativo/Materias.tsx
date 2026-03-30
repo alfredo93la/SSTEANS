@@ -5,9 +5,10 @@ import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import { 
-  BookOpen, 
-  Search, 
+import { PageTitle } from "../PageTitle";
+import {
+  BookOpen,
+  Search,
   Filter,
   Eye,
   Edit,
@@ -181,14 +182,7 @@ export function Materias() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[#111827]">Gestión de Materias</h1>
-          <p className="text-sm text-[#6B7280] mt-1">
-            Administra el catálogo de materias del plan de estudios
-          </p>
-        </div>
+      <PageTitle icon={BookOpen} title="Gestión de Materias" description="Administra el catálogo de materias del plan de estudios" color="bg-[#059669]">
         <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
           <DialogTrigger asChild>
             <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
@@ -303,7 +297,7 @@ export function Materias() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+      </PageTitle>
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -7,6 +7,7 @@ import { Textarea } from "../ui/textarea";
 import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { School, BookOpen, Settings2, CheckCircle } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { toast } from "sonner";
 
 export function ConfiguracionGeneral() {
@@ -37,12 +38,7 @@ export function ConfiguracionGeneral() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1>Configuración General</h1>
-        <p className="text-sm text-[#6B7280] mt-1">
-          Datos del plantel, parámetros académicos y ajustes del sistema
-        </p>
-      </div>
+      <PageTitle icon={Settings2} title="Configuración General" description="Datos del plantel, parámetros académicos y ajustes del sistema" color="bg-[#1D4ED8]" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Datos del plantel */}

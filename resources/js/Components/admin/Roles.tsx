@@ -6,6 +6,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Shield, Edit, Eye, Plus, CheckCircle, Settings, Loader2 } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../ui/dialog";
 import { Checkbox } from "../ui/checkbox";
 import { toast } from "sonner";
@@ -161,12 +162,7 @@ export function Roles() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[#111827]">Roles y Permisos</h1>
-          <p className="text-sm text-[#6B7280] mt-1">Configura los roles y sus permisos en el sistema</p>
-        </div>
-
+      <PageTitle icon={Shield} title="Roles y Permisos" description="Configura los roles y sus permisos en el sistema" color="bg-[#7C3AED]">
         <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
           <DialogTrigger asChild>
             <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
@@ -230,7 +226,7 @@ export function Roles() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+      </PageTitle>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Total Roles</p><p className="text-2xl font-bold text-[#7C3AED] mt-1">{roles.length}</p></div><div className="p-3 bg-purple-100 rounded-xl"><Shield className="h-6 w-6 text-[#7C3AED]" /></div></div></CardContent></Card>

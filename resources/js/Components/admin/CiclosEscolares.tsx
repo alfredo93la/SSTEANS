@@ -6,6 +6,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Plus, CalendarRange, CheckCircle, Lock, Trash2 } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { toast } from "sonner";
 import { ciclosEscolares } from "../../data/mockData";
 
@@ -52,12 +53,7 @@ export function CiclosEscolares() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1>Ciclos Escolares</h1>
-        <p className="text-sm text-[#6B7280] mt-1">
-          Gestiona los ciclos escolares del plantel
-        </p>
-      </div>
+      <PageTitle icon={CalendarRange} title="Ciclos Escolares" description="Gestiona los ciclos escolares del plantel" color="bg-[#1D4ED8]" />
 
       {/* Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

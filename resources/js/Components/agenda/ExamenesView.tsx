@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { FileText, Clock, BookOpen, Plus, Search, Filter, Award } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { examenes, getMateriaById, getGrupoById, alumnos } from "../../data/mockData";
 
 interface ExamenesViewProps {
@@ -68,24 +69,14 @@ export function ExamenesView({ userRole, hijoSeleccionado, onNavigate }: Examene
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[#111827] flex items-center gap-2">
-            <FileText className="h-6 w-6 text-[#E11D48]" />
-            Exámenes Programados
-          </h1>
-          <p className="text-sm text-[#6B7280] mt-1">
-            Calendario de evaluaciones y exámenes
-          </p>
-        </div>
+      <PageTitle icon={FileText} title="Exámenes Programados" description="Calendario de evaluaciones y exámenes" color="bg-[#E11D48]">
         {userRole === "Profesor" && (
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
             Programar Examen
           </Button>
         )}
-      </div>
+      </PageTitle>
 
       {/* Estadísticas rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

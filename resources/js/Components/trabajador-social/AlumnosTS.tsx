@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { PageTitle } from "../PageTitle";
 
 interface AlumnosTSProps {
   onNavigate?: (route: string) => void;
@@ -162,15 +163,7 @@ export function AlumnosTS({ onNavigate }: AlumnosTSProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[#111827]">Gestión de Alumnos</h1>
-          <p className="text-sm text-[#6B7280] mt-1">
-            Consulta información y expedientes de alumnos por grupo
-          </p>
-        </div>
-      </div>
+      <PageTitle icon={Users} title="Gestión de Alumnos" description="Consulta información y expedientes de alumnos por grupo" color="bg-[#1D4ED8]" />
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

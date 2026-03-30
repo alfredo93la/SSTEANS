@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Clock, MapPin, Users, BookOpen, Calendar } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { horarios, grupos, materias } from "../../data/mockData";
 
 export function HorarioDocente() {
@@ -52,11 +53,7 @@ export function HorarioDocente() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h2 className="text-[#111827]">Mi Horario</h2>
-        <p className="text-sm text-[#6B7280] mt-1">Horario semanal de todas tus clases</p>
-      </div>
+      <PageTitle icon={Clock} title="Mi Horario" description="Horario semanal de todas tus clases" color="bg-[#7C3AED]" />
 
       {/* Estadísticas */}
       <Card className="border-[#E5E7EB] bg-gradient-to-br from-purple-50 to-blue-50">

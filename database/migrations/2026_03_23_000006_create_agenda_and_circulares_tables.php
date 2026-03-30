@@ -18,8 +18,6 @@ return new class extends Migration
             $table->text('descripcion')->nullable();
             $table->time('hora_inicio')->nullable();
             $table->time('hora_fin')->nullable();
-            $table->string('grupo')->default('General');
-            $table->string('materia')->default('-');
             $table->string('tipo');
             $table->timestamps();
         });

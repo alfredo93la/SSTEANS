@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { ClipboardList, Calendar, BookOpen, Plus, Search, Filter, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { tareas, getMateriaById, getGrupoById, alumnos } from "../../data/mockData";
 
 interface EntregasViewProps {
@@ -96,23 +97,14 @@ export function EntregasView({ userRole, hijoSeleccionado, onNavigate }: Entrega
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[#111827] flex items-center gap-2">
-            <ClipboardList className="h-6 w-6 text-[#1D4ED8]" />
-            Entregas de Tareas
-          </h1>
-          <p className="text-sm text-[#6B7280] mt-1">
-            Seguimiento de tareas y trabajos pendientes
-          </p>
-        </div>
+      <PageTitle icon={ClipboardList} title="Entregas de Tareas" description="Seguimiento de tareas y trabajos pendientes" color="bg-[#1D4ED8]">
         {userRole === "Profesor" && (
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
             Nueva Tarea
           </Button>
         )}
-      </div>
+      </PageTitle>
 
       {/* Estadísticas rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

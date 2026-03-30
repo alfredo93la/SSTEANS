@@ -21,6 +21,7 @@ import {
   X
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../ui/dialog";
+import { PageTitle } from "../PageTitle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
@@ -162,14 +163,7 @@ export function ReportesTS() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[#111827]">Reportes de Conducta</h1>
-          <p className="text-sm text-[#6B7280] mt-1">
-            Gestiona y da seguimiento a los reportes de alumnos
-          </p>
-        </div>
+      <PageTitle icon={AlertTriangle} title="Reportes de Conducta" description="Gestiona y da seguimiento a los reportes de alumnos" color="bg-[#E11D48]">
         <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
           <DialogTrigger asChild>
             <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
@@ -331,7 +325,7 @@ export function ReportesTS() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+      </PageTitle>
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

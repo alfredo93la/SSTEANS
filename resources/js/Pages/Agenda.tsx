@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Button } from "../Components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../Components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../Components/ui/card";
 import { Badge } from "../Components/ui/badge";
 import { ResponsiveTable } from "../Components/ResponsiveTable";
@@ -28,8 +27,6 @@ interface Evento {
   descripcion?: string;
   horaInicio?: string;
   horaFin?: string;
-  grupo: string;
-  materia: string;
   tipo: string;
   destinatarios: string[];
 }
@@ -71,8 +68,6 @@ export function Agenda({ permissions }: AgendaProps) {
     horaInicio: "",
     horaFin: "",
     tipo: "",
-    grupo: "",
-    materia: "",
     destinatarios: [] as string[],
   });
 
@@ -136,8 +131,6 @@ export function Agenda({ permissions }: AgendaProps) {
       descripcion: nuevoEvento.descripcion,
       horaInicio: nuevoEvento.horaInicio || undefined,
       horaFin: nuevoEvento.horaFin || undefined,
-      grupo: nuevoEvento.grupo || "General",
-      materia: nuevoEvento.materia || "-",
       tipo: nuevoEvento.tipo,
       destinatarios: nuevoEvento.destinatarios,
     };
@@ -161,8 +154,6 @@ export function Agenda({ permissions }: AgendaProps) {
         horaInicio: "",
         horaFin: "",
         tipo: "",
-        grupo: "",
-        materia: "",
         destinatarios: [],
       });
     } catch (error) {
@@ -178,8 +169,6 @@ export function Agenda({ permissions }: AgendaProps) {
       horaInicio: evento.horaInicio || "",
       horaFin: evento.horaFin || "",
       tipo: evento.tipo,
-      grupo: evento.grupo,
-      materia: evento.materia,
       destinatarios: evento.destinatarios ?? [],
     });
     setEventoSeleccionado(evento);
@@ -366,26 +355,6 @@ export function Agenda({ permissions }: AgendaProps) {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="grupo">Grupo</Label>
-                      <Input
-                        id="grupo"
-                        placeholder="Ej: 1°A, 2°B, General"
-                        value={nuevoEvento.grupo}
-                        onChange={(e) => setNuevoEvento({ ...nuevoEvento, grupo: e.target.value })}
-                        className="rounded-lg"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="materia">Materia</Label>
-                      <Input
-                        id="materia"
-                        placeholder="Nombre de la materia"
-                        value={nuevoEvento.materia}
-                        onChange={(e) => setNuevoEvento({ ...nuevoEvento, materia: e.target.value })}
-                        className="rounded-lg"
-                      />
-                    </div>
-                    <div className="space-y-2">
                       <Label>Destinatarios *</Label>
                       <div className="grid grid-cols-1 gap-2 rounded-lg border p-3">
                         {ROLES_DESTINATARIOS.map((rol) => (
@@ -430,8 +399,6 @@ export function Agenda({ permissions }: AgendaProps) {
                           horaInicio: "",
                           horaFin: "",
                           tipo: "",
-                          grupo: "",
-                          materia: "",
                           destinatarios: [],
                         });
                       }} 
@@ -648,7 +615,6 @@ export function Agenda({ permissions }: AgendaProps) {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-[#111827]">{evento.titulo}</h4>
-                        <p className="text-sm text-[#6B7280] mt-1">{evento.grupo} • {evento.materia}</p>
                       </div>
                       <Badge className={tipoColors[evento.tipo]}>
                         {evento.tipo}
@@ -816,16 +782,6 @@ export function Agenda({ permissions }: AgendaProps) {
                       {eventoSeleccionado.horaInicio}
                       {eventoSeleccionado.horaFin && ` - ${eventoSeleccionado.horaFin}`}
                     </span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-sm">
-                  <Users className="h-4 w-4 text-[#059669]" />
-                  <span className="text-[#6B7280]">{eventoSeleccionado.grupo}</span>
-                </div>
-                {eventoSeleccionado.materia !== "-" && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-[#D97706]" />
-                    <span className="text-[#6B7280]">{eventoSeleccionado.materia}</span>
                   </div>
                 )}
               </div>

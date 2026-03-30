@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { CalendarDays, Clock, MapPin, Users, Plus, Search, Filter } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { eventosAcademicos } from "../../data/mockData";
 
 interface EventosAcademicosProps {
@@ -46,24 +47,14 @@ export function EventosAcademicos({ userRole, onNavigate }: EventosAcademicosPro
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[#111827] flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-[#7C3AED]" />
-            Eventos Académicos
-          </h1>
-          <p className="text-sm text-[#6B7280] mt-1">
-            Reuniones, juntas y eventos escolares programados
-          </p>
-        </div>
+      <PageTitle icon={CalendarDays} title="Eventos Académicos" description="Reuniones, juntas y eventos escolares programados" color="bg-[#7C3AED]">
         {(userRole === "Administrador" || userRole === "Trabajador Social") && (
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
             Nuevo Evento
           </Button>
         )}
-      </div>
+      </PageTitle>
 
       {/* Filtros y búsqueda */}
       <Card className="border-[#E5E7EB]">

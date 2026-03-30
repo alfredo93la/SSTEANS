@@ -6,6 +6,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Users, Search, Filter, Eye, Edit, Plus, UserCog, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../ui/dialog";
+import { PageTitle } from "../PageTitle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { toast } from "sonner";
 
@@ -114,11 +115,7 @@ export function Usuarios() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[#111827]">Gestión de Usuarios</h1>
-          <p className="text-sm text-[#6B7280] mt-1">Administra los usuarios y sus permisos del sistema</p>
-        </div>
+      <PageTitle icon={Users} title="Gestión de Usuarios" description="Administra los usuarios y sus permisos del sistema" color="bg-[#1D4ED8]">
         <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
           <DialogTrigger asChild>
             <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]"><Plus className="h-4 w-4 mr-2" />Nuevo Usuario</Button>
@@ -135,7 +132,7 @@ export function Usuarios() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+      </PageTitle>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Total Usuarios</p><p className="text-2xl font-bold">{estadisticas.total}</p></div><div className="p-2.5 rounded-xl bg-indigo-100"><Users className="h-5 w-5 text-indigo-600" /></div></div></CardContent></Card>

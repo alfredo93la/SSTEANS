@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { toast } from "sonner";
 import { FileText, Calendar, BookOpen, Users, Save, X } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { grupos, materias } from "../../data/mockData";
 
 export function AsignarTarea() {
@@ -83,11 +84,7 @@ export function AsignarTarea() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h2 className="text-[#111827]">Asignar Tarea</h2>
-        <p className="text-sm text-[#6B7280] mt-1">Crea una nueva tarea para tus grupos</p>
-      </div>
+      <PageTitle icon={FileText} title="Asignar Tarea" description="Crea una nueva tarea para tus grupos" color="bg-[#D97706]" />
 
       {/* Formulario */}
       <Card className="border-[#E5E7EB]">

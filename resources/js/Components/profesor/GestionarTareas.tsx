@@ -9,6 +9,7 @@ import { Textarea } from "../ui/textarea";
 import { Label } from "../ui/label";
 import { toast } from "sonner";
 import { FileText, Calendar, Edit, Trash2, Users, CheckCircle, Clock } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { tareas as tareasIniciales, getMateriaById, grupos } from "../../data/mockData";
 
 export function GestionarTareas() {
@@ -100,12 +101,7 @@ export function GestionarTareas() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-[#111827]">Gestionar Tareas</h2>
-          <p className="text-sm text-[#6B7280] mt-1">Administra las tareas asignadas a tus grupos</p>
-        </div>
+      <PageTitle icon={FileText} title="Gestionar Tareas" description="Administra las tareas asignadas a tus grupos" color="bg-[#D97706]">
         <div className="sm:w-64">
           <Select value={filtroGrupo} onValueChange={setFiltroGrupo}>
             <SelectTrigger className="rounded-lg">
@@ -121,7 +117,7 @@ export function GestionarTareas() {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </PageTitle>
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -1,5 +1,5 @@
 import { FormEventHandler } from "react";
-import { useForm } from "@inertiajs/react";
+import { Head, useForm } from "@inertiajs/react";
 import { Button } from "../../Components/ui/button";
 import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
@@ -23,6 +23,8 @@ export default function Login() {
   };
 
   return (
+    <>
+    <Head title="Iniciar Sesión" />
     <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#EFF6FF] to-[#F5F3FF] flex items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200/30 rounded-full blur-3xl" />
@@ -44,9 +46,9 @@ export default function Login() {
               </div>
             </div>
 
-            <h1 className="text-xl text-[#1F2937] text-center">Sistema de Seguimiento a la Trayectoria Escolar</h1>
-
-            <p className="text-center mb-2 flex items-center gap-2">Iniciar Sesión</p>
+            <h1 className="text-xl font-semibold text-[#1F2937] text-center">Sistema de Seguimiento a la Trayectoria Escolar</h1>
+            <br />
+            <p className="text-lg text-center mb-2 flex items-center gap-2">Iniciar Sesión</p>
             
           </div>
 
@@ -123,5 +125,6 @@ export default function Login() {
         <p className="text-xs text-center text-[#9CA3AF] mt-6">Sistema de Seguimiento a la Trayectoria Escolar © 2026</p>
       </div>
     </div>
+    </>
   );
 }

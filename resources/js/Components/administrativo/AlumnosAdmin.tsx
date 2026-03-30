@@ -20,9 +20,14 @@ import {
   MapPin
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../ui/dialog";
+import { PageTitle } from "../PageTitle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
-export function AlumnosAdmin() {
+interface AlumnosAdminProps {
+  userRole?: string;
+}
+
+export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
   const [busqueda, setBusqueda] = useState("");
   const [filtroGrado, setFiltroGrado] = useState("todos");
   const [filtroGrupo, setFiltroGrupo] = useState("todos");
@@ -168,14 +173,7 @@ export function AlumnosAdmin() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[#111827]">Gestión de Alumnos</h1>
-          <p className="text-sm text-[#6B7280] mt-1">
-            Administra el catálogo completo de alumnos
-          </p>
-        </div>
+      <PageTitle icon={GraduationCap} title="Gestión de Alumnos" description="Administra el catálogo completo de alumnos" color="bg-[#1D4ED8]">
         <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
           <DialogTrigger asChild>
             <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
@@ -320,7 +318,7 @@ export function AlumnosAdmin() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+      </PageTitle>
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -503,23 +501,27 @@ export function AlumnosAdmin() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="sm"
                       onClick={() => verDetalle(alumno)}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {userRole === "Administrador" && (
+                      <>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -615,10 +617,12 @@ export function AlumnosAdmin() {
                 <Button variant="outline" onClick={() => setModalDetalle(false)}>
                   Cerrar
                 </Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar Alumno
-                </Button>
+                {userRole === "Administrador" && (
+                  <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar Alumno
+                  </Button>
+                )}
               </div>
             </div>
           )}

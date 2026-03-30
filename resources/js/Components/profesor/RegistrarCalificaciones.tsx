@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
 import { Save, AlertCircle, CheckCircle } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { alumnos, grupos, materias, calificaciones as calificacionesIniciales } from "../../data/mockData";
 
 export function RegistrarCalificaciones() {
@@ -99,11 +100,7 @@ export function RegistrarCalificaciones() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h2 className="text-[#111827]">Registrar Calificaciones</h2>
-        <p className="text-sm text-[#6B7280] mt-1">Captura las evaluaciones de tus alumnos</p>
-      </div>
+      <PageTitle icon={Save} title="Registrar Calificaciones" description="Captura las evaluaciones de tus alumnos" color="bg-[#059669]" />
 
       {/* Selectores */}
       <Card className="border-[#E5E7EB]">

@@ -32,8 +32,8 @@ const getMenuItems = (userRole: string): MenuItem[] => {
           { id: "calificaciones", label: "Calificaciones", icon: GraduationCap, route: "#/dashboard/calificaciones", roles: ["Tutor"] },
           { id: "tareas", label: "Tareas", icon: ClipboardList, route: "#/dashboard/tareas", roles: ["Tutor"] },
           { id: "asistencia", label: "Asistencia", icon: CheckCircle2, route: "#/dashboard/asistencia", roles: ["Tutor"] },
-          { id: "reportes", label: "Reportes", icon: AlertTriangle, route: "#/dashboard/reportes", roles: ["Tutor"] },
           { id: "notificaciones", label: "Notificaciones", icon: Bell, route: "#/dashboard/notificaciones", roles: ["Tutor"] },
+          { id: "reportes", label: "Reportes", icon: AlertTriangle, route: "#/dashboard/reportes", roles: ["Tutor"] },
           { id: "horario", label: "Horario", icon: CalendarDays, route: "#/dashboard/horario", roles: ["Tutor"] },
           { id: "agenda", label: "Agenda Escolar", icon: CalendarCheck, route: "#/agenda", roles: ["Tutor"] },
           { id: "circulares", label: "Circulares", icon: FileText, route: "#/circulares", roles: ["Tutor"] }
@@ -64,17 +64,15 @@ const getMenuItems = (userRole: string): MenuItem[] => {
     // Menú para Personal Administrativo
     ...(userRole === "Personal Administrativo" ? [
           { id: "general", label: "Inicio", icon: Home, route: "#/dashboard", roles: ["Personal Administrativo"] },
-          { 
-            id: "gestion-escolar", 
-            label: "Gestión Escolar", 
-            icon: Building2, 
+          {
+            id: "gestion-escolar",
+            label: "Gestión Escolar",
+            icon: Building2,
             roles: ["Personal Administrativo"],
             subItems: [
-              { id: "grupos", label: "Grupos", icon: Users, route: "#/admin/grupos" },
-              { id: "materias", label: "Materias", icon: BookMarked, route: "#/admin/materias" },
-              { id: "horarios", label: "Horarios", icon: Clock, route: "#/admin/horarios" },
-              { id: "alumnos", label: "Alumnos", icon: GraduationCap, route: "#/admin/alumnos" },
-              { id: "tutores", label: "Tutores", icon: Users, route: "#/admin/tutores" }
+              { id: "alumnos", label: "Alumnos", icon: GraduationCap, route: "#/administrativo/alumnos" },
+              { id: "tutores", label: "Tutores", icon: Users, route: "#/administrativo/tutores" },
+              { id: "horarios", label: "Horarios", icon: Clock, route: "#/administrativo/horarios" },
             ]
           },
           { id: "agenda", label: "Agenda Escolar", icon: CalendarCheck, route: "#/agenda", roles: ["Personal Administrativo"] },
@@ -103,6 +101,17 @@ const getMenuItems = (userRole: string): MenuItem[] => {
             subItems: [
               { id: "ciclos", label: "Ciclos Escolares", icon: CalendarRange, route: "#/admin/ciclos" },
               { id: "periodos", label: "Periodos de Evaluación", icon: BookKey, route: "#/admin/periodos" },
+            ]
+          },
+          {
+            id: "catalogos-escolares",
+            label: "Catálogos Escolares",
+            icon: BookMarked,
+            roles: ["Administrador"],
+            subItems: [
+              { id: "materias", label: "Materias", icon: BookMarked, route: "#/administrativo/materias" },
+              { id: "grupos", label: "Grupos", icon: Users, route: "#/administrativo/grupos" },
+              { id: "alumnos", label: "Alumnos", icon: GraduationCap, route: "#/administrativo/alumnos" },
             ]
           },
           {

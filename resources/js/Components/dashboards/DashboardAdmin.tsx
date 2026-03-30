@@ -61,7 +61,7 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Banner de bienvenida */}
-      <Card className="border-[#E5E7EB] bg-gradient-to-br from-red-50 to-purple-50 border-red-200">
+      <Card className="bg-gradient-to-br from-red-50 to-purple-50 border-red-200">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">

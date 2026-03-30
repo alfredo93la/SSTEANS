@@ -13,7 +13,7 @@ const navItems = [
   { id: "circulares", label: "Circulares", icon: FileText, route: "#/circulares", roles: ["Tutor", "Profesor", "Trabajador Social", "Personal Administrativo"] },
   { id: "social", label: "Social", icon: Bell, route: "#/trabajador-social/notificaciones", roles: ["Trabajador Social"] },
   { id: "admin", label: "Admin", icon: Settings, route: "#/admin/usuarios", roles: ["Administrador"] },
-  { id: "control", label: "Escolar", icon: Settings, route: "#/admin/grupos", roles: ["Personal Administrativo"] },
+  { id: "control", label: "Escolar", icon: Settings, route: "#/administrativo/grupos", roles: ["Personal Administrativo"] },
 ];
 
 export function BottomNav({ currentRoute, onNavigate, userRole }: BottomNavProps) {

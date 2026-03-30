@@ -7,6 +7,7 @@ import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
 import { Save, CheckCircle2, XCircle, Clock, Calendar } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { alumnos, grupos, materias, asistencias as asistenciasIniciales } from "../../data/mockData";
 
 type EstadoAsistencia = "Presente" | "Falta" | "Retardo";
@@ -106,11 +107,7 @@ export function ControlAsistencia() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h2 className="text-[#111827]">Control de Asistencia por Materia</h2>
-        <p className="text-sm text-[#6B7280] mt-1">Registra la asistencia de tus alumnos por clase</p>
-      </div>
+      <PageTitle icon={Calendar} title="Control de Asistencia por Materia" description="Registra la asistencia de tus alumnos por clase" color="bg-[#059669]" />
 
       {/* Selectores */}
       <Card className="border-[#E5E7EB]">

@@ -39,6 +39,9 @@ return [
             'ciclos.manage',
             'periodos.manage',
             'configuracion.manage',
+            'grupos.manage',
+            'materias.manage',
+            'alumnos.manage',
         ],
         'Personal Administrativo' => [
             'dashboard.view',
@@ -46,8 +49,6 @@ return [
             'agenda.manage',
             'circulares.view',
             'circulares.manage',
-            'grupos.manage',
-            'materias.manage',
             'horarios.manage',
             'alumnos.manage',
             'tutores.manage',

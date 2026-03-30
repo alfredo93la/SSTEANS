@@ -18,8 +18,6 @@ class AgendaEvento extends Model
         'descripcion',
         'hora_inicio',
         'hora_fin',
-        'grupo',
-        'materia',
         'tipo',
     ];
 

@@ -4,6 +4,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { UserCheck, Search, CheckCircle, XCircle, Clock, Eye, Filter } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Label } from "../ui/label";
@@ -116,10 +117,7 @@ export function ValidarUsuarios() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1>Validar Usuarios</h1>
-        <p className="text-sm text-[#6B7280] mt-1">Revisa y aprueba las solicitudes de acceso al sistema</p>
-      </div>
+      <PageTitle icon={UserCheck} title="Validar Usuarios" description="Revisa y aprueba las solicitudes de acceso al sistema" color="bg-[#D97706]" />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-[#E5E7EB]"><CardContent className="pt-5"><div className="flex items-center justify-between"><div><p className="text-xs text-[#6B7280]">Pendientes</p><p className="text-2xl font-bold text-[#D97706] mt-1">{pendientes}</p></div><div className="p-2.5 rounded-xl bg-amber-100"><Clock className="h-5 w-5 text-amber-600" /></div></div></CardContent></Card>

@@ -54,7 +54,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Banner de bienvenida */}
-      <Card className="border-[#E5E7EB] bg-gradient-to-br from-amber-50 to-blue-50 border-amber-200">
+      <Card className="bg-gradient-to-br from-amber-50 to-blue-50 border-amber-200">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -81,14 +81,14 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
               <Button 
                 variant="outline"
                 className="rounded-lg border-amber-200 text-[#D97706] hover:bg-amber-50"
-                onClick={() => onNavigate("#/admin/tutores")}
+                onClick={() => onNavigate("#/administrativo/tutores")}
               >
                 <Link2 className="h-4 w-4 mr-2" />
                 Vincular Tutor-Alumno
               </Button>
               <Button 
                 className="bg-[#1D4ED8] hover:bg-[#1E40AF] rounded-lg"
-                onClick={() => onNavigate("#/admin/alumnos")}
+                onClick={() => onNavigate("#/administrativo/alumnos")}
               >
                 <GraduationCap className="h-4 w-4 mr-2" />
                 Registrar Alumno
@@ -102,7 +102,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card 
           className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
-          onClick={() => onNavigate("#/admin/alumnos")}
+          onClick={() => onNavigate("#/administrativo/alumnos")}
         >
           <CardContent className="pt-6">
             <div className="flex items-start justify-between mb-4">
@@ -126,7 +126,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
 
         <Card 
           className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
-          onClick={() => onNavigate("#/admin/grupos")}
+          onClick={() => onNavigate("#/administrativo/grupos")}
         >
           <CardContent className="pt-6">
             <div className="flex items-start justify-between mb-4">
@@ -144,7 +144,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
 
         <Card 
           className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
-          onClick={() => onNavigate("#/admin/materias")}
+          onClick={() => onNavigate("#/administrativo/materias")}
         >
           <CardContent className="pt-6">
             <div className="flex items-start justify-between mb-4">
@@ -162,7 +162,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
 
         <Card 
           className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
-          onClick={() => onNavigate("#/admin/tutores")}
+          onClick={() => onNavigate("#/administrativo/tutores")}
         >
           <CardContent className="pt-6">
             <div className="flex items-start justify-between mb-4">
@@ -196,7 +196,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
                 variant="outline" 
                 size="sm" 
                 className="rounded-lg"
-                onClick={() => onNavigate("#/admin/grupos")}
+                onClick={() => onNavigate("#/administrativo/grupos")}
               >
                 Ver todos
               </Button>
@@ -294,7 +294,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
               <Button
                 variant="outline"
                 className="h-auto flex-col gap-2 py-4 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-all"
-                onClick={() => onNavigate("#/admin/alumnos")}
+                onClick={() => onNavigate("#/administrativo/alumnos")}
               >
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <GraduationCap className="h-5 w-5 text-[#1D4ED8]" />
@@ -304,7 +304,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
               <Button
                 variant="outline"
                 className="h-auto flex-col gap-2 py-4 rounded-xl hover:bg-purple-50 hover:border-purple-200 transition-all"
-                onClick={() => onNavigate("#/admin/grupos")}
+                onClick={() => onNavigate("#/administrativo/grupos")}
               >
                 <div className="p-2 bg-purple-100 rounded-lg">
                   <Users className="h-5 w-5 text-[#7C3AED]" />
@@ -314,7 +314,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
               <Button
                 variant="outline"
                 className="h-auto flex-col gap-2 py-4 rounded-xl hover:bg-green-50 hover:border-green-200 transition-all"
-                onClick={() => onNavigate("#/admin/materias")}
+                onClick={() => onNavigate("#/administrativo/materias")}
               >
                 <div className="p-2 bg-green-100 rounded-lg">
                   <BookMarked className="h-5 w-5 text-[#059669]" />
@@ -324,7 +324,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
               <Button
                 variant="outline"
                 className="h-auto flex-col gap-2 py-4 rounded-xl hover:bg-indigo-50 hover:border-indigo-200 transition-all"
-                onClick={() => onNavigate("#/admin/horarios")}
+                onClick={() => onNavigate("#/administrativo/horarios")}
               >
                 <div className="p-2 bg-indigo-100 rounded-lg">
                   <Clock className="h-5 w-5 text-indigo-600" />
@@ -334,7 +334,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
               <Button
                 variant="outline"
                 className="h-auto flex-col gap-2 py-4 rounded-xl hover:bg-amber-50 hover:border-amber-200 transition-all"
-                onClick={() => onNavigate("#/admin/tutores")}
+                onClick={() => onNavigate("#/administrativo/tutores")}
               >
                 <div className="p-2 bg-amber-100 rounded-lg">
                   <Link2 className="h-5 w-5 text-[#D97706]" />

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Plus, BookKey, Pencil, Trash2 } from "lucide-react";
+import { PageTitle } from "../PageTitle";
 import { toast } from "sonner";
 import { ciclosEscolares } from "../../data/mockData";
 
@@ -85,12 +86,7 @@ export function PeriodosEvaluacion() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1>Periodos de Evaluación</h1>
-        <p className="text-sm text-[#6B7280] mt-1">
-          Gestiona parciales y calificación final por ciclo escolar
-        </p>
-      </div>
+      <PageTitle icon={BookKey} title="Periodos de Evaluación" description="Gestiona parciales y calificación final por ciclo escolar" color="bg-[#D97706]" />
 
       {/* Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

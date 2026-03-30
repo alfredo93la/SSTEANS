@@ -4,9 +4,10 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { 
-  Users, 
-  Search, 
+import { PageTitle } from "../PageTitle";
+import {
+  Users,
+  Search,
   Filter,
   Eye,
   Edit,
@@ -125,14 +126,7 @@ export function TutoresAdmin() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[#111827]">Gestión de Tutores</h1>
-          <p className="text-sm text-[#6B7280] mt-1">
-            Administra los tutores y su vinculación con alumnos
-          </p>
-        </div>
+      <PageTitle icon={Users} title="Gestión de Tutores" description="Administra los tutores y su vinculación con alumnos" color="bg-[#7C3AED]">
         <div className="flex gap-2">
           <Button 
             variant="outline"
@@ -219,7 +213,7 @@ export function TutoresAdmin() {
             </DialogContent>
           </Dialog>
         </div>
-      </div>
+      </PageTitle>
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
