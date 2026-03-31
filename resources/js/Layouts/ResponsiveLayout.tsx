@@ -1,4 +1,5 @@
 import { ReactNode, useState } from "react";
+import { usePage } from "@inertiajs/react";
 import { Menu, X, Bell, User, ChevronDown, Users, IdCard, LogOut } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
@@ -60,6 +61,7 @@ export function ResponsiveLayout({
   hijoSeleccionado,
   onHijoChange,
 }: ResponsiveLayoutProps) {
+  const { escuela } = usePage().props as { escuela: { nombre: string; numero: string } };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -97,11 +99,15 @@ export function ResponsiveLayout({
             </button>
 
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] shadow-lg sm:h-10 sm:w-10">
-                <span className="text-sm font-bold text-white sm:text-base">SE</span>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] shadow-lg sm:h-10 sm:w-10">
+                <span className="text-sm font-bold text-white sm:text-base">ESC</span>
               </div>
               <div className="hidden md:block">
-                <h1 className="text-base font-semibold text-[#111827]">Escuela Secundaria No. X "Nombre"</h1>
+                <h1 className="text-base font-semibold text-[#111827]">
+                  {escuela?.nombre
+                    ? `Escuela Secundaria${escuela.numero ? ` No. ${escuela.numero}` : ""} "${escuela.nombre}"`
+                    : "Escuela Secundaria"}
+                </h1>
                 <p className="text-xs text-[#6B7280]">Sistema de Seguimiento a la Trayectoria Escolar</p>
               </div>
             </div>

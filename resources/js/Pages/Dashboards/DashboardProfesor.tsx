@@ -21,7 +21,7 @@ import { ControlAsistencia } from "../Profesor/ControlAsistencia";
 import { AsignarTarea } from "../Profesor/AsignarTarea";
 import { GestionarTareas } from "../Profesor/GestionarTareas";
 import { MensajeriaProfesor } from "../Profesor/MensajeriaProfesor";
-import { HorarioDocente } from "../Profesor/HorarioDocente";
+import { HorarioDocente } from "../Profesor/HorarioProfesor";
 
 interface DashboardProfesorProps {
   onNavigate: (route: string) => void;

@@ -18,7 +18,7 @@ import { RegistrarCalificaciones } from "./Profesor/RegistrarCalificaciones";
 import { ControlAsistencia } from "./Profesor/ControlAsistencia";
 import { AsignarTarea } from "./Profesor/AsignarTarea";
 import { GestionarTareas } from "./Profesor/GestionarTareas";
-import { HorarioDocente } from "./Profesor/HorarioDocente";
+import { HorarioDocente } from "./Profesor/HorarioProfesor";
 import { Notificaciones } from "./Notificaciones";
 import { ReportesTS } from "./TrabSocial/ReportesTS";
 import { AlumnosTS } from "./TrabSocial/AlumnosTS";

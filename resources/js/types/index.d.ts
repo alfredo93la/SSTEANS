@@ -34,5 +34,9 @@ export type PageProps<
     auth: {
         user: User | null;
     };
+    escuela: {
+        nombre: string;
+        numero: string;
+    };
     ziggy: Config & { location: string };
 };

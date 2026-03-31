@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\ConfiguracionEscuela;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Middleware;
@@ -81,6 +82,7 @@ class HandleInertiaRequests extends Middleware
                     ]
                     : null,
             ],
+            'escuela' => fn () => ConfiguracionEscuela::first()?->only('nombre', 'numero') ?? ['nombre' => '', 'numero' => ''],
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),

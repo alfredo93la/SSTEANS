@@ -47,6 +47,7 @@ const getMenuItems = (userRole: string): MenuItem[] => {
       { id: "asignar-tarea", label: "Asignar Tarea", icon: ClipboardList, route: "#/dashboard/asignar-tarea", roles: ["Profesor"] },
       { id: "gestionar-tareas", label: "Gestionar Tareas", icon: FileText, route: "#/dashboard/gestionar-tareas", roles: ["Profesor"] },
       { id: "notificaciones", label: "Notificaciones", icon: Bell, route: "#/notificaciones", roles: ["Profesor"] },
+      { id: "horario", label: "Horario", icon: CalendarDays, route: "#/dashboard/horario", roles: ["Profesor"] },
       { id: "agenda", label: "Agenda Escolar", icon: CalendarCheck, route: "#/agenda", roles: ["Profesor"] },
       { id: "circulares", label: "Circulares", icon: FileText, route: "#/circulares", roles: ["Profesor"] }
     ] : []),
