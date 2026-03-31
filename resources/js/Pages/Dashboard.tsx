@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../Components/ui/card";
 import { Button } from "../Components/ui/button";
-import { Calendar, BookOpen, MessageSquare } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { Badge } from "../Components/ui/badge";
 import { ChecklistOnboarding } from "../Components/ChecklistOnboarding";
 import { DashboardTutor } from "./Dashboards/DashboardTutor";
