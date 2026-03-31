@@ -7,7 +7,7 @@ import { Button } from "../../Components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { CheckCircle2, XCircle, Clock, Calendar, TrendingUp, BookOpen } from "lucide-react";
 import { asistencias, materias, getMateriaById } from "../../data/mockData";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 
 interface AsistenciaTutorProps {
   alumnoId: number;
@@ -159,7 +159,7 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
 
       {/* Estadísticas generales */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-blue-50 to-blue-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -173,7 +173,7 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-green-50 to-green-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -187,7 +187,7 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-amber-50 to-amber-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -201,7 +201,7 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-red-50 to-red-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-red-50 to-red-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -217,11 +217,11 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
       </div>
 
       {/* Resumen de porcentaje */}
-      <Card className="border-[#E5E7EB] bg-gradient-to-br from-purple-50 to-blue-50">
+      <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-blue-50">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="flex-shrink-0">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] flex items-center justify-center">
+            <div className="shrink-0">
+              <div className="w-24 h-24 rounded-full bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] flex items-center justify-center">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-white">{porcentajeAsistencia}%</p>
                   <p className="text-xs text-white/80">Asistencia</p>

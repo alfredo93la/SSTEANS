@@ -46,7 +46,7 @@ export function KPI({ label, value, icon: Icon, variant = "default", trend }: KP
       style={{ boxShadow: "var(--shadow-card)" }}
     >
       {/* Gradiente de fondo sutil */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50/30 pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-br from-white to-gray-50/30 pointer-events-none" />
       
       <div className="relative">
         <div className="flex items-start justify-between mb-3">

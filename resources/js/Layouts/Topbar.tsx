@@ -1,7 +1,7 @@
-import { Badge } from "./ui/badge";
+import { Badge } from "../Components/ui/badge";
 import { Bell, GraduationCap, Users } from "lucide-react";
-import { Button } from "./ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Button } from "../Components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
 import { alumnos } from "../data/mockData";
 
 interface TopbarProps {
@@ -23,11 +23,11 @@ export function Topbar({ userName, userRole, hijoSeleccionado, onHijoChange }: T
           className="flex items-center justify-center w-10 h-10 rounded-xl relative overflow-hidden group"
           style={{ background: "var(--gradient-primary)" }}
         >
-          <span className="text-white font-semibold text-sm relative z-10">SE</span>
+          <span className="text-white font-semibold text-sm relative z-10">Escudo</span>
           <GraduationCap className="absolute top-0.5 right-0.5 w-2.5 h-2.5 text-white/40" />
           <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
-        <span className="font-semibold text-[#111827] bg-gradient-to-r from-[#111827] to-[#6B7280] bg-clip-text">
+        <span className="font-semibold text-[#111827] bg-linear-to-r from-[#111827] to-[#6B7280] bg-clip-text">
           Sistema de Seguimiento a la Trayectoria Escolar
         </span>
       </div>
@@ -35,13 +35,13 @@ export function Topbar({ userName, userRole, hijoSeleccionado, onHijoChange }: T
       <div className="flex items-center gap-4">
         {/* Selector de hijo para Tutores */}
         {userRole === "Tutor" && hijos.length > 0 && onHijoChange && (
-          <div className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200/50">
+          <div className="flex items-center gap-3 px-4 py-2 bg-linear-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200/50">
             <Users className="h-4 w-4 text-[#7C3AED]" />
             <Select 
               value={hijoSeleccionado?.toString() || hijos[0].id.toString()}
               onValueChange={(value) => onHijoChange(parseInt(value))}
             >
-              <SelectTrigger className="h-8 border-0 bg-transparent focus:ring-0 focus:ring-offset-0 min-w-[140px]">
+              <SelectTrigger className="h-8 border-0 bg-transparent focus:ring-0 focus:ring-offset-0 min-w-35">
                 <SelectValue>
                   <span className="font-medium text-[#111827]">
                     {hijoActual?.nombre || hijos[0].nombre}
@@ -79,7 +79,7 @@ export function Topbar({ userName, userRole, hijoSeleccionado, onHijoChange }: T
             <p className="text-sm font-medium text-[#111827]">{userName}</p>
             <Badge 
               variant="secondary" 
-              className="mt-0.5 bg-gradient-to-r from-[#F3F4F6] to-[#E5E7EB] text-[#6B7280] text-xs h-5 border-0"
+              className="mt-0.5 bg-linear-to-r from-[#F3F4F6] to-[#E5E7EB] text-[#6B7280] text-xs h-5 border-0"
             >
               {userRole}
             </Badge>

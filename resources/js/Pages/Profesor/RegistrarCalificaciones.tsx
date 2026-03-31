@@ -7,7 +7,7 @@ import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { toast } from "sonner";
 import { Save, AlertCircle, CheckCircle } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { alumnos, grupos, materias, calificaciones as calificacionesIniciales } from "../../data/mockData";
 
 export function RegistrarCalificaciones() {

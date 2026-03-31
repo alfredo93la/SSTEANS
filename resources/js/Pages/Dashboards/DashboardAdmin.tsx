@@ -61,7 +61,7 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Banner de bienvenida */}
-      <Card className="bg-gradient-to-br from-red-50 to-purple-50 border-red-200">
+      <Card className="bg-linear-to-br from-red-50 to-purple-50 border-red-200">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -227,9 +227,9 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
                   actividad.tipo === "warning" ? "bg-amber-100 border-amber-200" :
                   "bg-blue-100 border-blue-200";
                 const tipoIcon = 
-                  actividad.tipo === "success" ? <CheckCircle2 className="h-3.5 w-3.5 text-[#059669] flex-shrink-0 mt-0.5" /> :
-                  actividad.tipo === "warning" ? <AlertTriangle className="h-3.5 w-3.5 text-[#D97706] flex-shrink-0 mt-0.5" /> :
-                  <Activity className="h-3.5 w-3.5 text-[#1D4ED8] flex-shrink-0 mt-0.5" />;
+                  actividad.tipo === "success" ? <CheckCircle2 className="h-3.5 w-3.5 text-[#059669] shrink-0 mt-0.5" /> :
+                  actividad.tipo === "warning" ? <AlertTriangle className="h-3.5 w-3.5 text-[#D97706] shrink-0 mt-0.5" /> :
+                  <Activity className="h-3.5 w-3.5 text-[#1D4ED8] shrink-0 mt-0.5" />;
 
                 return (
                   <div key={idx} className={`p-3 rounded-lg border ${tipoColor}`}>
@@ -279,7 +279,7 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
             <div className="space-y-3">
               {permisosResumen.map((permiso, idx) => (
                 <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                  <div className="flex items-center gap-2 w-44 flex-shrink-0">
+                  <div className="flex items-center gap-2 w-44 shrink-0">
                     <Lock className="h-4 w-4 text-[#1D4ED8]" />
                     <span className="font-medium text-[#111827] text-sm">{permiso.modulo}</span>
                   </div>
@@ -290,7 +290,7 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
                       </Badge>
                     ))}
                   </div>
-                  <CheckCircle2 className="h-4 w-4 text-[#059669] flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-4 w-4 text-[#059669] shrink-0 mt-0.5" />
                 </div>
               ))}
             </div>
@@ -316,10 +316,10 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
                 >
                   <div className="flex items-start gap-2">
                     {item.urgente && (
-                      <div className="w-2 h-2 bg-[#E11D48] rounded-full mt-1.5 flex-shrink-0" />
+                      <div className="w-2 h-2 bg-[#E11D48] rounded-full mt-1.5 shrink-0" />
                     )}
                     {!item.urgente && (
-                      <div className="w-2 h-2 bg-[#9CA3AF] rounded-full mt-1.5 flex-shrink-0" />
+                      <div className="w-2 h-2 bg-[#9CA3AF] rounded-full mt-1.5 shrink-0" />
                     )}
                     <p className="text-sm text-[#111827]">{item.tarea}</p>
                   </div>

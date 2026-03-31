@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../Components/ui/ca
 import { Button } from "../../Components/ui/button";
 import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { Clock, Edit, Plus, Trash2, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";

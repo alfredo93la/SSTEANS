@@ -5,7 +5,7 @@ import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import {
   Users,
   Search,

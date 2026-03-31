@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../Components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
-import { PageTitle } from "../Components/PageTitle";
+import { PageTitle } from "../Layouts/PageTitle";
 
 export function Notificaciones() {
   const [busqueda, setBusqueda] = useState("");
@@ -99,7 +99,7 @@ export function Notificaciones() {
       <PageTitle icon={Bell} title="Notificaciones" description="Gestiona las notificaciones enviadas a tutores y alumnos" color="bg-[#059669]">
         <Dialog open={modalEnviar} onOpenChange={setModalEnviar}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               <Send className="h-4 w-4 mr-2" />
               Nueva Notificación
             </Button>
@@ -173,7 +173,7 @@ export function Notificaciones() {
                 <Button variant="outline" onClick={() => setModalEnviar(false)}>
                   Cancelar
                 </Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+                <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
                   <Send className="h-4 w-4 mr-2" />
                   Enviar Notificación
                 </Button>

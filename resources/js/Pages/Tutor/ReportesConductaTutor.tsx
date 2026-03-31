@@ -5,7 +5,7 @@ import { Button } from "../../Components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../Components/ui/dialog";
 import { AlertTriangle, FileText, User, Calendar, AlertCircle, CheckCircle } from "lucide-react";
 import { reportesConducta, getUsuarioById } from "../../data/mockData";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 
 interface ReportesConductaTutorProps {
   alumnoId: number;
@@ -64,7 +64,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-blue-50 to-blue-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -78,7 +78,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-amber-50 to-amber-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -92,7 +92,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-green-50 to-green-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -109,7 +109,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
 
       {/* Mensaje si no hay reportes */}
       {reportesAlumno.length === 0 ? (
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-green-50 to-emerald-50">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-emerald-50">
           <CardContent className="py-12 text-center">
             <CheckCircle className="h-16 w-16 text-[#059669] mx-auto mb-4" />
             <h3 className="font-semibold text-[#111827] text-lg mb-2">¡Excelente comportamiento!</h3>
@@ -128,7 +128,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                 <CardContent className="pt-6">
                   <div className="flex flex-col sm:flex-row gap-4">
                     {/* Indicador visual */}
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                         reporte.estatus === "Cerrado" ? "bg-green-100" : "bg-red-100"
                       }`}>

@@ -8,7 +8,7 @@ import { Label } from "../../Components/ui/label";
 import { RadioGroup, RadioGroupItem } from "../../Components/ui/radio-group";
 import { toast } from "sonner";
 import { Send, Mail, Users, User, AlertCircle, X } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { grupos, alumnos, usuarios } from "../../data/mockData";
 
 export function MensajeriaProfesor() {
@@ -282,7 +282,7 @@ export function MensajeriaProfesor() {
       <Card className="border-[#E5E7EB] bg-blue-50">
         <CardContent className="pt-6">
           <div className="flex gap-3">
-            <AlertCircle className="h-5 w-5 text-[#1D4ED8] flex-shrink-0 mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-[#1D4ED8] shrink-0 mt-0.5" />
             <div className="space-y-2 text-sm text-[#1D4ED8]">
               <p className="font-medium">Consejos para enviar notificaciones:</p>
               <ul className="list-disc list-inside space-y-1 text-[#6B7280]">

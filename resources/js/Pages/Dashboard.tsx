@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../Co
 import { Button } from "../Components/ui/button";
 import { Calendar } from "lucide-react";
 import { Badge } from "../Components/ui/badge";
-import { ChecklistOnboarding } from "../Components/ChecklistOnboarding";
+import { ChecklistOnboarding } from "../Layouts/ChecklistOnboarding";
 import { DashboardTutor } from "./Dashboards/DashboardTutor";
 import { DashboardProfesor } from "./Dashboards/DashboardProfesor";
 import { DashboardTrabajadorSocial } from "./Dashboards/DashboardTrabajadorSocial";
@@ -61,8 +61,8 @@ export function Dashboard({ onNavigate, userRole, hijoSeleccionado, onHijoChange
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Título */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-100/50">
-        <h1 className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED] bg-clip-text text-transparent">Inicio</h1>
+      <div className="bg-linear-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-100/50">
+        <h1 className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED] bg-clip-text text-transparent">Inicio</h1>
         <p className="text-sm text-[#6B7280] mt-2">
           Bienvenido al Sistema de Seguimiento a la Trayectoria Escolar
         </p>
@@ -86,7 +86,7 @@ export function Dashboard({ onNavigate, userRole, hijoSeleccionado, onHijoChange
                 onClick={() => onNavigate(modulo.route)}
               >
                 {/* Gradiente de fondo al hover */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-purple-50/0 group-hover:from-blue-50/50 group-hover:to-purple-50/50 transition-all duration-300" />
+                <div className="absolute inset-0 bg-linear-to-br from-blue-50/0 to-purple-50/0 group-hover:from-blue-50/50 group-hover:to-purple-50/50 transition-all duration-300" />
                 
                 <CardHeader className="relative z-10">
                   <div className={`w-14 h-14 rounded-2xl ${modulo.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200 shadow-lg`}>

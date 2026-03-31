@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
-import { Card } from "./ui/card";
-import { cn } from "./ui/utils";
+import { Card } from "../Components/ui/card";
+import { cn } from "../Components/ui/utils";
 
 interface Column {
   key: string;

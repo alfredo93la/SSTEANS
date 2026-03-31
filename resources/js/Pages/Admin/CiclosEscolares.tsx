@@ -7,7 +7,7 @@ import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../../Components/ui/dialog";
 import { Plus, CalendarRange, CheckCircle, Lock, Trash2, Loader2 } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { toast } from "sonner";
 
 interface Ciclo {

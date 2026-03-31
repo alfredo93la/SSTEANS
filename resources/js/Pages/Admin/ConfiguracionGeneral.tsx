@@ -8,7 +8,7 @@ import { Textarea } from "../../Components/ui/textarea";
 import { Switch } from "../../Components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { School, Settings2, CheckCircle, Loader2 } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { toast } from "sonner";
 
 interface Config {

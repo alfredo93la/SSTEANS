@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { CalendarDays, Clock, MapPin, Users, Plus, Search, Filter } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { eventosAcademicos } from "../../data/mockData";
 
 interface EventosAcademicosProps {

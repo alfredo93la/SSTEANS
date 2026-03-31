@@ -7,7 +7,7 @@ import { Progress } from "../../Components/ui/progress";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { TrendingUp, TrendingDown, Minus, GraduationCap } from "lucide-react";
 import { calificaciones, materias, getMateriaById } from "../../data/mockData";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 
 interface CalificacionesTutorProps {
   alumnoId: number;
@@ -82,11 +82,11 @@ export function CalificacionesTutor({ alumnoId }: CalificacionesTutorProps) {
       </PageTitle>
 
       {/* Resumen general */}
-      <Card className="border-[#E5E7EB] bg-gradient-to-br from-blue-50 to-purple-50">
+      <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-purple-50">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="flex-shrink-0">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] flex items-center justify-center">
+            <div className="shrink-0">
+              <div className="w-24 h-24 rounded-full bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] flex items-center justify-center">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-white">{promedio.toFixed(1)}</p>
                   <p className="text-xs text-white/80">Promedio</p>

@@ -9,7 +9,7 @@ import { Textarea } from "../../Components/ui/textarea";
 import { Label } from "../../Components/ui/label";
 import { toast } from "sonner";
 import { FileText, Calendar, Edit, Trash2, Users, CheckCircle, Clock } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { tareas as tareasIniciales, getMateriaById, grupos } from "../../data/mockData";
 
 export function GestionarTareas() {
@@ -121,7 +121,7 @@ export function GestionarTareas() {
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-blue-50 to-blue-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-sm text-[#6B7280]">Total de Tareas</p>
@@ -130,7 +130,7 @@ export function GestionarTareas() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-green-50 to-green-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-sm text-[#6B7280]">Activas</p>
@@ -141,7 +141,7 @@ export function GestionarTareas() {
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-gray-50 to-gray-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-gray-50 to-gray-100">
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-sm text-[#6B7280]">Vencidas</p>
@@ -179,7 +179,7 @@ export function GestionarTareas() {
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div className="flex-1">
                         <div className="flex items-start gap-3 mb-2">
-                          <FileText className="h-5 w-5 text-[#7C3AED] mt-1 flex-shrink-0" />
+                          <FileText className="h-5 w-5 text-[#7C3AED] mt-1 shrink-0" />
                           <div className="flex-1">
                             <h3 className="font-semibold text-[#111827] text-lg">{tarea.titulo}</h3>
                             <p className="text-sm text-[#6B7280] mt-1">{tarea.descripcion}</p>

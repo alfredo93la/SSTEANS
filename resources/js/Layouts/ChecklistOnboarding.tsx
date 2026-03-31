@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../Components/ui/card";
+import { Button } from "../Components/ui/button";
 import { CheckCircle2, Circle, X } from "lucide-react";
-import { cn } from "./ui/utils";
+import { cn } from "../Components/ui/utils";
 
 interface ChecklistItem {
   id: string;
@@ -57,8 +57,8 @@ export function ChecklistOnboarding({ userRole, onNavigate }: ChecklistOnboardin
   }
 
   return (
-    <Card className="border-[#7C3AED] bg-gradient-to-br from-purple-50 to-white relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-200/30 to-transparent rounded-bl-full" />
+    <Card className="border-[#7C3AED] bg-linear-to-br from-purple-50 to-white relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-purple-200/30 to-transparent rounded-bl-full" />
       
       <CardHeader className="relative">
         <div className="flex items-start justify-between">
@@ -71,13 +71,13 @@ export function ChecklistOnboarding({ userRole, onNavigate }: ChecklistOnboardin
               Completa estas acciones para familiarizarte con el sistema
             </p>
           </div>
-          <button
+          <Button
             onClick={() => setIsDismissed(true)}
             className="p-1 hover:bg-purple-100 rounded-lg transition-colors"
             aria-label="Cerrar"
           >
             <X className="h-4 w-4 text-gray-400" />
-          </button>
+          </Button>
         </div>
       </CardHeader>
 
@@ -86,7 +86,7 @@ export function ChecklistOnboarding({ userRole, onNavigate }: ChecklistOnboardin
           {filteredItems.map((item) => {
             const isCompleted = completedItems.has(item.id);
             return (
-              <button
+              <Button
                 key={item.id}
                 onClick={() => handleItemClick(item)}
                 className={cn(
@@ -97,9 +97,9 @@ export function ChecklistOnboarding({ userRole, onNavigate }: ChecklistOnboardin
                 )}
               >
                 {isCompleted ? (
-                  <CheckCircle2 className="h-5 w-5 text-[#059669] flex-shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 text-[#059669] shrink-0" />
                 ) : (
-                  <Circle className="h-5 w-5 text-[#7C3AED] flex-shrink-0" />
+                  <Circle className="h-5 w-5 text-[#7C3AED] shrink-0" />
                 )}
                 <span
                   className={cn(
@@ -109,7 +109,7 @@ export function ChecklistOnboarding({ userRole, onNavigate }: ChecklistOnboardin
                 >
                   {item.label}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>

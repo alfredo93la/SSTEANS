@@ -7,7 +7,7 @@ import { Button } from "../../Components/ui/button";
 import { Label } from "../../Components/ui/label";
 import { toast } from "sonner";
 import { FileText, Calendar, BookOpen, Users, Save, X } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { grupos, materias } from "../../data/mockData";
 
 export function AsignarTarea() {
@@ -213,7 +213,7 @@ export function AsignarTarea() {
 
             {/* Vista previa */}
             {titulo && descripcion && grupoSeleccionado && materiaSeleccionada && fechaEntrega && (
-              <Card className="border-[#E5E7EB] bg-gradient-to-br from-blue-50 to-purple-50">
+              <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-purple-50">
                 <CardHeader>
                   <CardTitle className="text-sm">Vista Previa</CardTitle>
                 </CardHeader>
@@ -271,7 +271,7 @@ export function AsignarTarea() {
       <Card className="border-[#E5E7EB] bg-blue-50">
         <CardContent className="pt-6">
           <div className="flex gap-3">
-            <FileText className="h-5 w-5 text-[#1D4ED8] flex-shrink-0 mt-0.5" />
+            <FileText className="h-5 w-5 text-[#1D4ED8] shrink-0 mt-0.5" />
             <div className="space-y-2 text-sm text-[#1D4ED8]">
               <p className="font-medium">Consejos para asignar tareas:</p>
               <ul className="list-disc list-inside space-y-1 text-[#6B7280]">

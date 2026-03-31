@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../Components/ui/tabs";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 
 interface AlumnosTSProps {
   onNavigate?: (route: string) => void;
@@ -242,7 +242,7 @@ export function AlumnosTS({ onNavigate }: AlumnosTSProps) {
                   }`}
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#7C3AED] to-[#1D4ED8] rounded-lg flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 bg-linear-to-br from-[#7C3AED] to-[#1D4ED8] rounded-lg flex items-center justify-center text-white font-bold">
                     {grupo.nombre.split('°')[0]}
                   </div>
                   {grupo.conReportes > 0 && (
@@ -332,7 +332,7 @@ export function AlumnosTS({ onNavigate }: AlumnosTSProps) {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
-                      <div className="w-12 h-12 bg-gradient-to-br from-[#7C3AED] to-[#1D4ED8] rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0">
+                      <div className="w-12 h-12 bg-linear-to-br from-[#7C3AED] to-[#1D4ED8] rounded-lg flex items-center justify-center text-white font-bold shrink-0">
                         {alumno.nombre.split(' ')[0][0]}{alumno.nombre.split(' ')[1][0]}
                       </div>
                       <div className="flex-1">

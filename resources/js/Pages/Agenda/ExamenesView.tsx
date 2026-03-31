@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { FileText, Clock, BookOpen, Plus, Search, Filter, Award } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { examenes, getMateriaById, getGrupoById, alumnos } from "../../data/mockData";
 
 interface ExamenesViewProps {

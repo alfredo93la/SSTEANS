@@ -6,7 +6,7 @@ import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { Textarea } from "../../Components/ui/textarea";
 import { Shield, Edit, Eye, Plus, CheckCircle, Settings, Loader2 } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../../Components/ui/dialog";
 import { Checkbox } from "../../Components/ui/checkbox";
 import { toast } from "sonner";

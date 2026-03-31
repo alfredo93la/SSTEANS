@@ -21,7 +21,7 @@ import {
   X
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../../Components/ui/dialog";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../Components/ui/tabs";
 
@@ -166,7 +166,7 @@ export function ReportesTS() {
       <PageTitle icon={AlertTriangle} title="Reportes de Conducta" description="Gestiona y da seguimiento a los reportes de alumnos" color="bg-[#E11D48]">
         <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Reporte
             </Button>
@@ -318,7 +318,7 @@ export function ReportesTS() {
                 <Button variant="outline" onClick={() => setModalNuevo(false)}>
                   Cancelar
                 </Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+                <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
                   Crear Reporte
                 </Button>
               </div>
@@ -550,7 +550,7 @@ export function ReportesTS() {
                 <Button variant="outline" onClick={() => setModalDetalle(false)}>
                   Cerrar
                 </Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+                <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
                   Editar Reporte
                 </Button>
               </div>

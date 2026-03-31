@@ -58,7 +58,7 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Banner de bienvenida */}
-      <Card className="border-[#E5E7EB] bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
+      <Card className="bg-linear-to-br from-purple-50 to-blue-50 border-purple-200">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -153,9 +153,9 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
               {sesionesHoy.map((sesion, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-br from-gray-50 to-white border border-[#E5E7EB] hover:shadow-md transition-all"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-linear-to-br from-gray-50 to-white border border-[#E5E7EB] hover:shadow-md transition-all"
                 >
-                  <div className="flex-shrink-0 w-16 text-center">
+                  <div className="shrink-0 w-16 text-center">
                     <p className="text-xs text-[#6B7280]">Hora</p>
                     <p className="text-sm font-semibold text-[#111827]">{sesion.hora.split(' - ')[0]}</p>
                   </div>
@@ -246,10 +246,10 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
                 <button
                   key={grupo.id}
                   onClick={() => setTabActiva("horario")}
-                  className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 hover:shadow-lg transition-all text-left"
+                  className="p-4 rounded-xl bg-linear-to-br from-purple-50 to-blue-50 border border-purple-200 hover:shadow-lg transition-all text-left"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#7C3AED] to-[#1D4ED8] rounded-lg flex items-center justify-center text-white font-bold">
+                    <div className="w-10 h-10 bg-linear-to-br from-[#7C3AED] to-[#1D4ED8] rounded-lg flex items-center justify-center text-white font-bold">
                       {grupo.nombre.split('°')[0]}
                     </div>
                     <TrendingUp className="h-5 w-5 text-[#059669]" />
@@ -285,7 +285,7 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
                 >
                   <div className="flex items-start gap-2">
                     {item.urgente && (
-                      <AlertCircle className="h-4 w-4 text-[#E11D48] flex-shrink-0 mt-0.5" />
+                      <AlertCircle className="h-4 w-4 text-[#E11D48] shrink-0 mt-0.5" />
                     )}
                     <div className="flex-1">
                       <p className="text-xs font-medium text-[#7C3AED]">{item.tipo}</p>

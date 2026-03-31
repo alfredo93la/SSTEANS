@@ -1,5 +1,5 @@
-import { Skeleton } from "./ui/skeleton";
-import { Card, CardContent, CardHeader } from "./ui/card";
+import { Skeleton } from "../Components/ui/skeleton";
+import { Card, CardContent, CardHeader } from "../Components/ui/card";
 
 interface TableSkeletonProps {
   rows?: number;

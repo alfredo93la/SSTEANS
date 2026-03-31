@@ -3,7 +3,7 @@ import axios from "axios";
 import { Button } from "../Components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../Components/ui/card";
 import { Badge } from "../Components/ui/badge";
-import { ResponsiveTable } from "../Components/ResponsiveTable";
+import { ResponsiveTable } from "../Layouts/ResponsiveTable";
 import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Users, Edit2, Trash2, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../Components/ui/dialog";
 import { Input } from "../Components/ui/input";
@@ -14,7 +14,7 @@ import { Checkbox } from "../Components/ui/checkbox";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../Components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
-import { PageTitle } from "../Components/PageTitle";
+import { PageTitle } from "../Layouts/PageTitle";
 
 interface AgendaProps {
   permissions: string[];
@@ -382,7 +382,7 @@ export function Agenda({ permissions }: AgendaProps) {
                         placeholder="Detalles adicionales del evento..."
                         value={nuevoEvento.descripcion}
                         onChange={(e) => setNuevoEvento({ ...nuevoEvento, descripcion: e.target.value })}
-                        className="rounded-lg min-h-[80px]"
+                        className="rounded-lg min-h-20"
                       />
                     </div>
                   </div>
@@ -495,7 +495,7 @@ export function Agenda({ permissions }: AgendaProps) {
                     onClick={() => seleccionarDia(dia)}
                     className={`aspect-square p-2 rounded-lg text-sm transition-all hover:shadow-md ${
                       esHoy
-                        ? "bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] text-white font-bold"
+                        ? "bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] text-white font-bold"
                         : eventosDelDia.length > 0
                         ? "bg-blue-50 border border-blue-200 hover:bg-blue-100"
                         : "hover:bg-gray-50"
@@ -536,7 +536,7 @@ export function Agenda({ permissions }: AgendaProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-150 overflow-y-auto pr-2">
               {eventosOrdenados.slice(0, 10).map((evento) => (
                 <button
                   key={evento.id}
@@ -547,7 +547,7 @@ export function Agenda({ permissions }: AgendaProps) {
                   className="w-full text-left p-3 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all bg-white"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col items-center justify-center">
+                    <div className="shrink-0 w-12 h-12 rounded-lg bg-linear-to-br from-blue-100 to-purple-100 flex flex-col items-center justify-center">
                       <span className="text-xs text-[#6B7280]">
                         {formatearFecha(evento.fecha).split('/')[1]}
                       </span>
@@ -704,7 +704,7 @@ export function Agenda({ permissions }: AgendaProps) {
                       onClick={() => seleccionarDia(dia)}
                       className={`aspect-square p-1 rounded-lg text-xs transition-all ${
                         esHoy
-                          ? "bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] text-white font-bold"
+                          ? "bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] text-white font-bold"
                           : eventosDelDia.length > 0
                           ? "bg-blue-50 border border-blue-200"
                           : "hover:bg-gray-50"
@@ -770,7 +770,7 @@ export function Agenda({ permissions }: AgendaProps) {
                 {eventoSeleccionado.tipo}
               </Badge>
               
-              <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl space-y-3">
+              <div className="p-4 bg-linear-to-br from-blue-50 to-purple-50 rounded-xl space-y-3">
                 <div className="flex items-center gap-2 text-sm">
                   <CalendarIcon className="h-4 w-4 text-[#1D4ED8]" />
                   <span className="font-medium text-[#111827]">{formatearFecha(eventoSeleccionado.fecha)}</span>

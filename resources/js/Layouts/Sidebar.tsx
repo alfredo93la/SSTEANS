@@ -1,5 +1,5 @@
 import { Home, Calendar, BookOpen, MessageSquare, Settings, ChevronRight, ChevronDown, CalendarDays, FileText, ClipboardList, CalendarCheck, GraduationCap, CheckCircle2, AlertTriangle, Bell, Users, UserCog, Building2, BookMarked, Clock, CalendarRange, BookKey, Settings2, UserCheck } from "lucide-react";
-import { cn } from "./ui/utils";
+import { cn } from "../Components/ui/utils";
 import { useState } from "react";
 
 interface SidebarProps {
@@ -75,7 +75,6 @@ const getMenuItems = (userRole: string): MenuItem[] => {
     ...(userRole === "Administrador" ? [
       { id: "general", label: "Inicio", icon: Home, route: "#/dashboard", roles: ["Administrador"] },
       { id: "usuarios", label: "Usuarios", icon: Users, route: "#/admin/usuarios", roles: ["Administrador"] },
-      { id: "validar-usuarios", label: "Validar Usuarios", icon: UserCheck, route: "#/admin/validar-usuarios", roles: ["Administrador"] },
       { id: "roles", label: "Roles y Permisos", icon: Settings, route: "#/admin/roles", roles: ["Administrador"] },
       { id: "materias", label: "Materias", icon: BookMarked, route: "#/administrativo/materias", roles: ["Administrador"] },
       { id: "grupos", label: "Grupos", icon: Users, route: "#/administrativo/grupos", roles: ["Administrador"] },
@@ -115,7 +114,7 @@ export function Sidebar({ currentRoute, onNavigate, userRole }: SidebarProps) {
   };
 
   return (
-    <aside className="w-64 bg-gradient-to-b from-white to-gray-50/50 border-r border-[#E5E7EB]/60 h-[calc(100vh-4rem)] sticky top-16 backdrop-blur-sm overflow-y-auto">
+    <aside className="w-64 bg-linear-to-b from-white to-gray-50/50 border-r border-[#E5E7EB]/60 h-[calc(100vh-4rem)] sticky top-16 backdrop-blur-sm overflow-y-auto">
       <nav className="p-4 space-y-2 bg-[rgba(114,174,253,0)]">
         {filteredItems.map((item, index) => {
           const Icon = item.icon;
@@ -182,7 +181,7 @@ export function Sidebar({ currentRoute, onNavigate, userRole }: SidebarProps) {
 
                 {/* Efecto hover para items inactivos */}
                 {!isActive && !hasActiveSubItem && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/50 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
                 )}
               </button>
 

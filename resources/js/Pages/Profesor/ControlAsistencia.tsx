@@ -7,7 +7,7 @@ import { Badge } from "../../Components/ui/badge";
 import { Input } from "../../Components/ui/input";
 import { toast } from "sonner";
 import { Save, CheckCircle2, XCircle, Clock, Calendar } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { alumnos, grupos, materias, asistencias as asistenciasIniciales } from "../../data/mockData";
 
 type EstadoAsistencia = "Presente" | "Falta" | "Retardo";

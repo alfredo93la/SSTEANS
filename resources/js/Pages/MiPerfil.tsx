@@ -1,5 +1,5 @@
 import { Briefcase, IdCard, Mail, MapPin, Phone, ShieldCheck, UserRound, Users } from "lucide-react";
-import { PageTitle } from "../Components/PageTitle";
+import { PageTitle } from "../Layouts/PageTitle";
 import type { User } from "../types";
 import { Badge } from "../Components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../Components/ui/card";
@@ -81,7 +81,7 @@ function InfoRow({
       </div>
       <div className="min-w-0">
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#6B7280]">{label}</p>
-        <p className="mt-1 break-words text-sm text-[#111827]">
+        <p className="mt-1 wrap-break-word text-sm text-[#111827]">
           {value ? value : <EmptyValue label="Sin informacion registrada" />}
         </p>
       </div>
@@ -106,11 +106,11 @@ export function MyProfile({ user }: MyProfileProps) {
     <div className="space-y-6 animate-fade-in">
       <PageTitle icon={UserRound} title="Mi perfil" description={getRoleSummary(user.role)} color="bg-[#1D4ED8]" />
 
-      <Card className="overflow-hidden border-[#D9E2F2] bg-gradient-to-br from-white via-[#F8FAFC] to-[#E0F2FE]">
+      <Card className="overflow-hidden border-[#D9E2F2] bg-linear-to-br from-white via-[#F8FAFC] to-[#E0F2FE]">
         <CardContent className="pt-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-[#1D4ED8] via-[#0EA5E9] to-[#14B8A6] text-2xl font-bold text-white shadow-lg">
+              <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-linear-to-br from-[#1D4ED8] via-[#0EA5E9] to-[#14B8A6] text-2xl font-bold text-white shadow-lg">
                 {initials}
               </div>
               <div className="space-y-2">

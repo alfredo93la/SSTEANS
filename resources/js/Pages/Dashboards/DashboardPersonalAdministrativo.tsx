@@ -54,7 +54,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Banner de bienvenida */}
-      <Card className="bg-gradient-to-br from-amber-50 to-blue-50 border-amber-200">
+      <Card className="bg-linear-to-br from-amber-50 to-blue-50 border-amber-200">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -274,7 +274,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
                   }`}
                 >
                   <div className="flex items-start gap-2">
-                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${item.urgente ? "bg-[#E11D48]" : "bg-[#9CA3AF]"}`} />
+                    <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${item.urgente ? "bg-[#E11D48]" : "bg-[#9CA3AF]"}`} />
                     <p className="text-sm text-[#111827]">{item.tarea}</p>
                   </div>
                 </div>

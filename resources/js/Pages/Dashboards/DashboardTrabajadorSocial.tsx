@@ -51,7 +51,7 @@ export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSoc
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Banner de bienvenida */}
-      <Card className="border-[#E5E7EB] bg-gradient-to-br from-green-50 to-blue-50 border-green-200">
+      <Card className="bg-linear-to-br from-green-50 to-blue-50 border-green-200">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -193,7 +193,7 @@ export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSoc
                   <button
                     key={idx}
                     onClick={() => onNavigate("#/comunicacion")}
-                    className="w-full text-left p-4 rounded-lg bg-gradient-to-br from-red-50 to-white border border-red-200 hover:shadow-lg transition-all"
+                    className="w-full text-left p-4 rounded-lg bg-linear-to-br from-red-50 to-white border border-red-200 hover:shadow-lg transition-all"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">

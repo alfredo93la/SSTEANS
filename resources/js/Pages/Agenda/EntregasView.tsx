@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { ClipboardList, Calendar, BookOpen, Plus, Search, Filter, CheckCircle2, Clock, AlertCircle } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { tareas, getMateriaById, getGrupoById, alumnos } from "../../data/mockData";
 
 interface EntregasViewProps {

@@ -119,10 +119,10 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado, onHijoChange }: D
     <div className="space-y-6 animate-fade-in">
       {/* Información del alumno seleccionado */}
       {alumno && (
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+        <Card className="bg-linear-to-br from-blue-50 to-purple-50 border-blue-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-[#7C3AED] to-[#1D4ED8] rounded-full flex items-center justify-center text-white font-semibold text-xl flex-shrink-0 shadow-lg">
+              <div className="w-14 h-14 bg-linear-to-br from-[#7C3AED] to-[#1D4ED8] rounded-full flex items-center justify-center text-white font-semibold text-xl shrink-0 shadow-lg">
                 {alumno.nombre.split(" ").map(n => n[0]).join("")}
               </div>
               <div className="flex-1">
@@ -235,9 +235,9 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado, onHijoChange }: D
               proximosEventos.map((evento) => (
                 <div
                   key={evento.id}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-br from-purple-50 to-white border border-purple-200 hover:shadow-md transition-all"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-linear-to-br from-purple-50 to-white border border-purple-200 hover:shadow-md transition-all"
                 >
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-100 to-purple-200 flex flex-col items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 rounded-lg bg-linear-to-br from-purple-100 to-purple-200 flex flex-col items-center justify-center shrink-0">
                     <span className="text-xs text-[#7C3AED]">
                       {evento.fecha.split('/')[1] === "11" ? "Nov" : "Dic"}
                     </span>
@@ -286,9 +286,9 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado, onHijoChange }: D
                   return (
                     <div
                       key={examen.id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-br from-red-50 to-white border border-red-200 hover:shadow-md transition-all"
+                      className="flex items-center gap-3 p-3 rounded-lg bg-linear-to-br from-red-50 to-white border border-red-200 hover:shadow-md transition-all"
                     >
-                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-red-100 to-red-200 flex flex-col items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 rounded-lg bg-linear-to-br from-red-100 to-red-200 flex flex-col items-center justify-center shrink-0">
                         <span className="text-xs text-[#E11D48]">
                           {examen.fecha.split('/')[1] === "11" ? "Nov" : "Dic"}
                         </span>
@@ -336,9 +336,9 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado, onHijoChange }: D
                   return (
                     <div
                       key={tarea.id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-br from-blue-50 to-white border border-blue-200 hover:shadow-md transition-all"
+                      className="flex items-center gap-3 p-3 rounded-lg bg-linear-to-br from-blue-50 to-white border border-blue-200 hover:shadow-md transition-all"
                     >
-                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 flex flex-col items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 rounded-lg bg-linear-to-br from-blue-100 to-blue-200 flex flex-col items-center justify-center shrink-0">
                         <span className="text-xs text-[#1D4ED8]">
                           {tarea.fechaEntrega.split('/')[1] === "11" ? "Nov" : "Dic"}
                         </span>
@@ -397,7 +397,7 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado, onHijoChange }: D
                 onClick={() => onNavigate("#/dashboard/notificaciones")}
               >
                 {!notif.leida && (
-                  <div className="w-2 h-2 bg-[#1D4ED8] rounded-full mt-2 flex-shrink-0" />
+                  <div className="w-2 h-2 bg-[#1D4ED8] rounded-full mt-2 shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm ${notif.leida ? "text-[#6B7280]" : "text-[#111827] font-medium"}`}>

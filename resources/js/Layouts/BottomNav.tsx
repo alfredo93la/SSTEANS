@@ -1,5 +1,5 @@
 import { Home, Calendar, FileText, Settings, Bell } from "lucide-react";
-import { cn } from "./ui/utils";
+import { cn } from "../Components/ui/utils";
 
 interface BottomNavProps {
   currentRoute: string;
@@ -31,7 +31,7 @@ export function BottomNav({ currentRoute, onNavigate, userRole }: BottomNavProps
               key={item.id}
               onClick={() => onNavigate(item.route)}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all flex-1 max-w-[80px]",
+                "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all flex-1 max-w-20",
                 isActive ? "text-[#1D4ED8]" : "text-[#6B7280] hover:text-[#111827] hover:bg-gray-50",
               )}
             >

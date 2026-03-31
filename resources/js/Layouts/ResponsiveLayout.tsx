@@ -2,8 +2,8 @@ import { ReactNode, useState } from "react";
 import { Menu, X, Bell, User, ChevronDown, Users, IdCard, LogOut } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
-import { Button } from "./ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Button } from "../Components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
 import { alumnos } from "../data/mockData";
 
 interface ResponsiveLayoutProps {
@@ -97,7 +97,7 @@ export function ResponsiveLayout({
             </button>
 
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] shadow-lg sm:h-10 sm:w-10">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] shadow-lg sm:h-10 sm:w-10">
                 <span className="text-sm font-bold text-white sm:text-base">SE</span>
               </div>
               <div className="hidden md:block">
@@ -112,7 +112,7 @@ export function ResponsiveLayout({
                   value={hijoSeleccionado?.toString() || hijosDelTutor[0].id.toString()}
                   onValueChange={(value) => onHijoChange(parseInt(value))}
                 >
-                  <SelectTrigger className="h-8 w-[100px] rounded-lg border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50 text-xs transition-all hover:border-[#7C3AED]">
+                  <SelectTrigger className="h-8 w-25 rounded-lg border-purple-200 bg-linear-to-r from-purple-50 to-blue-50 text-xs transition-all hover:border-[#7C3AED]">
                     <div className="flex w-full items-center gap-1.5">
                       <Users className="h-3 w-3 shrink-0 text-[#7C3AED]" />
                       <SelectValue>
@@ -144,12 +144,12 @@ export function ResponsiveLayout({
 
           <div className="flex items-center gap-2 sm:gap-4">
             {userRole === "Tutor" && onHijoChange && hijosDelTutor.length > 0 && (
-              <div className="mr-2 hidden min-w-[180px] md:flex lg:min-w-[220px]">
+              <div className="mr-2 hidden min-w-45 md:flex lg:min-w-55">
                 <Select
                   value={hijoSeleccionado?.toString() || hijosDelTutor[0].id.toString()}
                   onValueChange={(value) => onHijoChange(parseInt(value))}
                 >
-                  <SelectTrigger className="h-10 rounded-xl border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50 shadow-sm transition-all hover:border-[#7C3AED] hover:shadow-md">
+                  <SelectTrigger className="h-10 rounded-xl border-purple-200 bg-linear-to-r from-purple-50 to-blue-50 shadow-sm transition-all hover:border-[#7C3AED] hover:shadow-md">
                     <div className="flex w-full items-center gap-2">
                       <div className="rounded-lg bg-white p-1">
                         <Users className="h-4 w-4 shrink-0 text-[#7C3AED]" />
@@ -197,7 +197,7 @@ export function ResponsiveLayout({
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2 rounded-lg p-2 transition-colors hover:bg-gray-100 sm:gap-3"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#1D4ED8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-[#7C3AED] to-[#1D4ED8]">
                   <User className="h-4 w-4 text-white" />
                 </div>
                 <div className="hidden text-left sm:block">

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../..
 import { Badge } from "../../Components/ui/badge";
 import { Clock, MapPin, BookOpen, CalendarDays } from "lucide-react";
 import { horarios, getMateriaById } from "../../data/mockData";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 
 interface HorarioTutorProps {
   alumnoId: number;
@@ -58,7 +58,7 @@ export function HorarioTutor({ alumnoId }: HorarioTutorProps) {
       />
 
       {/* Información general */}
-      <Card className="border-[#E5E7EB] bg-gradient-to-br from-blue-50 to-purple-50">
+      <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-purple-50">
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div>
@@ -94,7 +94,7 @@ export function HorarioTutor({ alumnoId }: HorarioTutorProps) {
                   {diasSemana.map((dia) => (
                     <th
                       key={dia}
-                      className="border border-[#E5E7EB] bg-gradient-to-br from-blue-50 to-purple-50 p-3 text-center text-sm font-semibold text-[#111827]"
+                      className="border border-[#E5E7EB] bg-linear-to-br from-blue-50 to-purple-50 p-3 text-center text-sm font-semibold text-[#111827]"
                     >
                       {dia}
                     </th>

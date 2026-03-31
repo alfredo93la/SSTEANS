@@ -5,7 +5,7 @@ import { Badge } from "../../Components/ui/badge";
 import { Button } from "../../Components/ui/button";
 import { CheckCircle2, Clock, AlertCircle, Calendar, FileText, ClipboardList } from "lucide-react";
 import { tareas, getMateriaById } from "../../data/mockData";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 
 interface TareasTutorProps {
   alumnoId: number;
@@ -105,7 +105,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
 
       {/* Resumen estadístico */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-blue-50 to-blue-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -119,7 +119,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-green-50 to-green-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -133,7 +133,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-gradient-to-br from-amber-50 to-amber-100">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -169,7 +169,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
                 <CardContent className="pt-6">
                   <div className="flex flex-col sm:flex-row gap-4">
                     {/* Indicador de estado */}
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                         tarea.estadoEntrega === "Entregada" ? "bg-green-100" : "bg-amber-100"
                       }`}>

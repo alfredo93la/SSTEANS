@@ -1,5 +1,5 @@
 import { LucideIcon } from "lucide-react";
-import { cn } from "./ui/utils";
+import { cn } from "../Components/ui/utils";
 
 interface PageTitleProps {
   icon?: LucideIcon;
@@ -21,7 +21,7 @@ export function PageTitle({
   return (
     <div className={cn("flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6", className)}>
       <div className="flex items-start gap-4">
-        <div className={cn("w-1.5 rounded-full flex-shrink-0 self-stretch min-h-[3rem]", color)} />
+        <div className={cn("w-1.5 rounded-full shrink-0 self-stretch min-h-12", color)} />
         <div className="flex-1">
           <div className="flex items-center gap-3">
             {Icon && (

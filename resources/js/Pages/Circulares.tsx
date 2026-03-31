@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
 import { Checkbox } from "../Components/ui/checkbox";
 import { FileText, Download, AlertCircle, Info, CheckCircle, Filter, Calendar, Tag, Plus, Edit, Trash2, Send, Eye } from "lucide-react";
-import { PageTitle } from "../Components/PageTitle";
+import { PageTitle } from "../Layouts/PageTitle";
 import { ScrollText } from "lucide-react";
 import { toast } from "sonner";
 
@@ -360,7 +360,7 @@ export function Circulares({ permissions }: CircularesProps) {
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row gap-4">
                     {/* Icono de prioridad */}
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <div className={`p-3 rounded-xl ${prioridadColors[circular.prioridad].bg}`}>
                         <PrioridadIcon className={`h-6 w-6 ${prioridadColors[circular.prioridad].text}`} />
                       </div>
@@ -381,7 +381,7 @@ export function Circulares({ permissions }: CircularesProps) {
 
                         {/* Acciones para PA */}
                         {esPublicador && (
-                          <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -621,7 +621,7 @@ export function Circulares({ permissions }: CircularesProps) {
                 value={forma.contenido}
                 onChange={(e) => setForma({ ...forma, contenido: e.target.value })}
                 placeholder="Escribe el contenido completo de la circular..."
-                className="rounded-lg min-h-[120px]"
+                className="rounded-lg min-h-30"
               />
             </div>
 

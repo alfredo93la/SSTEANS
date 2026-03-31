@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Badge } from "../../Components/ui/badge";
 import { Clock, MapPin, Users, BookOpen, Calendar } from "lucide-react";
-import { PageTitle } from "../../Components/PageTitle";
+import { PageTitle } from "../../Layouts/PageTitle";
 import { horarios, grupos, materias } from "../../data/mockData";
 
 export function HorarioDocente() {
@@ -56,7 +56,7 @@ export function HorarioDocente() {
       <PageTitle icon={Clock} title="Mi Horario" description="Horario semanal de todas tus clases" color="bg-[#7C3AED]" />
 
       {/* Estadísticas */}
-      <Card className="border-[#E5E7EB] bg-gradient-to-br from-purple-50 to-blue-50">
+      <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-blue-50">
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="text-center">
@@ -96,7 +96,7 @@ export function HorarioDocente() {
                   {diasSemana.map((dia) => (
                     <th
                       key={dia}
-                      className="border border-[#E5E7EB] bg-gradient-to-br from-purple-50 to-blue-50 p-3 text-center text-sm font-semibold text-[#111827]"
+                      className="border border-[#E5E7EB] bg-linear-to-br from-purple-50 to-blue-50 p-3 text-center text-sm font-semibold text-[#111827]"
                     >
                       {dia}
                     </th>
