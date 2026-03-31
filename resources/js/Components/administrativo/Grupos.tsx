@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -8,411 +9,414 @@ import { PageTitle } from "../PageTitle";
 import {
   Users,
   Search,
-  Filter,
-  Eye,
   Edit,
   Trash2,
   Plus,
-  UserCog,
-  BookOpen,
-  GraduationCap
+  GraduationCap,
+  Loader2,
+  UserPlus,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "../ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { toast } from "sonner";
+
+interface Grado { id: number; numero: number; descripcion: string; }
+interface Ciclo { id: number; nombre: string; activo: boolean; cerrado: boolean; }
+interface AlumnoAsignado { id: number; estado: string; alumno: { id: number; persona: { nombre: string; apellidos: string; curp: string } }; }
+interface Grupo {
+  id: number;
+  ciclo_escolar_id: number;
+  grado_id: number;
+  nombre: string;
+  turno: string;
+  capacidad_maxima: number;
+  asignaciones_count?: number;
+  grado?: Grado;
+  ciclo_escolar?: Ciclo;
+}
+
+const formVacio = { grado_id: "", nombre: "", turno: "matutino", capacidad_maxima: "40" };
 
 export function Grupos() {
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
+  const [grados, setGrados] = useState<Grado[]>([]);
+  const [ciclos, setCiclos] = useState<Ciclo[]>([]);
+  const [cicloActualId, setCicloActualId] = useState<number | null>(null);
+  const [turnosPermitidos, setTurnosPermitidos] = useState<string[]>(["matutino"]);
+  const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroGrado, setFiltroGrado] = useState("todos");
   const [modalNuevo, setModalNuevo] = useState(false);
-  const [modalDetalle, setModalDetalle] = useState(false);
-  const [grupoSeleccionado, setGrupoSeleccionado] = useState<any>(null);
+  const [modalEditar, setModalEditar] = useState(false);
+  const [modalAlumnos, setModalAlumnos] = useState(false);
+  const [grupoSel, setGrupoSel] = useState<Grupo | null>(null);
+  const [asignaciones, setAsignaciones] = useState<AlumnoAsignado[]>([]);
+  const [alumnosDisp, setAlumnosDisp] = useState<{ id: number; persona: { nombre: string; apellidos: string; curp: string } }[]>([]);
+  const [alumnoAgregar, setAlumnoAgregar] = useState("");
+  const [form, setForm] = useState(formVacio);
+  const [saving, setSaving] = useState(false);
 
-  // Datos de ejemplo
-  const grupos = [
-    {
-      id: 1,
-      nombre: "1°A",
-      grado: "1°",
-      grupo: "A",
-      totalAlumnos: 32,
-      profesorTitular: "Prof. María García López",
-      turno: "Matutino",
-      aula: "Edificio A - Aula 101",
-      materiasAsignadas: 8,
-      profesores: ["Prof. María García", "Prof. Juan Pérez", "Prof. Roberto Sánchez"]
-    },
-    {
-      id: 2,
-      nombre: "1°B",
-      grado: "1°",
-      grupo: "B",
-      totalAlumnos: 30,
-      profesorTitular: "Prof. Laura Rodríguez Cruz",
-      turno: "Matutino",
-      aula: "Edificio A - Aula 102",
-      materiasAsignadas: 8,
-      profesores: ["Prof. Laura Rodríguez", "Prof. Carmen Flores", "Prof. Pedro González"]
-    },
-    {
-      id: 3,
-      nombre: "2°A",
-      grado: "2°",
-      grupo: "A",
-      totalAlumnos: 28,
-      profesorTitular: "Prof. Roberto Sánchez Díaz",
-      turno: "Matutino",
-      aula: "Edificio B - Aula 201",
-      materiasAsignadas: 9,
-      profesores: ["Prof. Roberto Sánchez", "Prof. Ana Martínez", "Prof. Carlos Ruiz"]
-    },
-    {
-      id: 4,
-      nombre: "2°B",
-      grado: "2°",
-      grupo: "B",
-      totalAlumnos: 29,
-      profesorTitular: "Prof. Carmen Flores Ruiz",
-      turno: "Vespertino",
-      aula: "Edificio B - Aula 202",
-      materiasAsignadas: 9,
-      profesores: ["Prof. Carmen Flores", "Prof. Luis Hernández", "Prof. Sofia López"]
-    },
-    {
-      id: 5,
-      nombre: "3°A",
-      grado: "3°",
-      grupo: "A",
-      totalAlumnos: 27,
-      profesorTitular: "Prof. Pedro González Mora",
-      turno: "Matutino",
-      aula: "Edificio C - Aula 301",
-      materiasAsignadas: 10,
-      profesores: ["Prof. Pedro González", "Prof. Diana Torres", "Prof. Miguel Ángel"]
-    },
-    {
-      id: 6,
-      nombre: "3°B",
-      grado: "3°",
-      grupo: "B",
-      totalAlumnos: 26,
-      profesorTitular: "Prof. Ana Martínez Silva",
-      turno: "Matutino",
-      aula: "Edificio C - Aula 302",
-      materiasAsignadas: 10,
-      profesores: ["Prof. Ana Martínez", "Prof. Jorge Ramírez", "Prof. Patricia Gómez"]
-    }
-  ];
-
-  const estadisticas = {
-    totalGrupos: 12,
-    totalAlumnos: 358,
-    promedioAlumnosPorGrupo: 29.8,
-    gruposMatutino: 9,
-    gruposVespertino: 3
+  const cargar = (cicloId?: number) => {
+    setLoading(true);
+    const params = cicloId ? { ciclo_id: cicloId } : {};
+    axios.get("/api/administrativo/grupos", { params })
+      .then(({ data }) => {
+        setGrupos(data.grupos);
+        setGrados(data.grados ?? []);
+        setCiclos(data.ciclos ?? []);
+        setCicloActualId(data.ciclo_actual_id ?? null);
+      })
+      .catch(() => toast.error("No se pudieron cargar los grupos."))
+      .finally(() => setLoading(false));
   };
 
-  const verDetalle = (grupo: any) => {
-    setGrupoSeleccionado(grupo);
-    setModalDetalle(true);
+  useEffect(() => {
+    // Cargar turnos disponibles desde configuración
+    axios.get("/api/admin/configuracion").then(({ data }) => {
+      const disp = data.turnos_disponibles ?? "matutino";
+      setTurnosPermitidos(disp === "ambos" ? ["matutino", "vespertino"] : [disp]);
+      setForm((prev) => ({ ...prev, turno: disp === "vespertino" ? "vespertino" : "matutino" }));
+    }).catch(() => {});
+    cargar();
+  }, []);
+
+  const handleGuardar = () => {
+    if (!form.grado_id || !form.nombre) { toast.error("Grado y nombre son obligatorios."); return; }
+    setSaving(true);
+    axios.post("/api/administrativo/grupos", form)
+      .then(({ data }) => {
+        setGrupos((prev) => [...prev, data.grupo]);
+        setModalNuevo(false);
+        setForm(formVacio);
+        toast.success("Grupo creado correctamente.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al crear el grupo."))
+      .finally(() => setSaving(false));
   };
+
+  const handleEditar = () => {
+    if (!grupoSel) return;
+    setSaving(true);
+    axios.put(`/api/administrativo/grupos/${grupoSel.id}`, form)
+      .then(({ data }) => {
+        setGrupos((prev) => prev.map((g) => g.id === data.grupo.id ? data.grupo : g));
+        setModalEditar(false);
+        setGrupoSel(null);
+        toast.success("Grupo actualizado.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al actualizar."))
+      .finally(() => setSaving(false));
+  };
+
+  const handleEliminar = (grupo: Grupo) => {
+    if (!confirm(`¿Eliminar el grupo ${grupo.grado?.numero ?? ""}°${grupo.nombre}?`)) return;
+    axios.delete(`/api/administrativo/grupos/${grupo.id}`)
+      .then(() => {
+        setGrupos((prev) => prev.filter((g) => g.id !== grupo.id));
+        toast.success("Grupo eliminado.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."));
+  };
+
+  const abrirEditar = (grupo: Grupo) => {
+    setGrupoSel(grupo);
+    setForm({ grado_id: grupo.grado_id.toString(), nombre: grupo.nombre, turno: grupo.turno, capacidad_maxima: grupo.capacidad_maxima.toString() });
+    setModalEditar(true);
+  };
+
+  const abrirAlumnos = (grupo: Grupo) => {
+    setGrupoSel(grupo);
+    setModalAlumnos(true);
+    Promise.all([
+      axios.get("/api/administrativo/asignaciones", { params: { grupo_id: grupo.id } }),
+      axios.get("/api/administrativo/alumnos"),
+    ]).then(([aRes, alRes]) => {
+      setAsignaciones(aRes.data.asignaciones);
+      setAlumnosDisp(alRes.data.alumnos);
+    }).catch(() => toast.error("Error al cargar alumnos."));
+  };
+
+  const handleAsignar = () => {
+    if (!grupoSel || !alumnoAgregar) return;
+    axios.post("/api/administrativo/asignaciones", { alumno_id: alumnoAgregar, grupo_id: grupoSel.id })
+      .then(({ data }) => {
+        setAsignaciones((prev) => [...prev, data.asignacion]);
+        setGrupos((prev) => prev.map((g) => g.id === grupoSel.id ? { ...g, asignaciones_count: (g.asignaciones_count ?? 0) + 1 } : g));
+        setAlumnoAgregar("");
+        toast.success("Alumno asignado al grupo.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al asignar."));
+  };
+
+  const handleDarBaja = (asignacionId: number) => {
+    axios.delete(`/api/administrativo/asignaciones/${asignacionId}`)
+      .then(() => {
+        setAsignaciones((prev) => prev.filter((a) => a.id !== asignacionId));
+        if (grupoSel) setGrupos((prev) => prev.map((g) => g.id === grupoSel.id ? { ...g, asignaciones_count: Math.max(0, (g.asignaciones_count ?? 1) - 1) } : g));
+        toast.success("Alumno dado de baja del grupo.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error."));
+  };
+
+  const filtered = grupos.filter((g) => {
+    const label = `${g.grado?.numero ?? ""}°${g.nombre}`.toLowerCase();
+    const coincideBusqueda = !busqueda || label.includes(busqueda.toLowerCase());
+    const coincideGrado = filtroGrado === "todos" || g.grado_id.toString() === filtroGrado;
+    return coincideBusqueda && coincideGrado;
+  });
+
+  const cicloActivo = ciclos.find((c) => c.activo);
+
+  const TurnoSelect = () => (
+    <Select value={form.turno} onValueChange={(v) => setForm({ ...form, turno: v })}>
+      <SelectTrigger><SelectValue /></SelectTrigger>
+      <SelectContent>
+        {turnosPermitidos.includes("matutino") && <SelectItem value="matutino">Matutino</SelectItem>}
+        {turnosPermitidos.includes("vespertino") && <SelectItem value="vespertino">Vespertino</SelectItem>}
+      </SelectContent>
+    </Select>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Users} title="Gestión de Grupos" description="Administra los grupos escolares y sus asignaciones" color="bg-[#1D4ED8]">
-        <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
+      <PageTitle icon={Users} title="Gestión de Grupos" description="Grupos del ciclo escolar activo" color="bg-[#7C3AED]">
+        <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Grupo
+            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]" disabled={!cicloActivo}>
+              <Plus className="h-4 w-4 mr-2" />Nuevo Grupo
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Crear Nuevo Grupo</DialogTitle>
-              <DialogDescription>
-                Llena los campos para crear un nuevo grupo escolar.
-              </DialogDescription>
+              <DialogTitle>Nuevo Grupo</DialogTitle>
+              <DialogDescription>Ciclo activo: {cicloActivo?.nombre ?? "—"}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="grado">Grado</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar grado" />
-                    </SelectTrigger>
+                <div className="space-y-2">
+                  <Label>Grado *</Label>
+                  <Select value={form.grado_id} onValueChange={(v) => setForm({ ...form, grado_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1° (Primero)</SelectItem>
-                      <SelectItem value="2">2° (Segundo)</SelectItem>
-                      <SelectItem value="3">3° (Tercero)</SelectItem>
+                      {grados.map((g) => (
+                        <SelectItem key={g.id} value={g.id.toString()}>{g.numero}° — {g.descripcion}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div>
-                  <Label htmlFor="grupo">Grupo</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar grupo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="A">A</SelectItem>
-                      <SelectItem value="B">B</SelectItem>
-                      <SelectItem value="C">C</SelectItem>
-                      <SelectItem value="D">D</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2">
+                  <Label>Nombre (letra) *</Label>
+                  <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value.toUpperCase() })} maxLength={3} placeholder="A" />
                 </div>
-              </div>
-
-              <div>
-                <Label htmlFor="profesor-titular">Profesor Titular</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar profesor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Prof. María García López</SelectItem>
-                    <SelectItem value="2">Prof. Laura Rodríguez Cruz</SelectItem>
-                    <SelectItem value="3">Prof. Roberto Sánchez Díaz</SelectItem>
-                    <SelectItem value="4">Prof. Carmen Flores Ruiz</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="turno">Turno</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar turno" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="matutino">Matutino (7:00 - 14:00)</SelectItem>
-                      <SelectItem value="vespertino">Vespertino (14:00 - 21:00)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2">
+                  <Label>Turno *</Label>
+                  <TurnoSelect />
                 </div>
-
-                <div>
-                  <Label htmlFor="capacidad">Capacidad Máxima</Label>
-                  <Input id="capacidad" type="number" placeholder="35" defaultValue="35" />
+                <div className="space-y-2">
+                  <Label>Capacidad máx.</Label>
+                  <Input type="number" min="1" max="60" value={form.capacidad_maxima} onChange={(e) => setForm({ ...form, capacidad_maxima: e.target.value })} />
                 </div>
-              </div>
-
-              <div>
-                <Label htmlFor="aula">Aula Asignada</Label>
-                <Input id="aula" placeholder="Ej: Edificio A - Aula 101" />
-              </div>
-
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-900">
-                  📚 <strong>Nota:</strong> Después de crear el grupo, podrás asignar materias, horarios y alumnos desde las secciones correspondientes.
-                </p>
-              </div>
-
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setModalNuevo(false)}>
-                  Cancelar
-                </Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
-                  Crear Grupo
-                </Button>
               </div>
             </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setModalNuevo(false)}>Cancelar</Button>
+              <Button onClick={handleGuardar} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Grupo"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </PageTitle>
 
-      {/* Estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Selector de ciclo */}
+      {ciclos.length > 0 && (
         <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Total Grupos</p>
-                <p className="text-2xl font-bold text-[#7C3AED] mt-1">{estadisticas.totalGrupos}</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <Users className="h-6 w-6 text-[#7C3AED]" />
-              </div>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <Label className="shrink-0">Ver ciclo:</Label>
+              <Select value={cicloActualId?.toString() ?? ""} onValueChange={(v) => { setCicloActualId(Number(v)); cargar(Number(v)); }}>
+                <SelectTrigger className="w-full sm:w-64">
+                  <SelectValue placeholder="Seleccionar ciclo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ciclos.map((c) => (
+                    <SelectItem key={c.id} value={c.id.toString()}>
+                      {c.nombre}{c.activo ? " (activo)" : c.cerrado ? " (cerrado)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!cicloActivo && (
+                <p className="text-xs text-amber-600">No hay ciclo activo. Activa uno para crear grupos.</p>
+              )}
             </div>
           </CardContent>
         </Card>
+      )}
 
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Total Alumnos</p>
-                <p className="text-2xl font-bold text-[#1D4ED8] mt-1">{estadisticas.totalAlumnos}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <GraduationCap className="h-6 w-6 text-[#1D4ED8]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filtros */}
-      <Card className="border-[#E5E7EB]">
-        <CardContent className="pt-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
-                <Input
-                  placeholder="Buscar por nombre de grupo, profesor..."
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={filtroGrado} onValueChange={setFiltroGrado}>
-              <SelectTrigger className="w-full lg:w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Grado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los grados</SelectItem>
-                <SelectItem value="1">1° (Primero)</SelectItem>
-                <SelectItem value="2">2° (Segundo)</SelectItem>
-                <SelectItem value="3">3° (Tercero)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Grid de grupos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {grupos.map((grupo) => (
-          <Card key={grupo.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-xl">
-                    <Users className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl">{grupo.nombre}</CardTitle>
-                    <Badge variant="outline" className="mt-1">
-                      {grupo.turno}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#6B7280]">Alumnos:</span>
-                  <span className="font-semibold text-[#111827]">{grupo.totalAlumnos}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#6B7280]">Materias:</span>
-                  <span className="font-semibold text-[#111827]">{grupo.materiasAsignadas}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#6B7280]">Aula:</span>
-                  <span className="font-semibold text-[#111827] text-xs">{grupo.aula}</span>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t">
-                <p className="text-xs text-[#6B7280] mb-1">Profesor Titular:</p>
-                <p className="text-sm font-medium text-[#111827]">{grupo.profesorTitular}</p>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => verDetalle(grupo)}
-                >
-                  <Eye className="h-3.5 w-3.5 mr-1" />
-                  Ver
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Edit className="h-3.5 w-3.5 mr-1" />
-                  Editar
-                </Button>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: "Total grupos", value: grupos.length, color: "text-[#7C3AED]", bg: "bg-purple-100", Icon: Users },
+          { label: "Total alumnos", value: grupos.reduce((s, g) => s + (g.asignaciones_count ?? 0), 0), color: "text-[#1D4ED8]", bg: "bg-blue-100", Icon: GraduationCap },
+          { label: "Capacidad total", value: grupos.reduce((s, g) => s + g.capacidad_maxima, 0), color: "text-[#059669]", bg: "bg-green-100", Icon: Users },
+        ].map(({ label, value, color, bg, Icon }) => (
+          <Card key={label} className="border-[#E5E7EB]">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div><p className="text-sm text-[#6B7280]">{label}</p><p className={`text-2xl font-bold ${color} mt-1`}>{value}</p></div>
+                <div className={`p-3 ${bg} rounded-xl`}><Icon className={`h-6 w-6 ${color}`} /></div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Modal de detalle */}
-      <Dialog open={modalDetalle} onOpenChange={setModalDetalle}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalle del Grupo</DialogTitle>
-            <DialogDescription>
-              Información completa del grupo seleccionado.
-            </DialogDescription>
-          </DialogHeader>
-          {grupoSeleccionado && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
-                <div className="p-3 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-xl">
-                  <Users className="h-8 w-8 text-white" />
+      {/* Filtros */}
+      <Card className="border-[#E5E7EB]">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+              <Input placeholder="Buscar grupo..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="pl-10" />
+            </div>
+            <Select value={filtroGrado} onValueChange={setFiltroGrado}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Grado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los grados</SelectItem>
+                {grados.map((g) => <SelectItem key={g.id} value={g.id.toString()}>{g.numero}° — {g.descripcion}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Grid */}
+      {loading ? (
+        <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#1D4ED8]" /></div>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-[#6B7280] text-center py-10">No hay grupos en este ciclo.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((grupo) => (
+            <Card key={grupo.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-xl">
+                      <Users className="h-5 w-5 text-[#7C3AED]" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{grupo.grado?.numero ?? ""}°{grupo.nombre}</CardTitle>
+                      <p className="text-xs text-[#6B7280]">{grupo.grado?.descripcion}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className={grupo.turno === "matutino" ? "text-blue-700 border-blue-300" : "text-orange-700 border-orange-300"}>
+                    {grupo.turno === "matutino" ? "Matutino" : "Vespertino"}
+                  </Badge>
                 </div>
-                <div>
-                  <h3 className="font-bold text-2xl">{grupoSeleccionado.nombre}</h3>
-                  <Badge variant="outline">{grupoSeleccionado.turno}</Badge>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[#6B7280]">Alumnos:</span>
+                  <span className="font-semibold">{grupo.asignaciones_count ?? 0} / {grupo.capacidad_maxima}</span>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="border-[#E5E7EB]">
-                  <CardContent className="pt-4">
-                    <p className="text-xs text-[#6B7280]">Total Alumnos</p>
-                    <p className="text-2xl font-bold text-[#7C3AED]">{grupoSeleccionado.totalAlumnos}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-[#E5E7EB]">
-                  <CardContent className="pt-4">
-                    <p className="text-xs text-[#6B7280]">Materias</p>
-                    <p className="text-2xl font-bold text-[#1D4ED8]">{grupoSeleccionado.materiasAsignadas}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-[#E5E7EB] col-span-2">
-                  <CardContent className="pt-4">
-                    <p className="text-xs text-[#6B7280]">Aula</p>
-                    <p className="text-lg font-bold text-[#059669]">{grupoSeleccionado.aula}</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div>
-                <Label className="text-[#111827] font-semibold">Profesor Titular</Label>
-                <p className="text-[#6B7280] mt-1">{grupoSeleccionado.profesorTitular}</p>
-              </div>
-
-              <div>
-                <Label className="text-[#111827] font-semibold">Profesores Asignados</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {grupoSeleccionado.profesores.map((profesor: string, i: number) => (
-                    <Badge key={i} variant="secondary">{profesor}</Badge>
-                  ))}
+                <div className="flex gap-2 pt-1">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => abrirAlumnos(grupo)}>
+                    <UserPlus className="h-3.5 w-3.5 mr-1" />Alumnos
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => abrirEditar(grupo)}>
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-[#E11D48] border-[#E11D48] hover:bg-red-50" onClick={() => handleEliminar(grupo)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-              <div className="flex gap-2 justify-end pt-4 border-t">
-                <Button variant="outline" onClick={() => setModalDetalle(false)}>
-                  Cerrar
-                </Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar Grupo
-                </Button>
+      {/* Modal editar */}
+      <Dialog open={modalEditar} onOpenChange={(open) => { setModalEditar(open); if (!open) { setGrupoSel(null); setForm(formVacio); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Editar Grupo</DialogTitle><DialogDescription>Modifica los datos del grupo.</DialogDescription></DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nombre (letra)</Label>
+                <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value.toUpperCase() })} maxLength={3} />
+              </div>
+              <div className="space-y-2">
+                <Label>Turno</Label>
+                <TurnoSelect />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label>Capacidad máxima</Label>
+                <Input type="number" min="1" max="60" value={form.capacidad_maxima} onChange={(e) => setForm({ ...form, capacidad_maxima: e.target.value })} />
               </div>
             </div>
-          )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalEditar(false)}>Cancelar</Button>
+            <Button onClick={handleEditar} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal alumnos del grupo */}
+      <Dialog open={modalAlumnos} onOpenChange={(open) => { setModalAlumnos(open); if (!open) { setGrupoSel(null); setAsignaciones([]); setAlumnoAgregar(""); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Alumnos — {grupoSel?.grado?.numero ?? ""}°{grupoSel?.nombre}</DialogTitle>
+            <DialogDescription>Gestiona los alumnos asignados a este grupo.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Select value={alumnoAgregar} onValueChange={setAlumnoAgregar}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Seleccionar alumno..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {alumnosDisp
+                    .filter((a) => !asignaciones.some((as) => as.alumno.id === a.id))
+                    .map((a) => (
+                      <SelectItem key={a.id} value={a.id.toString()}>
+                        {a.persona.nombre} {a.persona.apellidos}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={handleAsignar} disabled={!alumnoAgregar} className="bg-[#1D4ED8] text-white hover:bg-[#1E40AF]">
+                <UserPlus className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {asignaciones.length === 0 ? (
+                <p className="text-sm text-[#6B7280] text-center py-4">Sin alumnos asignados.</p>
+              ) : (
+                asignaciones.map((a) => (
+                  <div key={a.id} className="flex items-center justify-between p-2 rounded-lg border border-[#E5E7EB]">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4 text-[#7C3AED]" />
+                      <span className="text-sm">{a.alumno.persona.nombre} {a.alumno.persona.apellidos}</span>
+                    </div>
+                    <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" onClick={() => handleDarBaja(a.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalAlumnos(false)}>Cerrar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

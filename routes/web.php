@@ -4,11 +4,21 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AgendaEventoController;
 use App\Http\Controllers\CircularController;
 
+use App\Http\Controllers\Admin\CicloEscolarController;
+use App\Http\Controllers\Admin\ConfiguracionEscuelaController;
+use App\Http\Controllers\Admin\MateriaController;
 use App\Http\Controllers\Admin\RolePermissionManagementController;
 use App\Http\Controllers\Admin\UserRoleManagementController;
 use App\Http\Controllers\Admin\UserValidationController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Administrativo\AlumnoAdminController;
+use App\Http\Controllers\Administrativo\AsignacionGrupoController;
+use App\Http\Controllers\Administrativo\ClaseController;
+use App\Http\Controllers\Administrativo\GrupoController;
+use App\Http\Controllers\Administrativo\SalonController;
+use App\Http\Controllers\Administrativo\TutorAdminController;
 use App\Http\Controllers\Tutor\AssignedStudentsController;
+use App\Models\Grado;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -84,3 +94,69 @@ Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
     Route::delete('/circulares/{circular}', [CircularController::class, 'destroy'])
         ->middleware('permission:circulares.manage');
 });
+
+// ─── Admin: configuración académica ──────────────────────────────────────────
+Route::middleware(['auth', 'verified', 'permission:configuracion.manage'])
+    ->prefix('api/admin')
+    ->group(function () {
+        Route::get('/configuracion',  [ConfiguracionEscuelaController::class, 'index']);
+        Route::put('/configuracion',  [ConfiguracionEscuelaController::class, 'update']);
+
+        Route::get('/ciclos',                         [CicloEscolarController::class, 'index']);
+        Route::post('/ciclos',                        [CicloEscolarController::class, 'store']);
+        Route::put('/ciclos/{ciclo}',                 [CicloEscolarController::class, 'update']);
+        Route::delete('/ciclos/{ciclo}',              [CicloEscolarController::class, 'destroy']);
+        Route::post('/ciclos/{ciclo}/activar',        [CicloEscolarController::class, 'activate']);
+        Route::post('/ciclos/{ciclo}/cerrar',         [CicloEscolarController::class, 'close']);
+
+        Route::get('/materias',          [MateriaController::class, 'index']);
+        Route::post('/materias',         [MateriaController::class, 'store']);
+        Route::put('/materias/{materia}', [MateriaController::class, 'update']);
+        Route::delete('/materias/{materia}', [MateriaController::class, 'destroy']);
+
+        Route::get('/grados', fn () => response()->json(['grados' => Grado::with('materias')->orderBy('numero')->get()]));
+    });
+
+// ─── Administrativo: gestión operativa ───────────────────────────────────────
+Route::middleware(['auth', 'verified', 'permission:grupos.manage'])
+    ->prefix('api/administrativo')
+    ->group(function () {
+        Route::get('/grupos',              [GrupoController::class, 'index']);
+        Route::post('/grupos',             [GrupoController::class, 'store']);
+        Route::put('/grupos/{grupo}',      [GrupoController::class, 'update']);
+        Route::delete('/grupos/{grupo}',   [GrupoController::class, 'destroy']);
+
+        Route::get('/clases',              [ClaseController::class, 'index']);
+        Route::post('/clases',             [ClaseController::class, 'store']);
+        Route::put('/clases/{clase}',      [ClaseController::class, 'update']);
+        Route::delete('/clases/{clase}',   [ClaseController::class, 'destroy']);
+
+        Route::get('/asignaciones',                            [AsignacionGrupoController::class, 'index']);
+        Route::post('/asignaciones',                           [AsignacionGrupoController::class, 'store']);
+        Route::delete('/asignaciones/{asignacionGrupo}',       [AsignacionGrupoController::class, 'destroy']);
+
+        Route::get('/salones',             [SalonController::class, 'index']);
+        Route::post('/salones',            [SalonController::class, 'store']);
+        Route::put('/salones/{salon}',     [SalonController::class, 'update']);
+        Route::delete('/salones/{salon}',  [SalonController::class, 'destroy']);
+    });
+
+Route::middleware(['auth', 'verified', 'permission:alumnos.manage'])
+    ->prefix('api/administrativo')
+    ->group(function () {
+        Route::get('/alumnos',             [AlumnoAdminController::class, 'index']);
+        Route::post('/alumnos',            [AlumnoAdminController::class, 'store']);
+        Route::put('/alumnos/{alumno}',    [AlumnoAdminController::class, 'update']);
+        Route::delete('/alumnos/{alumno}', [AlumnoAdminController::class, 'destroy']);
+    });
+
+Route::middleware(['auth', 'verified', 'permission:tutores.manage'])
+    ->prefix('api/administrativo')
+    ->group(function () {
+        Route::get('/tutores',                           [TutorAdminController::class, 'index']);
+        Route::post('/tutores',                          [TutorAdminController::class, 'store']);
+        Route::put('/tutores/{tutor}',                   [TutorAdminController::class, 'update']);
+        Route::delete('/tutores/{tutor}',                [TutorAdminController::class, 'destroy']);
+        Route::post('/tutores/{tutor}/vincular',         [TutorAdminController::class, 'vincular']);
+        Route::delete('/tutores/{tutor}/desvincular',    [TutorAdminController::class, 'desvincular']);
+    });

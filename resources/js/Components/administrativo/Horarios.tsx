@@ -1,397 +1,262 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { PageTitle } from "../PageTitle";
-import {
-  Clock,
-  Search,
-  Filter,
-  Eye,
-  Edit,
-  Plus,
-  Calendar,
-  Users,
-  BookOpen,
-  Trash2
-} from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../ui/dialog";
+import { Clock, Edit, Plus, Trash2, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "../ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { toast } from "sonner";
+
+interface Grado { id: number; numero: number; }
+interface Ciclo { id: number; nombre: string; }
+interface Grupo { id: number; nombre: string; turno: string; grado?: Grado; ciclo_escolar?: Ciclo; }
+interface Materia { id: number; nombre: string; grado_id: number; }
+interface Salon { id: number; nombre: string; edificio: string | null; }
+interface ProfesorUser { id: number; name: string; }
+interface Clase {
+  id: number;
+  grupo_id: number;
+  materia_id: number;
+  profesor_user_id: number;
+  salon_id: number | null;
+  dia_semana: string;
+  hora_inicio: string;
+  hora_fin: string;
+  materia?: Materia;
+  profesor?: ProfesorUser;
+  salon?: Salon;
+}
+
+const DIAS = ["lunes", "martes", "miercoles", "jueves", "viernes"] as const;
+const DIAS_LABEL: Record<string, string> = { lunes: "Lunes", martes: "Martes", miercoles: "Miércoles", jueves: "Jueves", viernes: "Viernes" };
+const formVacio = { grupo_id: "", materia_id: "", profesor_user_id: "", salon_id: "", dia_semana: "lunes", hora_inicio: "07:00", hora_fin: "08:00" };
+
+type ClaseForm = typeof formVacio;
+
+function FormClase({ form, setForm, grupos, materias, materiasFiltradas, salones, profesores, isEdit = false }: {
+  form: ClaseForm;
+  setForm: (f: ClaseForm) => void;
+  grupos: Grupo[];
+  materias: Materia[];
+  materiasFiltradas: Materia[];
+  salones: Salon[];
+  profesores: ProfesorUser[];
+  isEdit?: boolean;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        {!isEdit && (
+          <div className="col-span-2 space-y-2">
+            <Label>Grupo *</Label>
+            <Select value={form.grupo_id} onValueChange={(v) => setForm({ ...form, grupo_id: v })}>
+              <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+              <SelectContent>
+                {grupos.map((g) => <SelectItem key={g.id} value={g.id.toString()}>{g.grado?.numero ?? ""}°{g.nombre} — {g.ciclo_escolar?.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div className="space-y-2">
+          <Label>Materia *</Label>
+          <Select value={form.materia_id} onValueChange={(v) => setForm({ ...form, materia_id: v })}>
+            <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+            <SelectContent>
+              {(isEdit ? materias : materiasFiltradas).map((m) => <SelectItem key={m.id} value={m.id.toString()}>{m.nombre}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Profesor *</Label>
+          <Select value={form.profesor_user_id} onValueChange={(v) => setForm({ ...form, profesor_user_id: v })}>
+            <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+            <SelectContent>
+              {profesores.map((p) => <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Día *</Label>
+          <Select value={form.dia_semana} onValueChange={(v) => setForm({ ...form, dia_semana: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {DIAS.map((d) => <SelectItem key={d} value={d}>{DIAS_LABEL[d]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Salón</Label>
+          <Select value={form.salon_id} onValueChange={(v) => setForm({ ...form, salon_id: v })}>
+            <SelectTrigger><SelectValue placeholder="Sin salón" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Sin salón</SelectItem>
+              {salones.map((s) => <SelectItem key={s.id} value={s.id.toString()}>{s.nombre}{s.edificio ? ` (${s.edificio})` : ""}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Hora inicio *</Label>
+          <Input type="time" value={form.hora_inicio} onChange={(e) => setForm({ ...form, hora_inicio: e.target.value })} />
+        </div>
+        <div className="space-y-2">
+          <Label>Hora fin *</Label>
+          <Input type="time" value={form.hora_fin} onChange={(e) => setForm({ ...form, hora_fin: e.target.value })} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function Horarios() {
-  const [filtroGrupo, setFiltroGrupo] = useState("todos");
-  const [filtroProfesor, setFiltroProfesor] = useState("todos");
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
+  const [materias, setMaterias] = useState<Materia[]>([]);
+  const [salones, setSalones] = useState<Salon[]>([]);
+  const [profesores, setProfesores] = useState<ProfesorUser[]>([]);
+  const [clases, setClases] = useState<Clase[]>([]);
+  const [grupoSelId, setGrupoSelId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingInicial, setLoadingInicial] = useState(true);
   const [modalNuevo, setModalNuevo] = useState(false);
-  const [vistaActual, setVistaActual] = useState<"grupo" | "profesor">("grupo");
+  const [modalEditar, setModalEditar] = useState(false);
+  const [claseSel, setClaseSel] = useState<Clase | null>(null);
+  const [form, setForm] = useState(formVacio);
+  const [saving, setSaving] = useState(false);
 
-  // Estado del formulario de nueva clase
-  const [formGrupo, setFormGrupo] = useState("");
-  const [formMateria, setFormMateria] = useState("");
-  const [formProfesor, setFormProfesor] = useState("");
-  const [sesiones, setSesiones] = useState([{ dia: "", horaInicio: "", horaFin: "", aula: "" }]);
+  useEffect(() => {
+    setLoadingInicial(true);
+    Promise.all([
+      axios.get("/api/administrativo/grupos"),
+      axios.get("/api/admin/materias"),
+      axios.get("/api/administrativo/salones"),
+    ])
+      .then(([gRes, mRes, sRes]) => {
+        setGrupos(gRes.data.grupos ?? []);
+        setMaterias(mRes.data.materias ?? []);
+        setSalones(sRes.data.salones ?? []);
+      })
+      .catch(() => toast.error("Error al cargar datos iniciales."))
+      .finally(() => setLoadingInicial(false));
+  }, []);
 
-  const agregarSesion = () => setSesiones([...sesiones, { dia: "", horaInicio: "", horaFin: "", aula: "" }]);
-  const eliminarSesion = (i: number) => setSesiones(sesiones.filter((_, idx) => idx !== i));
-  const actualizarSesion = (i: number, campo: string, valor: string) => {
-    setSesiones(sesiones.map((s, idx) => idx === i ? { ...s, [campo]: valor } : s));
+  const cargarClases = (grupoId: string) => {
+    if (!grupoId) return;
+    setLoading(true);
+    axios.get("/api/administrativo/clases", { params: { grupo_id: grupoId } })
+      .then(({ data }) => {
+        setClases(data.clases);
+        setProfesores(data.profesores ?? []);
+      })
+      .catch(() => toast.error("No se pudieron cargar las clases."))
+      .finally(() => setLoading(false));
   };
 
-  const resetForm = () => {
-    setFormGrupo(""); setFormMateria(""); setFormProfesor("");
-    setSesiones([{ dia: "", horaInicio: "", horaFin: "", aula: "" }]);
+  const handleSelGrupo = (id: string) => {
+    setGrupoSelId(id);
+    setForm((prev) => ({ ...prev, grupo_id: id }));
+    cargarClases(id);
   };
 
-  const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
-  const horasClase = [
-    { inicio: "07:00", fin: "08:00" },
-    { inicio: "08:00", fin: "09:00" },
-    { inicio: "09:00", fin: "10:00" },
-    { inicio: "10:00", fin: "10:30", tipo: "Receso" },
-    { inicio: "10:30", fin: "11:30" },
-    { inicio: "11:30", fin: "12:30" },
-    { inicio: "12:30", fin: "13:30" }
-  ];
-
-  // Horario de ejemplo para un grupo
-  const horarioGrupo = {
-    "1°A": {
-      Lunes: [
-        { materia: "Matemáticas", profesor: "Prof. María García", color: "blue", aula: "A-101" },
-        { materia: "Español", profesor: "Prof. Laura Rodríguez", color: "red", aula: "A-101" },
-        { materia: "Ciencias", profesor: "Prof. Pedro González", color: "green", aula: "A-101" },
-        { tipo: "Receso" },
-        { materia: "Historia", profesor: "Prof. Ana Martínez", color: "yellow", aula: "A-101" },
-        { materia: "Inglés", profesor: "Prof. Diana Torres", color: "purple", aula: "A-101" },
-        { materia: "Ed. Física", profesor: "Prof. Carlos Ruiz", color: "orange", aula: "Patio" }
-      ],
-      Martes: [
-        { materia: "Español", profesor: "Prof. Laura Rodríguez", color: "red", aula: "A-101" },
-        { materia: "Matemáticas", profesor: "Prof. María García", color: "blue", aula: "A-101" },
-        { materia: "Inglés", profesor: "Prof. Diana Torres", color: "purple", aula: "A-101" },
-        { tipo: "Receso" },
-        { materia: "Ciencias", profesor: "Prof. Pedro González", color: "green", aula: "Lab-1" },
-        { materia: "Artes", profesor: "Prof. Sofia López", color: "pink", aula: "A-101" },
-        { materia: "FCE", profesor: "Prof. Patricia Gómez", color: "teal", aula: "A-101" }
-      ],
-      Miércoles: [
-        { materia: "Matemáticas", profesor: "Prof. María García", color: "blue", aula: "A-101" },
-        { materia: "Historia", profesor: "Prof. Ana Martínez", color: "yellow", aula: "A-101" },
-        { materia: "Español", profesor: "Prof. Laura Rodríguez", color: "red", aula: "A-101" },
-        { tipo: "Receso" },
-        { materia: "Inglés", profesor: "Prof. Diana Torres", color: "purple", aula: "A-101" },
-        { materia: "Matemáticas", profesor: "Prof. María García", color: "blue", aula: "A-101" },
-        { materia: "Ciencias", profesor: "Prof. Pedro González", color: "green", aula: "A-101" }
-      ],
-      Jueves: [
-        { materia: "Español", profesor: "Prof. Laura Rodríguez", color: "red", aula: "A-101" },
-        { materia: "Matemáticas", profesor: "Prof. María García", color: "blue", aula: "A-101" },
-        { materia: "Ed. Física", profesor: "Prof. Carlos Ruiz", color: "orange", aula: "Patio" },
-        { tipo: "Receso" },
-        { materia: "Historia", profesor: "Prof. Ana Martínez", color: "yellow", aula: "A-101" },
-        { materia: "Inglés", profesor: "Prof. Diana Torres", color: "purple", aula: "A-101" },
-        { materia: "Artes", profesor: "Prof. Sofia López", color: "pink", aula: "A-101" }
-      ],
-      Viernes: [
-        { materia: "Matemáticas", profesor: "Prof. María García", color: "blue", aula: "A-101" },
-        { materia: "Español", profesor: "Prof. Laura Rodríguez", color: "red", aula: "A-101" },
-        { materia: "Ciencias", profesor: "Prof. Pedro González", color: "green", aula: "A-101" },
-        { tipo: "Receso" },
-        { materia: "FCE", profesor: "Prof. Patricia Gómez", color: "teal", aula: "A-101" },
-        { materia: "Inglés", profesor: "Prof. Diana Torres", color: "purple", aula: "A-101" },
-        { tipo: "Taller", materia: "Actividades", profesor: "Varios", color: "gray", aula: "Varios" }
-      ]
+  const handleGuardar = () => {
+    if (!form.grupo_id || !form.materia_id || !form.profesor_user_id || !form.hora_inicio || !form.hora_fin) {
+      toast.error("Completa todos los campos obligatorios.");
+      return;
     }
+    setSaving(true);
+    axios.post("/api/administrativo/clases", { ...form, salon_id: form.salon_id || null })
+      .then(({ data }) => {
+        setClases((prev) => [...prev, data.clase]);
+        setModalNuevo(false);
+        setForm({ ...formVacio, grupo_id: grupoSelId });
+        toast.success("Clase agregada al horario.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al crear la clase."))
+      .finally(() => setSaving(false));
   };
 
-  const grupos = ["1°A", "1°B", "2°A", "2°B", "3°A", "3°B"];
-  const profesores = [
-    "Prof. María García López",
-    "Prof. Laura Rodríguez Cruz",
-    "Prof. Roberto Sánchez Díaz",
-    "Prof. Pedro González Mora",
-    "Prof. Ana Martínez Silva"
-  ];
-
-  const getColorClasses = (color: string) => {
-    switch (color) {
-      case "blue": return "bg-blue-100 text-blue-700 border-blue-300";
-      case "red": return "bg-red-100 text-red-700 border-red-300";
-      case "green": return "bg-green-100 text-green-700 border-green-300";
-      case "yellow": return "bg-yellow-100 text-yellow-700 border-yellow-300";
-      case "purple": return "bg-purple-100 text-purple-700 border-purple-300";
-      case "orange": return "bg-orange-100 text-orange-700 border-orange-300";
-      case "pink": return "bg-pink-100 text-pink-700 border-pink-300";
-      case "teal": return "bg-teal-100 text-teal-700 border-teal-300";
-      case "gray": return "bg-gray-100 text-gray-700 border-gray-300";
-      default: return "bg-gray-100 text-gray-700 border-gray-300";
-    }
+  const handleEditar = () => {
+    if (!claseSel) return;
+    setSaving(true);
+    axios.put(`/api/administrativo/clases/${claseSel.id}`, { ...form, salon_id: form.salon_id || null })
+      .then(({ data }) => {
+        setClases((prev) => prev.map((c) => c.id === data.clase.id ? data.clase : c));
+        setModalEditar(false);
+        setClaseSel(null);
+        toast.success("Clase actualizada.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al actualizar."))
+      .finally(() => setSaving(false));
   };
+
+  const handleEliminar = (clase: Clase) => {
+    if (!confirm("¿Eliminar esta clase del horario?")) return;
+    axios.delete(`/api/administrativo/clases/${clase.id}`)
+      .then(() => {
+        setClases((prev) => prev.filter((c) => c.id !== clase.id));
+        toast.success("Clase eliminada.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al eliminar."));
+  };
+
+  const abrirEditar = (clase: Clase) => {
+    setClaseSel(clase);
+    setForm({
+      grupo_id: clase.grupo_id.toString(),
+      materia_id: clase.materia_id.toString(),
+      profesor_user_id: clase.profesor_user_id.toString(),
+      salon_id: clase.salon_id?.toString() ?? "",
+      dia_semana: clase.dia_semana,
+      hora_inicio: clase.hora_inicio,
+      hora_fin: clase.hora_fin,
+    });
+    setModalEditar(true);
+  };
+
+  const grupoSel = grupos.find((g) => g.id.toString() === grupoSelId);
+  const materiasFiltradas = grupoSel?.grado ? materias.filter((m) => m.grado_id === grupoSel.grado!.id) : materias;
+  const clasesPorDia = (dia: string) => clases.filter((c) => c.dia_semana === dia).sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Clock} title="Gestión de Horarios" description="Configura los horarios de clases por grupo" color="bg-[#7C3AED]">
-        <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
+      <PageTitle icon={Clock} title="Horarios" description="Gestiona el horario de clases por grupo" color="bg-[#1D4ED8]">
+        <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm({ ...formVacio, grupo_id: grupoSelId }); }}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
-              <Plus className="h-4 w-4 mr-2" />
-              Asignar Clase
+            <Button className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white">
+              <Plus className="h-4 w-4 mr-2" />Nueva Clase
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Asignar Nueva Clase</DialogTitle>
-              <DialogDescription>
-                Define la materia, profesor y agrega todos los días con su horario y aula correspondiente.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-5">
-              {/* Grupo y Materia */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Grupo</Label>
-                  <Select value={formGrupo} onValueChange={setFormGrupo}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Seleccionar grupo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {grupos.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Materia</Label>
-                  <Select value={formMateria} onValueChange={setFormMateria}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Seleccionar materia" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="matematicas">Matemáticas</SelectItem>
-                      <SelectItem value="español">Español</SelectItem>
-                      <SelectItem value="ciencias">Ciencias</SelectItem>
-                      <SelectItem value="historia">Historia</SelectItem>
-                      <SelectItem value="ingles">Inglés</SelectItem>
-                      <SelectItem value="ed-fisica">Ed. Física</SelectItem>
-                      <SelectItem value="artes">Artes</SelectItem>
-                      <SelectItem value="fce">FCE</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Profesor */}
-              <div>
-                <Label>Profesor</Label>
-                <Select value={formProfesor} onValueChange={setFormProfesor}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Seleccionar profesor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {profesores.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Sesiones dinámicas */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label>Días y horarios</Label>
-                  <span className="text-xs text-[#6B7280]">{sesiones.length} día{sesiones.length !== 1 ? "s" : ""} agregado{sesiones.length !== 1 ? "s" : ""}</span>
-                </div>
-
-                <div className="space-y-2">
-                  {sesiones.map((sesion, i) => (
-                    <div key={i} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-end p-3 bg-gray-50 rounded-lg border border-[#E5E7EB]">
-                      {/* Día */}
-                      <div>
-                        <label className="text-xs text-[#6B7280] mb-1 block">Día</label>
-                        <Select value={sesion.dia} onValueChange={(v) => actualizarSesion(i, "dia", v)}>
-                          <SelectTrigger className="h-9 bg-white text-sm">
-                            <SelectValue placeholder="Día" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {diasSemana.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Hora inicio */}
-                      <div>
-                        <label className="text-xs text-[#6B7280] mb-1 block">Hora inicio</label>
-                        <Select value={sesion.horaInicio} onValueChange={(v) => actualizarSesion(i, "horaInicio", v)}>
-                          <SelectTrigger className="h-9 bg-white text-sm">
-                            <SelectValue placeholder="Inicio" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {["07:00","08:00","09:00","10:00","10:30","11:00","11:30","12:00","12:30","13:00"].map((h) => (
-                              <SelectItem key={h} value={h}>{h}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Hora fin */}
-                      <div>
-                        <label className="text-xs text-[#6B7280] mb-1 block">Hora término</label>
-                        <Select value={sesion.horaFin} onValueChange={(v) => actualizarSesion(i, "horaFin", v)}>
-                          <SelectTrigger className="h-9 bg-white text-sm">
-                            <SelectValue placeholder="Término" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {["08:00","09:00","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30"].map((h) => (
-                              <SelectItem key={h} value={h}>{h}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Aula */}
-                      <div>
-                        <label className="text-xs text-[#6B7280] mb-1 block">Aula</label>
-                        <Input
-                          value={sesion.aula}
-                          onChange={(e) => actualizarSesion(i, "aula", e.target.value)}
-                          placeholder="A-101, Lab-1…"
-                          className="h-9 bg-white text-sm"
-                        />
-                      </div>
-
-                      {/* Eliminar fila */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 w-9 p-0 text-[#E11D48] hover:bg-red-50 self-end"
-                        onClick={() => eliminarSesion(i)}
-                        disabled={sesiones.length === 1}
-                        title="Eliminar día"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full border-dashed border-[#1D4ED8] text-[#1D4ED8] hover:bg-blue-50"
-                  onClick={agregarSesion}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar otro día
-                </Button>
-              </div>
-
-              <div className="flex gap-2 justify-end pt-2 border-t border-[#E5E7EB]">
-                <Button variant="outline" onClick={() => { setModalNuevo(false); resetForm(); }}>
-                  Cancelar
-                </Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]" onClick={() => { setModalNuevo(false); resetForm(); }}>
-                  Asignar Clase
-                </Button>
-              </div>
-            </div>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Nueva Clase</DialogTitle><DialogDescription>Agrega una clase al horario del grupo.</DialogDescription></DialogHeader>
+            <FormClase form={form} setForm={setForm} grupos={grupos} materias={materias} materiasFiltradas={materiasFiltradas} salones={salones} profesores={profesores} />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setModalNuevo(false)}>Cancelar</Button>
+              <Button onClick={handleGuardar} disabled={saving} className="bg-[#1D4ED8] text-white">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Agregar"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </PageTitle>
 
-      {/* Estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Total Grupos</p>
-                <p className="text-2xl font-bold text-[#7C3AED] mt-1">12</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <Users className="h-6 w-6 text-[#7C3AED]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Horas por Día</p>
-                <p className="text-2xl font-bold text-[#1D4ED8] mt-1">7</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <Clock className="h-6 w-6 text-[#1D4ED8]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Profesores Activos</p>
-                <p className="text-2xl font-bold text-[#059669] mt-1">18</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-xl">
-                <Users className="h-6 w-6 text-[#059669]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Materias</p>
-                <p className="text-2xl font-bold text-[#F59E0B] mt-1">15</p>
-              </div>
-              <div className="p-3 bg-amber-100 rounded-xl">
-                <BookOpen className="h-6 w-6 text-[#F59E0B]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filtros y Vista */}
+      {/* Selector de grupo */}
       <Card className="border-[#E5E7EB]">
-        <CardContent className="pt-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <Tabs value={vistaActual} onValueChange={(v) => setVistaActual(v as "grupo" | "profesor")} className="flex-1">
-              <TabsList>
-                <TabsTrigger value="grupo">
-                  <Users className="h-4 w-4 mr-2" />
-                  Por Grupo
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            
-            {vistaActual === "grupo" ? (
-              <Select value={filtroGrupo} onValueChange={setFiltroGrupo}>
-                <SelectTrigger className="w-full lg:w-48">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Seleccionar grupo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los grupos</SelectItem>
-                  {grupos.map((grupo) => (
-                    <SelectItem key={grupo} value={grupo}>{grupo}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <CardContent className="pt-4 pb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <Label className="shrink-0">Grupo:</Label>
+            {loadingInicial ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Select value={filtroProfesor} onValueChange={setFiltroProfesor}>
-                <SelectTrigger className="w-full lg:w-48">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Seleccionar profesor" />
+              <Select value={grupoSelId} onValueChange={handleSelGrupo}>
+                <SelectTrigger className="w-full sm:w-72">
+                  <SelectValue placeholder="Seleccionar grupo para ver su horario" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todos">Todos los profesores</SelectItem>
-                  {profesores.map((profesor) => (
-                    <SelectItem key={profesor} value={profesor}>{profesor}</SelectItem>
+                  {grupos.map((g) => (
+                    <SelectItem key={g.id} value={g.id.toString()}>
+                      {g.grado?.numero ?? ""}°{g.nombre} — {g.ciclo_escolar?.nombre}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -400,120 +265,69 @@ export function Horarios() {
         </CardContent>
       </Card>
 
-      {/* Horario Visual */}
-      <Card className="border-[#E5E7EB]">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Horario: 1°A</CardTitle>
-              <CardDescription>Turno Matutino (07:00 - 13:30)</CardDescription>
-            </div>
-            <Button variant="outline" size="sm">
-              <Edit className="h-4 w-4 mr-2" />
-              Editar Horario
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="border border-[#E5E7EB] bg-gray-50 p-3 text-left text-sm font-semibold text-[#111827] min-w-[100px]">
-                    Horario
-                  </th>
-                  {diasSemana.map((dia) => (
-                    <th key={dia} className="border border-[#E5E7EB] bg-gray-50 p-3 text-center text-sm font-semibold text-[#111827] min-w-[150px]">
-                      {dia}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {horasClase.map((hora, i) => (
-                  <tr key={i}>
-                    <td className="border border-[#E5E7EB] p-3 bg-gray-50">
-                      <div className="text-sm font-medium text-[#111827]">
-                        {hora.inicio} - {hora.fin}
-                      </div>
-                    </td>
-                    {diasSemana.map((dia) => {
-                      const clase = horarioGrupo["1°A"][dia as keyof typeof horarioGrupo["1°A"]][i];
-                      
-                      if (hora.tipo === "Receso") {
-                        return (
-                          <td key={dia} className="border border-[#E5E7EB] p-3 bg-amber-50">
-                            <div className="text-center">
-                              <p className="text-sm font-semibold text-amber-700">☕ Receso</p>
-                            </div>
-                          </td>
-                        );
-                      }
-                      
-                      if (!clase || clase.tipo === "Receso") {
-                        return <td key={dia} className="border border-[#E5E7EB] p-3 bg-gray-50"></td>;
-                      }
-                      
-                      return (
-                        <td key={dia} className="border border-[#E5E7EB] p-2">
-                          <div className={`p-3 rounded-lg border-l-4 ${getColorClasses(clase.color)} hover:shadow-md transition-shadow cursor-pointer`}>
-                            <p className="text-sm font-semibold line-clamp-1">{clase.materia}</p>
-                            <p className="text-xs mt-1 line-clamp-1">{clase.profesor}</p>
-                            <div className="flex items-center gap-1 mt-1">
-                              <Calendar className="h-3 w-3" />
-                              <p className="text-xs">{clase.aula}</p>
-                            </div>
+      {/* Horario en columnas por día */}
+      {grupoSelId && (
+        loading ? (
+          <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#1D4ED8]" /></div>
+        ) : clases.length === 0 ? (
+          <Card className="border-[#E5E7EB]">
+            <CardContent className="py-12 text-center">
+              <Clock className="h-10 w-10 text-[#D1D5DB] mx-auto mb-3" />
+              <p className="text-[#6B7280]">No hay clases asignadas a este grupo.</p>
+              <p className="text-sm text-[#9CA3AF] mt-1">Usa "Nueva Clase" para agregar al horario.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {DIAS.map((dia) => {
+              const clasesDelDia = clasesPorDia(dia);
+              return (
+                <Card key={dia} className="border-[#E5E7EB]">
+                  <CardHeader className="pb-2 pt-3 px-3">
+                    <CardTitle className="text-sm font-semibold text-[#374151]">{DIAS_LABEL[dia]}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-3 pb-3 space-y-2">
+                    {clasesDelDia.length === 0 ? (
+                      <p className="text-xs text-[#9CA3AF] text-center py-2">—</p>
+                    ) : (
+                      clasesDelDia.map((clase) => (
+                        <div key={clase.id} className="p-2 bg-blue-50 rounded-lg border border-blue-100">
+                          <p className="text-xs font-semibold text-[#1D4ED8] leading-tight">{clase.materia?.nombre}</p>
+                          <p className="text-xs text-[#6B7280] mt-0.5">{clase.hora_inicio}–{clase.hora_fin}</p>
+                          <p className="text-xs text-[#6B7280] truncate">{clase.profesor?.name}</p>
+                          {clase.salon && <p className="text-xs text-[#9CA3AF]">{clase.salon.nombre}</p>}
+                          <div className="flex gap-1 mt-1">
+                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => abrirEditar(clase)}>
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-red-400 hover:text-red-600" onClick={() => handleEliminar(clase)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-        </CardContent>
-      </Card>
+        )
+      )}
 
-      {/* Leyenda */}
-      <Card className="border-[#E5E7EB]">
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-500 rounded"></div>
-              <span className="text-sm">Matemáticas</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-500 rounded"></div>
-              <span className="text-sm">Español</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-500 rounded"></div>
-              <span className="text-sm">Ciencias</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-              <span className="text-sm">Historia</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-purple-500 rounded"></div>
-              <span className="text-sm">Inglés</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-orange-500 rounded"></div>
-              <span className="text-sm">Ed. Física</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-pink-500 rounded"></div>
-              <span className="text-sm">Artes</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-teal-500 rounded"></div>
-              <span className="text-sm">FCE</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Modal editar */}
+      <Dialog open={modalEditar} onOpenChange={(open) => { setModalEditar(open); if (!open) { setClaseSel(null); setForm({ ...formVacio, grupo_id: grupoSelId }); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Editar Clase</DialogTitle><DialogDescription>Modifica los datos de esta clase.</DialogDescription></DialogHeader>
+          <FormClase form={form} setForm={setForm} grupos={grupos} materias={materias} materiasFiltradas={materiasFiltradas} salones={salones} profesores={profesores} isEdit />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalEditar(false)}>Cancelar</Button>
+            <Button onClick={handleEditar} disabled={saving} className="bg-[#1D4ED8] text-white">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar cambios"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

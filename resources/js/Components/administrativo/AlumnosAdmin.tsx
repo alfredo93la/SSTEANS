@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { 
-  GraduationCap, 
-  Search, 
+import {
+  GraduationCap,
+  Search,
   Filter,
   Eye,
   Edit,
@@ -15,379 +16,245 @@ import {
   Users,
   UserCircle,
   Phone,
-  Mail,
-  Calendar,
-  MapPin
+  Loader2,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "../ui/dialog";
 import { PageTitle } from "../PageTitle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { toast } from "sonner";
 
-interface AlumnosAdminProps {
-  userRole?: string;
+interface Persona { id: number; nombre: string; apellidos: string; curp: string; telefono: string | null; direccion: string | null; }
+interface AsignacionGrupo { estado: string; grupo?: { id: number; nombre: string; turno: string; grado?: { numero: number } }; }
+interface Alumno {
+  id: number;
+  estado: string;
+  fecha_nacimiento: string;
+  sexo: string;
+  persona: Persona;
+  asignaciones?: AsignacionGrupo[];
 }
 
+const formVacio = { nombre: "", apellidos: "", curp: "", fecha_nacimiento: "", sexo: "Masculino", telefono: "", direccion: "", estado: "Activo" };
+
+type AlumnoForm = typeof formVacio;
+
+function FormAlumno({ form, setForm }: { form: AlumnoForm; setForm: (f: AlumnoForm) => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Nombre(s) *</Label>
+          <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
+        </div>
+        <div className="space-y-2">
+          <Label>Apellidos *</Label>
+          <Input value={form.apellidos} onChange={(e) => setForm({ ...form, apellidos: e.target.value })} />
+        </div>
+        <div className="space-y-2">
+          <Label>CURP *</Label>
+          <Input value={form.curp} onChange={(e) => setForm({ ...form, curp: e.target.value.toUpperCase() })} maxLength={18} placeholder="18 caracteres" />
+        </div>
+        <div className="space-y-2">
+          <Label>Fecha de nacimiento *</Label>
+          <Input type="date" value={form.fecha_nacimiento} onChange={(e) => setForm({ ...form, fecha_nacimiento: e.target.value })} />
+        </div>
+        <div className="space-y-2">
+          <Label>Sexo *</Label>
+          <Select value={form.sexo} onValueChange={(v) => setForm({ ...form, sexo: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Masculino">Masculino</SelectItem>
+              <SelectItem value="Femenino">Femenino</SelectItem>
+              <SelectItem value="No especificado">No especificado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Estado</Label>
+          <Select value={form.estado} onValueChange={(v) => setForm({ ...form, estado: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Activo">Activo</SelectItem>
+              <SelectItem value="Inactivo">Inactivo</SelectItem>
+              <SelectItem value="Baja">Baja</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Teléfono</Label>
+          <Input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} />
+        </div>
+        <div className="space-y-2">
+          <Label>Dirección</Label>
+          <Input value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface AlumnosAdminProps { userRole?: string; }
+
 export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
+  const [alumnos, setAlumnos] = useState<Alumno[]>([]);
+  const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
-  const [filtroGrado, setFiltroGrado] = useState("todos");
-  const [filtroGrupo, setFiltroGrupo] = useState("todos");
-  const [filtroEstatus, setFiltroEstatus] = useState("todos");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
   const [modalNuevo, setModalNuevo] = useState(false);
   const [modalDetalle, setModalDetalle] = useState(false);
-  const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<any>(null);
+  const [modalEditar, setModalEditar] = useState(false);
+  const [alumnoSel, setAlumnoSel] = useState<Alumno | null>(null);
+  const [form, setForm] = useState(formVacio);
+  const [saving, setSaving] = useState(false);
 
-  // Datos de ejemplo
-  const alumnos = [
-    {
-      id: 1,
-      matricula: "2026-001-A",
-      nombre: "Juan Pérez García",
-      fechaNacimiento: "15/03/2012",
-      edad: 13,
-      grado: "1°",
-      grupo: "A",
-      estatus: "Activo",
-      tutor: "Sr. Juan Pérez Martínez",
-      telefonoTutor: "+52 555 2345 678",
-      emailTutor: "juan.perez@email.com",
-      direccion: "Calle Reforma #123, Col. Centro",
-      promedio: 8.5,
-      asistencia: 95,
-      fechaIngreso: "01/09/2025"
-    },
-    {
-      id: 2,
-      matricula: "2026-002-A",
-      nombre: "Ana Pérez García",
-      fechaNacimiento: "20/07/2012",
-      edad: 13,
-      grado: "1°",
-      grupo: "A",
-      estatus: "Activo",
-      tutor: "Sr. Juan Pérez Martínez",
-      telefonoTutor: "+52 555 2345 678",
-      emailTutor: "juan.perez@email.com",
-      direccion: "Calle Reforma #123, Col. Centro",
-      promedio: 9.2,
-      asistencia: 98,
-      fechaIngreso: "01/09/2025"
-    },
-    {
-      id: 3,
-      matricula: "2026-015-B",
-      nombre: "Carlos Rodríguez López",
-      fechaNacimiento: "10/01/2012",
-      edad: 14,
-      grado: "2°",
-      grupo: "A",
-      estatus: "Activo",
-      tutor: "Sra. María López Cruz",
-      telefonoTutor: "+52 555 3456 789",
-      emailTutor: "maria.lopez@email.com",
-      direccion: "Av. Juárez #456, Col. Norte",
-      promedio: 7.8,
-      asistencia: 88,
-      fechaIngreso: "01/09/2024"
-    },
-    {
-      id: 4,
-      matricula: "2026-023-C",
-      nombre: "María Sánchez Díaz",
-      fechaNacimiento: "05/11/2011",
-      edad: 14,
-      grado: "2°",
-      grupo: "B",
-      estatus: "Activo",
-      tutor: "Sr. Roberto Sánchez",
-      telefonoTutor: "+52 555 4567 890",
-      emailTutor: "roberto.sanchez@email.com",
-      direccion: "Calle Hidalgo #789, Col. Sur",
-      promedio: 9.5,
-      asistencia: 99,
-      fechaIngreso: "01/09/2024"
-    },
-    {
-      id: 5,
-      matricula: "2026-034-A",
-      nombre: "Luis García Hernández",
-      fechaNacimiento: "22/08/2010",
-      edad: 15,
-      grado: "3°",
-      grupo: "A",
-      estatus: "Activo",
-      tutor: "Sra. Carmen García",
-      telefonoTutor: "+52 555 5678 901",
-      emailTutor: "carmen.garcia@email.com",
-      direccion: "Blvd. Constitución #321, Col. Este",
-      promedio: 8.9,
-      asistencia: 92,
-      fechaIngreso: "01/09/2023"
-    },
-    {
-      id: 6,
-      matricula: "2026-042-B",
-      nombre: "Sofia Martínez Ruiz",
-      fechaNacimiento: "14/04/2011",
-      edad: 14,
-      grado: "3°",
-      grupo: "B",
-      estatus: "Baja temporal",
-      tutor: "Sr. Pedro Martínez",
-      telefonoTutor: "+52 555 6789 012",
-      emailTutor: "pedro.martinez@email.com",
-      direccion: "Calle Morelos #654, Col. Oeste",
-      promedio: 8.2,
-      asistencia: 75,
-      fechaIngreso: "01/09/2023"
+  const cargar = (q?: string) => {
+    setLoading(true);
+    axios.get("/api/administrativo/alumnos", { params: { q: (q ?? busqueda) || undefined } })
+      .then(({ data }) => setAlumnos(data.alumnos))
+      .catch(() => toast.error("No se pudieron cargar los alumnos."))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { cargar(); }, []);
+
+  const handleGuardar = () => {
+    if (!form.nombre || !form.apellidos || !form.curp || !form.fecha_nacimiento) {
+      toast.error("Nombre, apellidos, CURP y fecha de nacimiento son obligatorios.");
+      return;
     }
-  ];
-
-  const estadisticas = {
-    totalAlumnos: 358,
-    alumnosActivos: 352,
-    alumnosBaja: 6,
-    promedioGeneral: 8.7,
-    asistenciaPromedio: 93
+    setSaving(true);
+    axios.post("/api/administrativo/alumnos", form)
+      .then(({ data }) => {
+        setAlumnos((prev) => [...prev, data.alumno]);
+        setModalNuevo(false);
+        setForm(formVacio);
+        toast.success("Alumno registrado correctamente.");
+      })
+      .catch((err) => {
+        const errors = err.response?.data?.errors;
+        const msg = errors ? Object.values(errors).flat().join(" ") : (err.response?.data?.message ?? "Error al registrar.");
+        toast.error(msg);
+      })
+      .finally(() => setSaving(false));
   };
 
-  const getEstatusColor = (estatus: string) => {
-    switch (estatus) {
-      case "Activo": return "bg-green-100 text-green-700 border-green-200";
-      case "Baja temporal": return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      case "Baja definitiva": return "bg-red-100 text-red-700 border-red-200";
-      default: return "bg-gray-100 text-gray-700 border-gray-200";
-    }
+  const handleEditar = () => {
+    if (!alumnoSel) return;
+    setSaving(true);
+    axios.put(`/api/administrativo/alumnos/${alumnoSel.id}`, form)
+      .then(({ data }) => {
+        setAlumnos((prev) => prev.map((a) => a.id === data.alumno.id ? data.alumno : a));
+        setModalEditar(false);
+        setAlumnoSel(null);
+        toast.success("Alumno actualizado.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al actualizar."))
+      .finally(() => setSaving(false));
   };
 
-  const getPromedioColor = (promedio: number) => {
-    if (promedio >= 9) return "text-green-600";
-    if (promedio >= 8) return "text-blue-600";
-    if (promedio >= 7) return "text-yellow-600";
-    return "text-red-600";
+  const handleEliminar = (alumno: Alumno) => {
+    if (!confirm(`¿Eliminar a ${alumno.persona.nombre} ${alumno.persona.apellidos}?`)) return;
+    axios.delete(`/api/administrativo/alumnos/${alumno.id}`)
+      .then(() => {
+        setAlumnos((prev) => prev.filter((a) => a.id !== alumno.id));
+        toast.success("Alumno eliminado.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."));
   };
 
-  const verDetalle = (alumno: any) => {
-    setAlumnoSeleccionado(alumno);
-    setModalDetalle(true);
+  const abrirEditar = (alumno: Alumno) => {
+    setAlumnoSel(alumno);
+    setForm({
+      nombre: alumno.persona.nombre,
+      apellidos: alumno.persona.apellidos,
+      curp: alumno.persona.curp,
+      fecha_nacimiento: alumno.fecha_nacimiento,
+      sexo: alumno.sexo,
+      telefono: alumno.persona.telefono ?? "",
+      direccion: alumno.persona.direccion ?? "",
+      estado: alumno.estado,
+    });
+    setModalEditar(true);
   };
+
+  const abrirDetalle = (alumno: Alumno) => { setAlumnoSel(alumno); setModalDetalle(true); };
+
+  const grupoActual = (alumno: Alumno) => {
+    const a = alumno.asignaciones?.find((x) => x.estado === "activo");
+    if (!a?.grupo) return null;
+    return `${a.grupo.grado?.numero ?? ""}°${a.grupo.nombre}`;
+  };
+
+  const getEstadoColor = (estado: string) => {
+    if (estado === "Activo") return "bg-green-100 text-green-700 border-green-200";
+    if (estado === "Baja") return "bg-red-100 text-red-700 border-red-200";
+    return "bg-gray-100 text-gray-700 border-gray-200";
+  };
+
+  const filtered = alumnos.filter((a) => {
+    const nombre = `${a.persona.nombre} ${a.persona.apellidos}`.toLowerCase();
+    const coincideBusqueda = !busqueda || nombre.includes(busqueda.toLowerCase()) || a.persona.curp?.toLowerCase().includes(busqueda.toLowerCase());
+    const coincideEstado = filtroEstado === "todos" || a.estado.toLowerCase() === filtroEstado.toLowerCase();
+    return coincideBusqueda && coincideEstado;
+  });
 
   return (
     <div className="space-y-6 animate-fade-in">
       <PageTitle icon={GraduationCap} title="Gestión de Alumnos" description="Administra el catálogo completo de alumnos" color="bg-[#1D4ED8]">
-        <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
+        <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
           <DialogTrigger asChild>
             <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Alumno
+              <Plus className="h-4 w-4 mr-2" />Nuevo Alumno
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Registrar Nuevo Alumno</DialogTitle>
-              <DialogDescription>
-                Llena los campos para dar de alta un nuevo alumno en el sistema.
-              </DialogDescription>
+              <DialogDescription>Llena los campos para dar de alta un nuevo alumno.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-6">
-              {/* Información del Alumno */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-[#111827] flex items-center gap-2">
-                  <UserCircle className="h-5 w-5 text-[#7C3AED]" />
-                  Información del Alumno
-                </h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label htmlFor="nombre-completo">Nombre Completo</Label>
-                    <Input id="nombre-completo" placeholder="Ej: Juan Pérez García" />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="fecha-nacimiento">Fecha de Nacimiento</Label>
-                    <Input id="fecha-nacimiento" type="date" />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="matricula">Matrícula</Label>
-                    <Input id="matricula" placeholder="Auto-generada" disabled />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="grado-alumno">Grado</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar grado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1° (Primero)</SelectItem>
-                        <SelectItem value="2">2° (Segundo)</SelectItem>
-                        <SelectItem value="3">3° (Tercero)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="grupo-alumno">Grupo</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar grupo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="A">A</SelectItem>
-                        <SelectItem value="B">B</SelectItem>
-                        <SelectItem value="C">C</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="col-span-2">
-                    <Label htmlFor="direccion">Dirección</Label>
-                    <Input id="direccion" placeholder="Calle, número, colonia, ciudad" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Información del Tutor */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-semibold text-[#111827] flex items-center gap-2">
-                  <Users className="h-5 w-5 text-[#1D4ED8]" />
-                  Información del Tutor
-                </h3>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label htmlFor="tutor-seleccionar">Tutor Existente</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Buscar tutor existente o crear nuevo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="nuevo">+ Crear nuevo tutor</SelectItem>
-                        <SelectItem value="1">Sr. Juan Pérez Martínez</SelectItem>
-                        <SelectItem value="2">Sra. María López Cruz</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="col-span-2">
-                    <Label htmlFor="nombre-tutor">Nombre del Tutor</Label>
-                    <Input id="nombre-tutor" placeholder="Nombre completo del padre/madre/tutor" />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="telefono-tutor">Teléfono</Label>
-                    <Input id="telefono-tutor" placeholder="+52 555 1234 567" />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="email-tutor">Correo Electrónico</Label>
-                    <Input id="email-tutor" type="email" placeholder="tutor@email.com" />
-                  </div>
-
-                  <div className="col-span-2">
-                    <Label htmlFor="parentesco">Parentesco</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar parentesco" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="padre">Padre</SelectItem>
-                        <SelectItem value="madre">Madre</SelectItem>
-                        <SelectItem value="tutor">Tutor Legal</SelectItem>
-                        <SelectItem value="otro">Otro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-900">
-                  ℹ️ <strong>Nota:</strong> Se enviará un correo al tutor con las credenciales de acceso al sistema.
-                </p>
-              </div>
-
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setModalNuevo(false)}>
-                  Cancelar
-                </Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
-                  Registrar Alumno
-                </Button>
-              </div>
-            </div>
+            <FormAlumno form={form} setForm={setForm} />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setModalNuevo(false)}>Cancelar</Button>
+              <Button onClick={handleGuardar} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Registrar Alumno"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </PageTitle>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-[#E5E7EB]">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[#6B7280]">Total Alumnos</p>
-                <p className="text-2xl font-bold text-[#7C3AED] mt-1">{estadisticas.totalAlumnos}</p>
+                <p className="text-2xl font-bold text-[#7C3AED] mt-1">{alumnos.length}</p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <GraduationCap className="h-6 w-6 text-[#7C3AED]" />
-              </div>
+              <div className="p-3 bg-purple-100 rounded-xl"><GraduationCap className="h-6 w-6 text-[#7C3AED]" /></div>
             </div>
           </CardContent>
         </Card>
-
         <Card className="border-[#E5E7EB]">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[#6B7280]">Activos</p>
-                <p className="text-2xl font-bold text-[#059669] mt-1">{estadisticas.alumnosActivos}</p>
+                <p className="text-2xl font-bold text-[#059669] mt-1">{alumnos.filter((a) => a.estado === "Activo").length}</p>
               </div>
-              <div className="p-3 bg-green-100 rounded-xl">
-                <Users className="h-6 w-6 text-[#059669]" />
-              </div>
+              <div className="p-3 bg-green-100 rounded-xl"><Users className="h-6 w-6 text-[#059669]" /></div>
             </div>
           </CardContent>
         </Card>
-
         <Card className="border-[#E5E7EB]">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[#6B7280]">Bajas</p>
-                <p className="text-2xl font-bold text-[#DC2626] mt-1">{estadisticas.alumnosBaja}</p>
+                <p className="text-2xl font-bold text-[#DC2626] mt-1">{alumnos.filter((a) => a.estado === "Baja").length}</p>
               </div>
-              <div className="p-3 bg-red-100 rounded-xl">
-                <UserCircle className="h-6 w-6 text-[#DC2626]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Promedio</p>
-                <p className="text-2xl font-bold text-[#1D4ED8] mt-1">{estadisticas.promedioGeneral}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <GraduationCap className="h-6 w-6 text-[#1D4ED8]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Asistencia</p>
-                <p className="text-2xl font-bold text-[#F59E0B] mt-1">{estadisticas.asistenciaPromedio}%</p>
-              </div>
-              <div className="p-3 bg-amber-100 rounded-xl">
-                <Calendar className="h-6 w-6 text-[#F59E0B]" />
-              </div>
+              <div className="p-3 bg-red-100 rounded-xl"><UserCircle className="h-6 w-6 text-[#DC2626]" /></div>
             </div>
           </CardContent>
         </Card>
@@ -397,235 +264,146 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
       <Card className="border-[#E5E7EB]">
         <CardContent className="pt-6">
           <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
-                <Input
-                  placeholder="Buscar por nombre, matrícula o tutor..."
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+              <Input
+                placeholder="Buscar por nombre o CURP..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            <Select value={filtroGrado} onValueChange={setFiltroGrado}>
-              <SelectTrigger className="w-full lg:w-40">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Grado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="1">1°</SelectItem>
-                <SelectItem value="2">2°</SelectItem>
-                <SelectItem value="3">3°</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filtroGrupo} onValueChange={setFiltroGrupo}>
-              <SelectTrigger className="w-full lg:w-40">
-                <SelectValue placeholder="Grupo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="A">A</SelectItem>
-                <SelectItem value="B">B</SelectItem>
-                <SelectItem value="C">C</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filtroEstatus} onValueChange={setFiltroEstatus}>
+            <Select value={filtroEstado} onValueChange={setFiltroEstado}>
               <SelectTrigger className="w-full lg:w-48">
-                <SelectValue placeholder="Estatus" />
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="activo">Activos</SelectItem>
-                <SelectItem value="baja-temporal">Baja temporal</SelectItem>
-                <SelectItem value="baja-definitiva">Baja definitiva</SelectItem>
+                <SelectItem value="Activo">Activos</SelectItem>
+                <SelectItem value="Inactivo">Inactivos</SelectItem>
+                <SelectItem value="Baja">Bajas</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabla de alumnos */}
+      {/* Lista */}
       <Card className="border-[#E5E7EB]">
         <CardHeader>
           <CardTitle>Lista de Alumnos</CardTitle>
           <CardDescription>Gestiona el registro de alumnos del plantel</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {alumnos.map((alumno) => (
-              <div
-                key={alumno.id}
-                className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-lg">
-                        <GraduationCap className="h-4 w-4 text-white" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-[#111827]">{alumno.nombre}</h4>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                            {alumno.grado}{alumno.grupo}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {alumno.matricula}
-                          </Badge>
-                          <Badge className={getEstatusColor(alumno.estatus)}>
-                            {alumno.estatus}
-                          </Badge>
+          {loading ? (
+            <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#1D4ED8]" /></div>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-[#6B7280] text-center py-8">No hay alumnos registrados.</p>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((alumno) => {
+                const grupo = grupoActual(alumno);
+                return (
+                  <div key={alumno.id} className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="p-2 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-lg">
+                            <GraduationCap className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-[#111827]">{alumno.persona.nombre} {alumno.persona.apellidos}</h4>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              {grupo && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{grupo}</Badge>
+                              )}
+                              <Badge variant="outline" className="text-xs font-mono">{alumno.persona.curp}</Badge>
+                              <Badge className={getEstadoColor(alumno.estado)}>{alumno.estado}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs text-[#6B7280] ml-12">
+                          {alumno.persona.telefono && (
+                            <div className="flex items-center gap-1">
+                              <Phone className="h-3 w-3" />{alumno.persona.telefono}
+                            </div>
+                          )}
+                          <div>{alumno.sexo} · {alumno.fecha_nacimiento}</div>
                         </div>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-[#6B7280] ml-12">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-3.5 w-3.5" />
-                        <span className="text-xs">{alumno.tutor}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-3.5 w-3.5" />
-                        <span className="text-xs">{alumno.telefonoTutor}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs">Promedio: </span>
-                        <span className={`font-semibold text-xs ${getPromedioColor(alumno.promedio)}`}>
-                          {alumno.promedio}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs">Asistencia: {alumno.asistencia}%</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => verDetalle(alumno)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    {userRole === "Administrador" && (
-                      <>
-                        <Button variant="ghost" size="sm">
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => abrirDetalle(alumno)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => abrirEditar(alumno)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
+                        {userRole === "Administrador" && (
+                          <Button variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600" onClick={() => handleEliminar(alumno)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Modal de detalle */}
+      {/* Modal detalle */}
       <Dialog open={modalDetalle} onOpenChange={setModalDetalle}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Expediente del Alumno</DialogTitle>
-            <DialogDescription>
-              Información completa del alumno seleccionado.
-            </DialogDescription>
+            <DialogTitle>Detalle del Alumno</DialogTitle>
+            <DialogDescription>Información completa del alumno.</DialogDescription>
           </DialogHeader>
-          {alumnoSeleccionado && (
+          {alumnoSel && (
             <div className="space-y-4">
               <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
                 <div className="p-3 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-xl">
                   <GraduationCap className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">{alumnoSeleccionado.nombre}</h3>
-                  <div className="flex gap-2 mt-1">
-                    <Badge variant="outline">{alumnoSeleccionado.grado}{alumnoSeleccionado.grupo}</Badge>
-                    <Badge variant="outline">{alumnoSeleccionado.matricula}</Badge>
-                    <Badge className={getEstatusColor(alumnoSeleccionado.estatus)}>
-                      {alumnoSeleccionado.estatus}
-                    </Badge>
+                  <h3 className="font-bold text-lg">{alumnoSel.persona.nombre} {alumnoSel.persona.apellidos}</h3>
+                  <div className="flex gap-2 mt-1 flex-wrap">
+                    {grupoActual(alumnoSel) && <Badge variant="outline">{grupoActual(alumnoSel)}</Badge>}
+                    <Badge className={getEstadoColor(alumnoSel.estado)}>{alumnoSel.estado}</Badge>
                   </div>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="border-[#E5E7EB]">
-                  <CardContent className="pt-4">
-                    <p className="text-xs text-[#6B7280]">Edad</p>
-                    <p className="text-2xl font-bold text-[#7C3AED]">{alumnoSeleccionado.edad}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-[#E5E7EB]">
-                  <CardContent className="pt-4">
-                    <p className="text-xs text-[#6B7280]">Promedio</p>
-                    <p className={`text-2xl font-bold ${getPromedioColor(alumnoSeleccionado.promedio)}`}>
-                      {alumnoSeleccionado.promedio}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="border-[#E5E7EB] col-span-2">
-                  <CardContent className="pt-4">
-                    <p className="text-xs text-[#6B7280]">Asistencia</p>
-                    <p className="text-2xl font-bold text-[#059669]">{alumnoSeleccionado.asistencia}%</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-[#6B7280]">Fecha de Nacimiento</Label>
-                  <p className="font-medium">{alumnoSeleccionado.fechaNacimiento}</p>
-                </div>
-                <div>
-                  <Label className="text-[#6B7280]">Dirección</Label>
-                  <p className="font-medium">{alumnoSeleccionado.direccion}</p>
-                </div>
-                <div>
-                  <Label className="text-[#6B7280]">Fecha de Ingreso</Label>
-                  <p className="font-medium">{alumnoSeleccionado.fechaIngreso}</p>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <h4 className="font-semibold text-[#111827] mb-3">Información del Tutor</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-[#6B7280]" />
-                    <span>{alumnoSeleccionado.tutor}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-[#6B7280]" />
-                    <span>{alumnoSeleccionado.telefonoTutor}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-[#6B7280]" />
-                    <span>{alumnoSeleccionado.emailTutor}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2 justify-end pt-4 border-t">
-                <Button variant="outline" onClick={() => setModalDetalle(false)}>
-                  Cerrar
-                </Button>
-                {userRole === "Administrador" && (
-                  <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar Alumno
-                  </Button>
-                )}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><p className="text-[#6B7280]">CURP</p><p className="font-mono font-medium">{alumnoSel.persona.curp}</p></div>
+                <div><p className="text-[#6B7280]">Sexo</p><p className="font-medium">{alumnoSel.sexo}</p></div>
+                <div><p className="text-[#6B7280]">Fecha de nacimiento</p><p className="font-medium">{alumnoSel.fecha_nacimiento}</p></div>
+                {alumnoSel.persona.telefono && <div><p className="text-[#6B7280]">Teléfono</p><p className="font-medium">{alumnoSel.persona.telefono}</p></div>}
+                {alumnoSel.persona.direccion && <div className="col-span-2"><p className="text-[#6B7280]">Dirección</p><p className="font-medium">{alumnoSel.persona.direccion}</p></div>}
               </div>
             </div>
           )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalDetalle(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal editar */}
+      <Dialog open={modalEditar} onOpenChange={(open) => { setModalEditar(open); if (!open) { setAlumnoSel(null); setForm(formVacio); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Alumno</DialogTitle>
+            <DialogDescription>Modifica los datos del alumno.</DialogDescription>
+          </DialogHeader>
+          <FormAlumno form={form} setForm={setForm} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalEditar(false)}>Cancelar</Button>
+            <Button onClick={handleEditar} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar cambios"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

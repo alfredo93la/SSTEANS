@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -6,35 +7,86 @@ import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { School, BookOpen, Settings2, CheckCircle } from "lucide-react";
+import { School, Settings2, CheckCircle, Loader2 } from "lucide-react";
 import { PageTitle } from "../PageTitle";
 import { toast } from "sonner";
 
+interface Config {
+  nombre: string;
+  numero: string;
+  cct: string;
+  turno_escuela: string;
+  turnos_disponibles: string;
+  director: string;
+  telefono: string;
+  correo: string;
+  direccion: string;
+  nivel_educativo: string;
+  servicio_educativo: string;
+  minimo_aprobatorio: number;
+  escala_calificacion: string;
+  permitir_captura: boolean;
+  notificaciones: boolean;
+  registro_tutores: boolean;
+}
+
+const defaults: Config = {
+  nombre: "",
+  numero: "",
+  cct: "",
+  turno_escuela: "Matutino",
+  turnos_disponibles: "matutino",
+  director: "",
+  telefono: "",
+  correo: "",
+  direccion: "",
+  nivel_educativo: "Secundaria",
+  servicio_educativo: "General",
+  minimo_aprobatorio: 6,
+  escala_calificacion: "0-10",
+  permitir_captura: true,
+  notificaciones: true,
+  registro_tutores: false,
+};
+
 export function ConfiguracionGeneral() {
-  const [config, setConfig] = useState({
-    nombreEscuela: "Secundaria General",
-    num: "1",
-    cct: "09DES0001X",
-    turno: "Matutino",
-    director: "Mtro. Alejandro Vega Hernández",
-    telefono: "55 1234 5678",
-    correoInstitucional: "secundaria1@edu.cdmx.gob.mx",
-    direccion: "Calle Escolar 123, Col. Centro, CDMX",
-    nivelEducativo: "Secundaria",
-    sostenimiento: "Público Federal",
-    minimoAprobatorio: "6",
-    escalaCalificacion: "0–10",
-    permitirCaptura: true,
-    notificaciones: true,
-    registroTutores: false,
-  });
+  const [config, setConfig] = useState<Config>(defaults);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [guardado, setGuardado] = useState(false);
 
+  useEffect(() => {
+    axios.get("/api/admin/configuracion")
+      .then(({ data }) => setConfig({ ...defaults, ...data }))
+      .catch(() => toast.error("No se pudo cargar la configuración."))
+      .finally(() => setLoading(false));
+  }, []);
+
   const handleGuardar = () => {
-    setGuardado(true);
-    toast.success("Configuración guardada correctamente.");
-    setTimeout(() => setGuardado(false), 3000);
+    setSaving(true);
+    axios.put("/api/admin/configuracion", config)
+      .then(() => {
+        setGuardado(true);
+        toast.success("Configuración guardada correctamente.");
+        setTimeout(() => setGuardado(false), 3000);
+      })
+      .catch((err) => {
+        const msg = err.response?.data?.message ?? "Error al guardar la configuración.";
+        toast.error(msg);
+      })
+      .finally(() => setSaving(false));
   };
+
+  const set = (field: keyof Config, value: string | boolean | number) =>
+    setConfig((prev) => ({ ...prev, [field]: value }));
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-[#1D4ED8]" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -59,8 +111,8 @@ export function ConfiguracionGeneral() {
               <Label htmlFor="cfgNombre">Nombre de la escuela *</Label>
               <Input
                 id="cfgNombre"
-                value={config.nombreEscuela}
-                onChange={(e) => setConfig({ ...config, nombreEscuela: e.target.value })}
+                value={config.nombre}
+                onChange={(e) => set("nombre", e.target.value)}
                 className="rounded-lg"
               />
             </div>
@@ -69,8 +121,8 @@ export function ConfiguracionGeneral() {
                 <Label htmlFor="cfgNum">Número</Label>
                 <Input
                   id="cfgNum"
-                  value={config.num}
-                  onChange={(e) => setConfig({ ...config, num: e.target.value })}
+                  value={config.numero}
+                  onChange={(e) => set("numero", e.target.value)}
                   className="rounded-lg"
                 />
               </div>
@@ -79,17 +131,29 @@ export function ConfiguracionGeneral() {
                 <Input
                   id="cfgCct"
                   value={config.cct}
-                  onChange={(e) => setConfig({ ...config, cct: e.target.value })}
+                  onChange={(e) => set("cct", e.target.value)}
                   className="rounded-lg"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Turno</Label>
-                <Select value={config.turno} onValueChange={(v) => setConfig({ ...config, turno: v })}>
+                <Label>Servicio educativo</Label>
+                <Select value={config.servicio_educativo} onValueChange={(v) => set("servicio_educativo", v)}>
                   <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Matutino">Matutino</SelectItem>
-                    <SelectItem value="Vespertino">Vespertino</SelectItem>
+                    <SelectItem value="General">General</SelectItem>
+                    <SelectItem value="Técnica">Técnica</SelectItem>
+                    <SelectItem value="Telesecundaria">Telesecundaria</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Turno(s) disponibles</Label>
+                <Select value={config.turnos_disponibles} onValueChange={(v) => set("turnos_disponibles", v)}>
+                  <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="matutino">Matutino</SelectItem>
+                    <SelectItem value="vespertino">Vespertino</SelectItem>
+                    <SelectItem value="ambos">Ambos</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -99,7 +163,7 @@ export function ConfiguracionGeneral() {
               <Input
                 id="cfgDirector"
                 value={config.director}
-                onChange={(e) => setConfig({ ...config, director: e.target.value })}
+                onChange={(e) => set("director", e.target.value)}
                 className="rounded-lg"
               />
             </div>
@@ -109,29 +173,28 @@ export function ConfiguracionGeneral() {
                 <Input
                   id="cfgTel"
                   value={config.telefono}
-                  onChange={(e) => setConfig({ ...config, telefono: e.target.value })}
+                  onChange={(e) => set("telefono", e.target.value)}
                   className="rounded-lg"
                 />
               </div>
               <div className="space-y-2">
-              <Label htmlFor="cfgCorreo">Correo institucional</Label>
-              <Input
-                id="cfgCorreo"
-                type="email"
-                value={config.correoInstitucional}
-                onChange={(e) => setConfig({ ...config, correoInstitucional: e.target.value })}
-                className="rounded-lg"
-              />
+                <Label htmlFor="cfgCorreo">Correo institucional</Label>
+                <Input
+                  id="cfgCorreo"
+                  type="email"
+                  value={config.correo}
+                  onChange={(e) => set("correo", e.target.value)}
+                  className="rounded-lg"
+                />
+              </div>
             </div>
-            </div>
-            
             <div className="space-y-2">
               <Label htmlFor="cfgDireccion">Dirección</Label>
               <Textarea
                 id="cfgDireccion"
                 value={config.direccion}
                 rows={2}
-                onChange={(e) => setConfig({ ...config, direccion: e.target.value })}
+                onChange={(e) => set("direccion", e.target.value)}
                 className="rounded-lg resize-none"
               />
             </div>
@@ -154,10 +217,10 @@ export function ConfiguracionGeneral() {
             </CardHeader>
             <CardContent className="space-y-3">
               {([
-                { key: "permitirCaptura", label: "Permitir captura de calificaciones", desc: "Habilita que los profesores registren calificaciones" },
-                { key: "notificaciones",  label: "Notificaciones automáticas",          desc: "Envío de avisos por correo a tutores" },
-                { key: "registroTutores", label: "Registro abierto de tutores",         desc: "Los tutores pueden registrarse de forma autónoma" },
-              ] as { key: keyof typeof config; label: string; desc: string }[]).map(({ key, label, desc }) => (
+                { key: "permitir_captura", label: "Permitir captura de calificaciones", desc: "Habilita que los profesores registren calificaciones" },
+                { key: "notificaciones",   label: "Notificaciones automáticas",          desc: "Envío de avisos por correo a tutores" },
+                { key: "registro_tutores", label: "Registro abierto de tutores",         desc: "Los tutores pueden registrarse de forma autónoma" },
+              ] as { key: keyof Config; label: string; desc: string }[]).map(({ key, label, desc }) => (
                 <div
                   key={key}
                   className="flex items-center justify-between p-3 rounded-xl border border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors"
@@ -168,7 +231,7 @@ export function ConfiguracionGeneral() {
                   </div>
                   <Switch
                     checked={config[key] as boolean}
-                    onCheckedChange={(v) => setConfig({ ...config, [key]: v })}
+                    onCheckedChange={(v) => set(key, v)}
                     className="data-[state=checked]:bg-[#1D4ED8]"
                   />
                 </div>
@@ -181,11 +244,14 @@ export function ConfiguracionGeneral() {
       <div className="flex justify-end">
         <Button
           onClick={handleGuardar}
+          disabled={saving}
           className={`rounded-xl px-6 transition-all text-white ${
             guardado ? "bg-[#059669] hover:bg-[#047857]" : "bg-[#1D4ED8] hover:bg-[#1E40AF]"
           }`}
         >
-          {guardado
+          {saving
+            ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Guardando…</>
+            : guardado
             ? <><CheckCircle className="h-4 w-4 mr-2" />Configuración guardada</>
             : <><Settings2 className="h-4 w-4 mr-2" />Guardar configuración</>}
         </Button>
