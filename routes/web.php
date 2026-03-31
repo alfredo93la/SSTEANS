@@ -139,6 +139,8 @@ Route::middleware(['auth', 'verified', 'permission:grupos.manage'])
         Route::post('/salones',            [SalonController::class, 'store']);
         Route::put('/salones/{salon}',     [SalonController::class, 'update']);
         Route::delete('/salones/{salon}',  [SalonController::class, 'destroy']);
+
+        Route::get('/materias',            [MateriaController::class, 'index']);
     });
 
 Route::middleware(['auth', 'verified', 'permission:alumnos.manage'])
@@ -154,9 +156,6 @@ Route::middleware(['auth', 'verified', 'permission:tutores.manage'])
     ->prefix('api/administrativo')
     ->group(function () {
         Route::get('/tutores',                           [TutorAdminController::class, 'index']);
-        Route::post('/tutores',                          [TutorAdminController::class, 'store']);
-        Route::put('/tutores/{tutor}',                   [TutorAdminController::class, 'update']);
-        Route::delete('/tutores/{tutor}',                [TutorAdminController::class, 'destroy']);
         Route::post('/tutores/{tutor}/vincular',         [TutorAdminController::class, 'vincular']);
         Route::delete('/tutores/{tutor}/desvincular',    [TutorAdminController::class, 'desvincular']);
     });

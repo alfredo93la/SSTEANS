@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Persona;
 use App\Models\Role;
+use App\Models\Tutor;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,7 +58,7 @@ class UserManagementController extends Controller
 
         $users = $query->get($columns)->map(function (User $user) use ($hasValidationColumns) {
             if (! $hasValidationColumns) {
-                $user->setAttribute('status', 'approved');
+                $user->setAttribute('status', 'Activo');
                 $user->setAttribute('rejection_reason', null);
                 $user->setAttribute('validated_at', null);
             }
@@ -81,7 +82,7 @@ class UserManagementController extends Controller
             'curp'      => ['nullable', 'string', 'size:18', 'unique:personas,curp'],
             'telefono'  => ['nullable', 'string', 'max:20'],
             'direccion' => ['nullable', 'string', 'max:255'],
-            'status'    => ['nullable', Rule::in(['pending', 'approved', 'rejected'])],
+            'status'    => ['nullable', Rule::in(['Pendiente', 'Activo', 'Rechazado', 'Inactivo'])],
             'roles'     => ['required', 'array', 'min:1'],
             'roles.*'   => ['integer', Rule::exists('roles', 'id')],
         ]);
@@ -98,7 +99,7 @@ class UserManagementController extends Controller
                 'direccion'    => $validated['direccion'] ?? null,
             ]);
 
-            $status = $validated['status'] ?? 'approved';
+            $status = $validated['status'] ?? 'Activo';
 
             $user = User::query()->create([
                 'persona_id'   => $persona->id,
@@ -107,11 +108,15 @@ class UserManagementController extends Controller
                 'password'     => Hash::make($validated['password']),
                 'role'         => $primaryRole->nombre,
                 'status'       => $status,
-                'validated_at' => $status === 'approved' ? now() : null,
-                'validated_by' => $status === 'approved' ? $request->user()?->id : null,
+                'validated_at' => $status === 'Activo' ? now() : null,
+                'validated_by' => $status === 'Activo' ? $request->user()?->id : null,
             ]);
 
             $user->roles()->sync($validated['roles']);
+
+            if ($primaryRole->nombre === 'Tutor') {
+                Tutor::create(['persona_id' => $persona->id]);
+            }
 
             return $user;
         });
@@ -133,7 +138,7 @@ class UserManagementController extends Controller
             ],
             'telefono'  => ['nullable', 'string', 'max:20'],
             'direccion' => ['nullable', 'string', 'max:255'],
-            'status'    => ['required', Rule::in(['pending', 'approved', 'rejected'])],
+            'status'    => ['required', Rule::in(['Pendiente', 'Activo', 'Rechazado', 'Inactivo'])],
             'roles'     => ['required', 'array', 'min:1'],
             'roles.*'   => ['integer', Rule::exists('roles', 'id')],
         ]);
@@ -168,15 +173,24 @@ class UserManagementController extends Controller
                 'email'            => $validated['email'],
                 'role'             => $primaryRole->nombre,
                 'status'           => $validated['status'],
-                'rejection_reason' => $validated['status'] === 'rejected'
+                'rejection_reason' => $validated['status'] === 'Rechazado'
                     ? ($user->rejection_reason ?: 'Rechazado por administrador.')
                     : null,
-                'validated_at'     => $validated['status'] === 'approved' ? now() : null,
-                'validated_by'     => $validated['status'] === 'approved' ? $request->user()?->id : null,
+                'validated_at'     => $validated['status'] === 'Activo' ? now() : null,
+                'validated_by'     => $validated['status'] === 'Activo' ? $request->user()?->id : null,
                 'persona_id'       => $user->persona_id,
             ]);
 
             $user->roles()->sync($validated['roles']);
+
+            $personaId = $user->persona_id;
+            if ($personaId) {
+                if ($primaryRole->nombre === 'Tutor') {
+                    Tutor::firstOrCreate(['persona_id' => $personaId]);
+                } else {
+                    Tutor::where('persona_id', $personaId)->delete();
+                }
+            }
         });
 
         return response()->json([
@@ -192,10 +206,11 @@ class UserManagementController extends Controller
             $user->roles()->detach();
             $user->delete();
 
-            // Delete persona only if it has no other linked entities (alumno, tutor)
             if ($personaId) {
+                Tutor::where('persona_id', $personaId)->delete();
+
                 $persona = Persona::query()->find($personaId);
-                if ($persona && ! $persona->alumno && ! $persona->tutor) {
+                if ($persona && ! $persona->alumno) {
                     $persona->delete();
                 }
             }

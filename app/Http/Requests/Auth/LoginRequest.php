@@ -50,6 +50,25 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        $user = Auth::user();
+
+        if ($user->status !== 'Activo') {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            if ($user->status === 'Pendiente') {
+                $message = 'Tu cuenta está pendiente de validación. Contacta al administrador.';
+            } else if ($user->status === 'Inactivo') {
+                $message = 'Tu cuenta está inactiva. Contacta al administrador.';
+            } else if ($user->status === 'Rechazado') {
+                $message = 'Tu cuenta fue rechazada. Contacta al administrador.' . ($user->rejection_reason ? ' Razón: ' . $user->rejection_reason : '');
+            }
+
+            throw ValidationException::withMessages([
+                'email' => $message,
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

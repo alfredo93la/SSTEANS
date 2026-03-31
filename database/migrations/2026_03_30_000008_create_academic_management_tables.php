@@ -130,12 +130,31 @@ return new class extends Migration
             'updated_at'          => now(),
         ]);
 
+        // Ciclos escolares
+        DB::table('ciclos_escolares')->insert([
+            ['nombre' => '2024-2025', 'fecha_inicio' => '2024-08-26', 'fecha_fin' => '2025-07-16', 'activo' => false, 'created_at' => now(), 'updated_at' => now()],
+            ['nombre' => '2025-2026', 'fecha_inicio' => '2025-09-01', 'fecha_fin' => '2026-07-15', 'activo' => true, 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
         // Grados
         DB::table('grados')->insert([
             ['numero' => 1, 'descripcion' => 'Primer Grado',    'created_at' => now(), 'updated_at' => now()],
             ['numero' => 2, 'descripcion' => 'Segundo Grado',   'created_at' => now(), 'updated_at' => now()],
             ['numero' => 3, 'descripcion' => 'Tercer Grado',    'created_at' => now(), 'updated_at' => now()],
         ]);
+
+        // Salones
+        DB::table('salones')->insert([
+            ['nombre' => 'Aula 1', 'edificio' => 'Principal', 'capacidad' => 40, 'turno' => 'ambos', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre' => 'Aula 2', 'edificio' => 'Principal', 'capacidad' => 40, 'turno' => 'ambos', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre' => 'Aula 3', 'edificio' => 'Principal', 'capacidad' => 40, 'turno' => 'ambos', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre' => 'Aula 4', 'edificio' => 'Principal', 'capacidad' => 40, 'turno' => 'ambos', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre' => 'Aula 5', 'edificio' => 'Principal', 'capacidad' => 40, 'turno' => 'ambos', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre' => 'Laboratorio de Ciencias', 'edificio' => 'Anexo', 'capacidad' => 30, 'turno' => 'ambos', 'created_at' => now(), 'updated_at' => now()],
+            ['nombre' => 'Sala de Computo', 'edificio' => 'Anexo', 'capacidad' => 30, 'turno' => 'ambos', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+
 
         // Materias por grado (plan de estudios SEP secundaria general)
         $grado1 = DB::table('grados')->where('numero', 1)->value('id');
@@ -147,35 +166,54 @@ return new class extends Migration
             // 1° Grado
             ['grado_id' => $grado1, 'nombre' => 'Español I',                          'horas_semanales' => 5, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado1, 'nombre' => 'Matemáticas I',                      'horas_semanales' => 5, 'created_at' => $now, 'updated_at' => $now],
-            ['grado_id' => $grado1, 'nombre' => 'Ciencias y Tecnología: Biología',    'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
+            ['grado_id' => $grado1, 'nombre' => 'Ciencias I - Biología',              'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado1, 'nombre' => 'Historia I',                         'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado1, 'nombre' => 'Geografía',                          'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado1, 'nombre' => 'Formación Cívica y Ética I',         'horas_semanales' => 2, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado1, 'nombre' => 'Inglés I',                           'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado1, 'nombre' => 'Artes I',                            'horas_semanales' => 2, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado1, 'nombre' => 'Educación Física I',                 'horas_semanales' => 2, 'created_at' => $now, 'updated_at' => $now],
-            ['grado_id' => $grado1, 'nombre' => 'Tutoría I',                          'horas_semanales' => 1, 'created_at' => $now, 'updated_at' => $now],
+            ['grado_id' => $grado1, 'nombre' => 'Tecnología I',                       'horas_semanales' => 1, 'created_at' => $now, 'updated_at' => $now],
             // 2° Grado
             ['grado_id' => $grado2, 'nombre' => 'Español II',                         'horas_semanales' => 5, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado2, 'nombre' => 'Matemáticas II',                     'horas_semanales' => 5, 'created_at' => $now, 'updated_at' => $now],
-            ['grado_id' => $grado2, 'nombre' => 'Ciencias y Tecnología: Física',      'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
+            ['grado_id' => $grado2, 'nombre' => 'Ciencias II - Física',               'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado2, 'nombre' => 'Historia II',                        'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado2, 'nombre' => 'Formación Cívica y Ética II',        'horas_semanales' => 2, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado2, 'nombre' => 'Inglés II',                          'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado2, 'nombre' => 'Artes II',                           'horas_semanales' => 2, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado2, 'nombre' => 'Educación Física II',                'horas_semanales' => 2, 'created_at' => $now, 'updated_at' => $now],
-            ['grado_id' => $grado2, 'nombre' => 'Tutoría II',                         'horas_semanales' => 1, 'created_at' => $now, 'updated_at' => $now],
+            ['grado_id' => $grado2, 'nombre' => 'Tecnología II',                       'horas_semanales' => 1, 'created_at' => $now, 'updated_at' => $now],
             // 3° Grado
             ['grado_id' => $grado3, 'nombre' => 'Español III',                        'horas_semanales' => 5, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado3, 'nombre' => 'Matemáticas III',                    'horas_semanales' => 5, 'created_at' => $now, 'updated_at' => $now],
-            ['grado_id' => $grado3, 'nombre' => 'Ciencias y Tecnología: Química',     'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
+            ['grado_id' => $grado3, 'nombre' => 'Ciencias III - Química',             'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado3, 'nombre' => 'Historia III',                       'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado3, 'nombre' => 'Formación Cívica y Ética III',       'horas_semanales' => 2, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado3, 'nombre' => 'Inglés III',                         'horas_semanales' => 3, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado3, 'nombre' => 'Artes III',                          'horas_semanales' => 2, 'created_at' => $now, 'updated_at' => $now],
             ['grado_id' => $grado3, 'nombre' => 'Educación Física III',               'horas_semanales' => 2, 'created_at' => $now, 'updated_at' => $now],
-            ['grado_id' => $grado3, 'nombre' => 'Tutoría III',                        'horas_semanales' => 1, 'created_at' => $now, 'updated_at' => $now],
+            ['grado_id' => $grado3, 'nombre' => 'Tecnología III',                      'horas_semanales' => 1, 'created_at' => $now, 'updated_at' => $now],
         ]);
+
+        // Grupos (ejemplo para ciclo activo + 3 grados + turno matutino)
+        $cicloActivo = DB::table('ciclos_escolares')->where('activo', true)->value('id');
+        $grados = DB::table('grados')->pluck('id', 'numero');
+        $turnos = ['matutino', 'vespertino'];
+        $gruposData = [];
+        foreach ($grados as $numero => $id) {
+            foreach ($turnos as $turno) {
+                $gruposData[] = [
+                    'ciclo_escolar_id' => $cicloActivo,
+                    'grado_id' => $id,
+                    'nombre' => 'A',
+                    'turno' => $turno,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+        DB::table('grupos')->insert($gruposData);
     }
 
     public function down(): void

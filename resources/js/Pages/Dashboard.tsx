@@ -3,11 +3,11 @@ import { Button } from "../Components/ui/button";
 import { Calendar, BookOpen, MessageSquare } from "lucide-react";
 import { Badge } from "../Components/ui/badge";
 import { ChecklistOnboarding } from "../Components/ChecklistOnboarding";
-import { DashboardTutor } from "../Components/dashboards/DashboardTutor";
-import { DashboardProfesor } from "../Components/dashboards/DashboardProfesor";
-import { DashboardTrabajadorSocial } from "../Components/dashboards/DashboardTrabajadorSocial";
-import { DashboardAdmin } from "../Components/dashboards/DashboardAdmin";
-import { DashboardPersonalAdministrativo } from "../Components/dashboards/DashboardPersonalAdministrativo";
+import { DashboardTutor } from "./Dashboards/DashboardTutor";
+import { DashboardProfesor } from "./Dashboards/DashboardProfesor";
+import { DashboardTrabajadorSocial } from "./Dashboards/DashboardTrabajadorSocial";
+import { DashboardAdmin } from "./Dashboards/DashboardAdmin";
+import { DashboardPersonalAdministrativo } from "./Dashboards/DashboardPersonalAdministrativo";
 
 interface DashboardProps {
   onNavigate: (route: string) => void;

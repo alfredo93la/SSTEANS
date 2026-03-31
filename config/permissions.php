@@ -50,6 +50,7 @@ return [
             'circulares.view',
             'circulares.manage',
             'horarios.manage',
+            'grupos.manage',
             'alumnos.manage',
             'tutores.manage',
         ],

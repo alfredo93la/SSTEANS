@@ -40,7 +40,7 @@ class UserValidationController extends Controller
 
         $requests = $query->get($columns)->map(function (User $user) use ($hasValidationColumns) {
             if (! $hasValidationColumns) {
-                $user->setAttribute('status', 'pending');
+                $user->setAttribute('status', 'Pendiente');
                 $user->setAttribute('rejection_reason', null);
                 $user->setAttribute('validated_at', null);
             }
@@ -62,7 +62,7 @@ class UserValidationController extends Controller
         }
 
         $user->update([
-            'status' => 'approved',
+            'status' => 'Activo',
             'rejection_reason' => null,
             'validated_at' => now(),
             'validated_by' => $request->user()?->id,
@@ -87,7 +87,7 @@ class UserValidationController extends Controller
         }
 
         $user->update([
-            'status' => 'rejected',
+            'status' => 'Rechazado',
             'rejection_reason' => $validated['reason'],
             'validated_at' => null,
             'validated_by' => $request->user()?->id,

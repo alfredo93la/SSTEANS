@@ -46,7 +46,7 @@ const getMenuItems = (userRole: string): MenuItem[] => {
       { id: "asistencia", label: "Asistencia", icon: CheckCircle2, route: "#/dashboard/asistencia", roles: ["Profesor"] },
       { id: "asignar-tarea", label: "Asignar Tarea", icon: ClipboardList, route: "#/dashboard/asignar-tarea", roles: ["Profesor"] },
       { id: "gestionar-tareas", label: "Gestionar Tareas", icon: FileText, route: "#/dashboard/gestionar-tareas", roles: ["Profesor"] },
-      { id: "mensajeria", label: "Enviar Notificaciones", icon: Bell, route: "#/dashboard/mensajeria", roles: ["Profesor"] },
+      { id: "notificaciones", label: "Notificaciones", icon: Bell, route: "#/notificaciones", roles: ["Profesor"] },
       { id: "agenda", label: "Agenda Escolar", icon: CalendarCheck, route: "#/agenda", roles: ["Profesor"] },
       { id: "circulares", label: "Circulares", icon: FileText, route: "#/circulares", roles: ["Profesor"] }
     ] : []),
@@ -54,7 +54,7 @@ const getMenuItems = (userRole: string): MenuItem[] => {
     // Menú para Trabajador Social
     ...(userRole === "Trabajador Social" ? [
       { id: "general", label: "Inicio", icon: Home, route: "#/dashboard", roles: ["Trabajador Social"] },
-      { id: "notificaciones", label: "Notificaciones", icon: Bell, route: "#/trabajador-social/notificaciones", roles: ["Trabajador Social"] },
+      { id: "notificaciones", label: "Notificaciones", icon: Bell, route: "#/notificaciones", roles: ["Trabajador Social"] },
       { id: "reportes", label: "Reportes", icon: AlertTriangle, route: "#/trabajador-social/reportes", roles: ["Trabajador Social"] },
       { id: "alumnos", label: "Alumnos", icon: Users, route: "#/trabajador-social/alumnos", roles: ["Trabajador Social"] },
       { id: "agenda", label: "Agenda Escolar", icon: CalendarCheck, route: "#/agenda", roles: ["Trabajador Social"] },

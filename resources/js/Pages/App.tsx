@@ -5,36 +5,35 @@ import { ResponsiveLayout } from "../Components/ResponsiveLayout";
 import { Dashboard } from "../Pages/Dashboard";
 import { Agenda } from "../Pages/Agenda";
 import { Circulares } from "../Pages/Circulares";
-import { EventosAcademicos } from "../Components/agenda/EventosAcademicos";
-import { ExamenesView } from "../Components/agenda/ExamenesView";
-import { EntregasView } from "../Components/agenda/EntregasView";
-import { CalificacionesTutor } from "../Components/tutor/CalificacionesTutor";
-import { TareasTutor } from "../Components/tutor/TareasTutor";
-import { AsistenciaTutor } from "../Components/tutor/AsistenciaTutor";
-import { ReportesConductaTutor } from "../Components/tutor/ReportesConductaTutor";
-import { NotificacionesTutor } from "../Components/tutor/NotificacionesTutor";
-import { HorarioTutor } from "../Components/tutor/HorarioTutor";
-import { RegistrarCalificaciones } from "../Components/profesor/RegistrarCalificaciones";
-import { ControlAsistencia } from "../Components/profesor/ControlAsistencia";
-import { AsignarTarea } from "../Components/profesor/AsignarTarea";
-import { GestionarTareas } from "../Components/profesor/GestionarTareas";
-import { MensajeriaProfesor } from "../Components/profesor/MensajeriaProfesor";
-import { HorarioDocente } from "../Components/profesor/HorarioDocente";
-import { NotificacionesTS } from "../Components/trabajador-social/NotificacionesTS";
-import { ReportesTS } from "../Components/trabajador-social/ReportesTS";
-import { AlumnosTS } from "../Components/trabajador-social/AlumnosTS";
-import { Usuarios } from "../Components/admin/Usuarios";
-import { Roles } from "../Components/admin/Roles";
-import { Grupos } from "../Components/administrativo/Grupos";
-import { Materias } from "../Components/administrativo/Materias";
-import { Horarios } from "../Components/administrativo/Horarios";
-import { AlumnosAdmin } from "../Components/administrativo/AlumnosAdmin";
-import { TutoresAdmin } from "../Components/administrativo/TutoresAdmin";
-import { CiclosEscolares } from "../Components/admin/CiclosEscolares";
-import { PeriodosEvaluacion } from "../Components/admin/PeriodosEvaluacion";
-import { ConfiguracionGeneral } from "../Components/admin/ConfiguracionGeneral";
-import { ValidarUsuarios } from "../Components/admin/ValidarUsuarios";
-import { MyProfile } from "../Components/profile/MyProfile";
+import { EventosAcademicos } from "./Agenda/EventosAcademicos";
+import { ExamenesView } from "./Agenda/ExamenesView";
+import { EntregasView } from "./Agenda/EntregasView";
+import { CalificacionesTutor } from "./Tutor/CalificacionesTutor";
+import { TareasTutor } from "./Tutor/TareasTutor";
+import { AsistenciaTutor } from "./Tutor/AsistenciaTutor";
+import { ReportesConductaTutor } from "./Tutor/ReportesConductaTutor";
+import { NotificacionesTutor } from "./Tutor/NotificacionesTutor";
+import { HorarioTutor } from "./Tutor/HorarioTutor";
+import { RegistrarCalificaciones } from "./Profesor/RegistrarCalificaciones";
+import { ControlAsistencia } from "./Profesor/ControlAsistencia";
+import { AsignarTarea } from "./Profesor/AsignarTarea";
+import { GestionarTareas } from "./Profesor/GestionarTareas";
+import { HorarioDocente } from "./Profesor/HorarioDocente";
+import { Notificaciones } from "./Notificaciones";
+import { ReportesTS } from "./Social/ReportesTS";
+import { AlumnosTS } from "./Social/AlumnosTS";
+import { Usuarios } from "./Admin/Usuarios";
+import { Roles } from "./Admin/Roles";
+import { Grupos } from "./Administrativo/Grupos";
+import { Materias } from "./Administrativo/Materias";
+import { Horarios } from "./Administrativo/Horarios";
+import { AlumnosAdmin } from "./Administrativo/AlumnosAdmin";
+import { TutoresAdmin } from "./Administrativo/TutoresAdmin";
+import { CiclosEscolares } from "./Admin/CiclosEscolares";
+import { PeriodosEvaluacion } from "./Admin/PeriodosEvaluacion";
+import { ConfiguracionGeneral } from "./Admin/ConfiguracionGeneral";
+import { ValidarUsuarios } from "./Admin/ValidarUsuarios";
+import { MyProfile } from "./MiPerfil";
 import type { PageProps } from "../types";
 import { canAccessRoute, getDefaultRoute } from "../data/auth";
 
@@ -114,14 +113,13 @@ export default function App() {
     "#/dashboard/horario": "Horario",
     "#/dashboard/asignar-tarea": "Asignar Tarea",
     "#/dashboard/gestionar-tareas": "Gestionar Tareas",
-    "#/dashboard/mensajeria": "Mensajería",
     "#/agenda": "Agenda",
     "#/agenda/eventos": "Eventos Académicos",
     "#/agenda/examenes": "Exámenes",
     "#/agenda/entregas": "Entregas",
     "#/circulares": "Circulares",
     "#/perfil": "Mi Perfil",
-    "#/trabajador-social/notificaciones": "Notificaciones",
+    "#/notificaciones": "Notificaciones",
     "#/trabajador-social/reportes": "Reportes",
     "#/trabajador-social/alumnos": "Alumnos",
     "#/admin/usuarios": "Usuarios",
@@ -183,7 +181,6 @@ export default function App() {
         {currentRoute === "#/dashboard/asistencia" && userRole === "Profesor" && <ControlAsistencia />}
         {currentRoute === "#/dashboard/asignar-tarea" && <AsignarTarea />}
         {currentRoute === "#/dashboard/gestionar-tareas" && <GestionarTareas />}
-        {currentRoute === "#/dashboard/mensajeria" && <MensajeriaProfesor />}
         {currentRoute === "#/dashboard/horario" && userRole === "Profesor" && <HorarioDocente />}
 
         {currentRoute === "#/agenda" && <Agenda permissions={permissions} />}
@@ -198,7 +195,7 @@ export default function App() {
         {currentRoute === "#/circulares" && <Circulares permissions={permissions} />}
         {currentRoute === "#/perfil" && <MyProfile user={user} />}
 
-        {currentRoute === "#/trabajador-social/notificaciones" && <NotificacionesTS />}
+        {currentRoute === "#/notificaciones" && <Notificaciones />}
         {currentRoute === "#/trabajador-social/reportes" && <ReportesTS />}
         {currentRoute === "#/trabajador-social/alumnos" && <AlumnosTS onNavigate={handleNavigate} />}
 
