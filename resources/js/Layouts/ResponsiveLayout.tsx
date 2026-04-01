@@ -61,7 +61,7 @@ export function ResponsiveLayout({
   hijoSeleccionado,
   onHijoChange,
 }: ResponsiveLayoutProps) {
-  const { escuela } = usePage().props as { escuela: { nombre: string; numero: string } };
+  const { escuela } = usePage().props as { escuela: { nombre: string; servicio_educativo: string; numero: string } };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -104,9 +104,14 @@ export function ResponsiveLayout({
               </div>
               <div className="hidden md:block">
                 <h1 className="text-base font-semibold text-[#111827]">
-                  {escuela?.nombre
+                  {escuela.servicio_educativo === "General"
                     ? `Escuela Secundaria${escuela.numero ? ` No. ${escuela.numero}` : ""} "${escuela.nombre}"`
-                    : "Escuela Secundaria"}
+                    : escuela.servicio_educativo === "Técnica"
+                    ? `Escuela Secundaria Técnica No. ${escuela.numero} "${escuela.nombre}"`
+                    : escuela.servicio_educativo === "Telesecundaria"
+                    ? `Telesecundaria No. ${escuela.numero} "${escuela.nombre}"`
+                    : "Escuela Secundaria"
+                    }
                 </h1>
                 <p className="text-xs text-[#6B7280]">Sistema de Seguimiento a la Trayectoria Escolar</p>
               </div>

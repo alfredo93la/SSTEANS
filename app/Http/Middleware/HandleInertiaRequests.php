@@ -82,7 +82,7 @@ class HandleInertiaRequests extends Middleware
                     ]
                     : null,
             ],
-            'escuela' => fn () => ConfiguracionEscuela::first()?->only('nombre', 'numero') ?? ['nombre' => '', 'numero' => ''],
+            'escuela' => fn () => ConfiguracionEscuela::first()?->only('nombre', 'numero', 'servicio_educativo') ?? ['nombre' => '', 'numero' => '', 'servicio_educativo' => ''],
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),

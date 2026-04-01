@@ -229,7 +229,7 @@ export function PeriodosEvaluacion() {
                           <Switch
                             checked={p.capturaAbierta}
                             onCheckedChange={() => handleToggleCaptura(p.id)}
-                            className="data-[state=checked]:bg-[#059669]"
+                            className="data-[state=checked]:bg-[#059669] data-[state=unchecked]:bg-[#b1b5bc]"
                           />
                           <Badge className={
                             p.capturaAbierta

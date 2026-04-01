@@ -36,6 +36,7 @@ export type PageProps<
     };
     escuela: {
         nombre: string;
+        servicio_educativo: string;
         numero: string;
     };
     ziggy: Config & { location: string };
