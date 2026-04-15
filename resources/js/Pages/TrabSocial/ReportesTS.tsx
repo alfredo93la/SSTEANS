@@ -1,145 +1,233 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { Input } from "../../Components/ui/input";
 import { Textarea } from "../../Components/ui/textarea";
 import { Label } from "../../Components/ui/label";
-import { 
-  AlertTriangle, 
-  Search, 
+import {
+  AlertTriangle,
+  Search,
   Filter,
   FileText,
   Eye,
   Edit,
-  CheckCircle,
   Clock,
   XCircle,
   Plus,
-  Calendar,
   Paperclip,
   X
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../../Components/ui/dialog";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../Components/ui/tabs";
+
+interface AlumnoData {
+  id: number;
+  nombre: string;
+  grupo: string;
+}
+
+interface ReporteData {
+  id: number;
+  alumnoId: number;
+  tipoReporte: string;
+  gravedad: "Baja" | "Media" | "Alta";
+  descripcion: string;
+  observaciones: string;
+  archivoAdjunto: string | null;
+  fecha: string;
+  estatus: string;
+  reportadoPor: number;
+  reportadoPorNombre: string;
+}
+
+interface FormDataReporte {
+  alumnoId: string;
+  tipoReporte: string;
+  gravedad: string;
+  descripcion: string;
+  acciones: string;
+  estatus: string;
+}
+
+const initialForm: FormDataReporte = {
+  alumnoId: "",
+  tipoReporte: "",
+  gravedad: "",
+  descripcion: "",
+  acciones: "",
+  estatus: "abierto",
+};
 
 export function ReportesTS() {
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [modalNuevo, setModalNuevo] = useState(false);
   const [modalDetalle, setModalDetalle] = useState(false);
-  const [reporteSeleccionado, setReporteSeleccionado] = useState<any>(null);
+  const [reporteSeleccionado, setReporteSeleccionado] = useState<ReporteData | null>(null);
   const [archivosAdjuntos, setArchivosAdjuntos] = useState<File[]>([]);
+  const [alumnos, setAlumnos] = useState<AlumnoData[]>([]);
+  const [reportes, setReportes] = useState<ReporteData[]>([]);
+  const [formulario, setFormulario] = useState<FormDataReporte>(initialForm);
+  const [guardando, setGuardando] = useState(false);
+  const [editandoId, setEditandoId] = useState<number | null>(null);
 
-  // Datos de ejemplo
-  const reportes = [
-    {
-      id: 1,
-      alumno: "Juan Pérez García",
-      grupo: "1°A",
-      tipo: "Conducta",
-      gravedad: "alta",
-      descripcion: "Agresión verbal repetida hacia compañeros",
-      fecha: "23/02/2026",
-      reportadoPor: "Prof. Laura González",
-      estado: "en_seguimiento",
-      acciones: "Canalizado a trabajo social. Reunión con tutor programada para 26/02/2026",
-      seguimientos: 2
-    },
-    {
-      id: 2,
-      alumno: "Ana García López",
-      grupo: "2°B",
-      tipo: "Asistencia",
-      gravedad: "urgente",
-      descripcion: "5 faltas consecutivas sin justificación",
-      fecha: "22/02/2026",
-      reportadoPor: "Sistema Automático",
-      estado: "en_seguimiento",
-      acciones: "Contacto con tutor realizado. Visita domiciliaria programada",
-      seguimientos: 3
-    },
-    {
-      id: 3,
-      alumno: "Luis Martínez Ruiz",
-      grupo: "3°A",
-      tipo: "Académico",
-      gravedad: "media",
-      descripcion: "Bajo rendimiento en matemáticas y física",
-      fecha: "20/02/2026",
-      reportadoPor: "Prof. Roberto Sánchez",
-      estado: "resuelto",
-      acciones: "Asesorías extras asignadas. Mejoría notable en últimas evaluaciones",
-      seguimientos: 4
-    },
-    {
-      id: 4,
-      alumno: "María Rodríguez Cruz",
-      grupo: "1°B",
-      tipo: "Emocional",
-      gravedad: "alta",
-      descripcion: "Signos de depresión y aislamiento social",
-      fecha: "18/02/2026",
-      reportadoPor: "Psicóloga Escolar",
-      estado: "en_seguimiento",
-      acciones: "Sesiones con psicóloga. Reunión con padres realizada",
-      seguimientos: 5
-    },
-    {
-      id: 5,
-      alumno: "Carlos Hernández Díaz",
-      grupo: "2°A",
-      tipo: "Conducta",
-      gravedad: "baja",
-      descripcion: "Uso de celular en clase repetidamente",
-      fecha: "15/02/2026",
-      reportadoPor: "Prof. Carmen Flores",
-      estado: "cerrado",
-      acciones: "Advertencia realizada. Compromiso firmado con alumno",
-      seguimientos: 1
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  const cargarDatos = async () => {
+    try {
+      const [{ data: alumnosData }, { data: reportesData }] = await Promise.all([
+        axios.get("/api/trabajador-social/alumnos"),
+        axios.get("/api/reportes-conducta"),
+      ]);
+
+      setAlumnos(alumnosData.alumnos ?? []);
+      setReportes(reportesData.reportes ?? []);
+    } catch {
+      toast.error("No se pudieron cargar los reportes de conducta.");
     }
-  ];
-
-  const estadisticas = {
-    total: 48,
-    enSeguimiento: 12,
-    resueltos: 28,
-    cerrados: 8
   };
 
+  const getAlumno = (alumnoId: number) => alumnos.find((alumno) => alumno.id === alumnoId);
+
+  const normalizarTipo = (tipo: string) =>
+    tipo
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  const mapTipoToTab = (tipo: string) => {
+    const tipoNormalizado = normalizarTipo(tipo);
+
+    switch (tipoNormalizado) {
+      case "conducta":
+        return "conducta";
+      case "asistencia":
+        return "asistencia";
+      case "académico":
+      case "academico":
+        return "academico";
+      case "emocional":
+        return "emocional";
+      default:
+        return "todos";
+    }
+  };
+
+  const reportesEnriquecidos = useMemo(() => {
+    return reportes.map((reporte) => {
+      const alumno = getAlumno(reporte.alumnoId);
+
+      return {
+        ...reporte,
+        alumno: alumno?.nombre ?? `Alumno #${reporte.alumnoId}`,
+        grupo: alumno?.grupo ?? "Sin grupo",
+        tipo: reporte.tipoReporte,
+        gravedadVista: reporte.gravedad.toLowerCase(),
+        estadoVista: reporte.estatus.toLowerCase().replace(/\s+/g, "_"),
+        acciones: reporte.observaciones,
+        seguimientos: reporte.observaciones ? 1 : 0,
+      };
+    });
+  }, [alumnos, reportes]);
+
+  const reportesFiltrados = useMemo(() => {
+    return reportesEnriquecidos.filter((reporte) => {
+      const coincideBusqueda =
+        reporte.alumno.toLowerCase().includes(busqueda.toLowerCase()) ||
+        reporte.grupo.toLowerCase().includes(busqueda.toLowerCase()) ||
+        reporte.descripcion.toLowerCase().includes(busqueda.toLowerCase());
+
+      if (!coincideBusqueda) return false;
+
+      if (filtroEstado === "todos") return true;
+
+      return reporte.estadoVista === filtroEstado;
+    });
+  }, [busqueda, filtroEstado, reportesEnriquecidos]);
+
+  const estadisticas = useMemo(() => ({
+    total: reportes.length,
+    enSeguimiento: reportes.filter((reporte) => reporte.estatus === "En seguimiento").length,
+    abiertos: reportes.filter((reporte) => reporte.estatus === "Abierto").length,
+    cerrados: reportes.filter((reporte) => reporte.estatus === "Cerrado").length,
+  }), [reportes]);
+
   const getBadgeGravedad = (gravedad: string) => {
-    switch (gravedad) {
-      case "urgente": return "bg-red-100 text-red-700 border-red-200";
-      case "alta": return "bg-orange-100 text-orange-700 border-orange-200";
-      case "media": return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      case "baja": return "bg-green-100 text-green-700 border-green-200";
-      default: return "bg-gray-100 text-gray-700 border-gray-200";
+    switch (gravedad.toLowerCase()) {
+      case "alta":
+        return "bg-orange-100 text-orange-700 border-orange-200";
+      case "media":
+        return "bg-yellow-100 text-yellow-700 border-yellow-200";
+      case "baja":
+        return "bg-green-100 text-green-700 border-green-200";
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200";
     }
   };
 
   const getBadgeEstado = (estado: string) => {
     switch (estado) {
-      case "en_seguimiento": return "bg-blue-100 text-blue-700 border-blue-200";
-      case "resuelto": return "bg-green-100 text-green-700 border-green-200";
-      case "cerrado": return "bg-gray-100 text-gray-700 border-gray-200";
-      default: return "bg-gray-100 text-gray-700 border-gray-200";
+      case "abierto":
+        return "bg-red-100 text-red-700 border-red-200";
+      case "en_seguimiento":
+        return "bg-blue-100 text-blue-700 border-blue-200";
+      case "resuelto":
+        return "bg-green-100 text-green-700 border-green-200";
+      case "cerrado":
+        return "bg-gray-100 text-gray-700 border-gray-200";
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200";
     }
   };
 
   const getEstadoTexto = (estado: string) => {
     switch (estado) {
-      case "en_seguimiento": return "En Seguimiento";
-      case "resuelto": return "Resuelto";
-      case "cerrado": return "Cerrado";
-      default: return estado;
+      case "abierto":
+        return "Abierto";
+      case "en_seguimiento":
+        return "En Seguimiento";
+      case "cerrado":
+        return "Cerrado";
+      default:
+        return estado;
     }
   };
 
-  const verDetalle = (reporte: any) => {
+  const verDetalle = (reporte: ReporteData) => {
     setReporteSeleccionado(reporte);
     setModalDetalle(true);
+  };
+
+  const abrirNuevoReporte = (abierto: boolean) => {
+    setModalNuevo(abierto);
+
+    if (!abierto) {
+      setEditandoId(null);
+      setFormulario(initialForm);
+      setArchivosAdjuntos([]);
+    }
+  };
+
+  const abrirEdicion = (reporte: ReporteData) => {
+    setEditandoId(reporte.id);
+    setFormulario({
+      alumnoId: reporte.alumnoId.toString(),
+      tipoReporte: normalizarTipo(reporte.tipoReporte),
+      gravedad: reporte.gravedad.toLowerCase(),
+      descripcion: reporte.descripcion,
+      acciones: reporte.observaciones ?? "",
+      estatus: reporte.estatus.toLowerCase().replace(/\s+/g, "_"),
+    });
+    setArchivosAdjuntos([]);
+    setModalDetalle(false);
+    setModalNuevo(true);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,17 +242,142 @@ export function ReportesTS() {
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  };
+
+  const actualizarCampo = (campo: keyof FormDataReporte, valor: string) => {
+    setFormulario((actual) => ({
+      ...actual,
+      [campo]: valor,
+    }));
+  };
+
+  const guardarReporte = async () => {
+    if (!formulario.alumnoId || !formulario.tipoReporte || !formulario.gravedad || !formulario.descripcion.trim()) {
+      toast.error("Completa todos los campos obligatorios.");
+      return;
+    }
+
+    setGuardando(true);
+
+    try {
+      const payload = new FormData();
+      payload.append("alumno_id", formulario.alumnoId);
+      payload.append("tipo_reporte", formulario.tipoReporte.charAt(0).toUpperCase() + formulario.tipoReporte.slice(1));
+      payload.append("gravedad", formulario.gravedad.charAt(0).toUpperCase() + formulario.gravedad.slice(1));
+      payload.append("descripcion", formulario.descripcion.trim());
+      payload.append("observaciones", formulario.acciones.trim());
+      payload.append("fecha", new Date().toISOString().split("T")[0]);
+      payload.append("estatus", getEstadoTexto(formulario.estatus));
+
+      if (archivosAdjuntos[0]) {
+        payload.append("archivo_adjunto", archivosAdjuntos[0]);
+      }
+
+      if (editandoId) {
+        payload.append("_method", "PUT");
+        await axios.post(`/api/reportes-conducta/${editandoId}`, payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Reporte actualizado correctamente.");
+      } else {
+        await axios.post("/api/reportes-conducta", payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Reporte creado correctamente.");
+      }
+
+      abrirNuevoReporte(false);
+      await cargarDatos();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "No se pudo guardar el reporte.");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const renderListaReportes = (tipoTab: string) => {
+    const lista = tipoTab === "todos"
+      ? reportesFiltrados
+      : reportesFiltrados.filter((reporte) => mapTipoToTab(reporte.tipoReporte) === tipoTab);
+
+    if (lista.length === 0) {
+      return (
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="pt-6">
+            <p className="text-center text-[#6B7280]">No hay reportes para mostrar</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Card className="border-[#E5E7EB]">
+        {tipoTab === "todos" && (
+          <CardHeader>
+            <CardTitle>Todos los Reportes</CardTitle>
+            <CardDescription>Lista completa de reportes registrados</CardDescription>
+          </CardHeader>
+        )}
+        <CardContent className={tipoTab === "todos" ? undefined : "pt-6"}>
+          <div className="space-y-3">
+            {lista.map((reporte) => (
+              <div
+                key={reporte.id}
+                className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-semibold text-[#111827]">{reporte.alumno}</h4>
+                      <Badge variant="outline">{reporte.grupo}</Badge>
+                      <Badge className={getBadgeGravedad(reporte.gravedadVista)}>
+                        {reporte.gravedad}
+                      </Badge>
+                      <Badge className={getBadgeEstado(reporte.estadoVista)}>
+                        {getEstadoTexto(reporte.estadoVista)}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="secondary">{reporte.tipoReporte}</Badge>
+                      <span className="text-xs text-[#6B7280]">
+                        {reporte.fecha} - {reporte.reportadoPorNombre}
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#6B7280] mb-2">{reporte.descripcion}</p>
+                    <div className="flex items-center gap-4 text-xs text-[#6B7280]">
+                      <span>{reporte.seguimientos} seguimiento(s)</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => verDetalle(reporte)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => abrirEdicion(reporte)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
       <PageTitle icon={AlertTriangle} title="Reportes de Conducta" description="Gestiona y da seguimiento a los reportes de alumnos" color="bg-[#E11D48]">
-        <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
+        <Dialog open={modalNuevo} onOpenChange={abrirNuevoReporte}>
           <DialogTrigger asChild>
             <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               <Plus className="h-4 w-4 mr-2" />
@@ -173,30 +386,32 @@ export function ReportesTS() {
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Crear Nuevo Reporte</DialogTitle>
+              <DialogTitle>{editandoId ? "Editar Reporte" : "Crear Nuevo Reporte"}</DialogTitle>
               <DialogDescription>
-                Llena los campos para crear un nuevo reporte de conducta.
+                {editandoId ? "Actualiza los campos necesarios del reporte." : "Llena los campos para crear un nuevo reporte de conducta."}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="alumno">Alumno</Label>
-                  <Select>
+                  <Select value={formulario.alumnoId} onValueChange={(value) => actualizarCampo("alumnoId", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccionar alumno" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">Juan Pérez García - 1°A</SelectItem>
-                      <SelectItem value="2">Ana García López - 2°B</SelectItem>
-                      <SelectItem value="3">Luis Martínez Ruiz - 3°A</SelectItem>
+                      {alumnos.map((alumno) => (
+                        <SelectItem key={alumno.id} value={alumno.id.toString()}>
+                          {alumno.nombre} - {alumno.grupo}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
                   <Label htmlFor="tipo">Tipo de Reporte</Label>
-                  <Select>
+                  <Select value={formulario.tipoReporte} onValueChange={(value) => actualizarCampo("tipoReporte", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccionar tipo" />
                     </SelectTrigger>
@@ -213,12 +428,11 @@ export function ReportesTS() {
 
               <div>
                 <Label htmlFor="gravedad">Nivel de Gravedad</Label>
-                <Select>
+                <Select value={formulario.gravedad} onValueChange={(value) => actualizarCampo("gravedad", value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar gravedad" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="urgente">Urgente</SelectItem>
                     <SelectItem value="alta">Alta</SelectItem>
                     <SelectItem value="media">Media</SelectItem>
                     <SelectItem value="baja">Baja</SelectItem>
@@ -227,34 +441,59 @@ export function ReportesTS() {
               </div>
 
               <div>
+                <Label htmlFor="estatus">Estado del Reporte</Label>
+                <Select
+                  value={formulario.estatus}
+                  onValueChange={(value) => actualizarCampo("estatus", value)}
+                  disabled={!editandoId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="abierto">Abierto</SelectItem>
+                    <SelectItem value="en_seguimiento">En Seguimiento</SelectItem>
+                    <SelectItem value="cerrado">Cerrado</SelectItem>
+                  </SelectContent>
+                </Select>
+                {!editandoId && (
+                  <p className="text-xs text-[#6B7280] mt-2">
+                    El reporte se crea como abierto y después podrás cambiarlo a seguimiento o cerrado.
+                  </p>
+                )}
+              </div>
+
+              <div>
                 <Label htmlFor="descripcion">Descripción del Incidente</Label>
-                <Textarea 
-                  id="descripcion" 
+                <Textarea
+                  id="descripcion"
                   placeholder="Describe detalladamente la situación..."
                   rows={4}
+                  value={formulario.descripcion}
+                  onChange={(e) => actualizarCampo("descripcion", e.target.value)}
                 />
               </div>
 
               <div>
                 <Label htmlFor="acciones">Acciones Tomadas</Label>
-                <Textarea 
-                  id="acciones" 
+                <Textarea
+                  id="acciones"
                   placeholder="Describe las acciones que se han tomado o se tomarán..."
                   rows={3}
+                  value={formulario.acciones}
+                  onChange={(e) => actualizarCampo("acciones", e.target.value)}
                 />
               </div>
 
-              {/* Campo de Archivos Adjuntos */}
               <div>
                 <Label htmlFor="adjuntos">Archivos Adjuntos</Label>
                 <p className="text-xs text-[#6B7280] mb-2">
                   Puedes adjuntar evidencias, fotografías, documentos, etc.
                 </p>
                 <div className="space-y-3">
-                  {/* Input de archivo */}
                   <div className="flex items-center gap-2">
-                    <label 
-                      htmlFor="file-upload" 
+                    <label
+                      htmlFor="file-upload"
                       className="flex items-center gap-2 px-4 py-2 border border-[#E5E7EB] rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
                     >
                       <Paperclip className="h-4 w-4 text-[#6B7280]" />
@@ -273,7 +512,6 @@ export function ReportesTS() {
                     </span>
                   </div>
 
-                  {/* Lista de archivos adjuntos */}
                   {archivosAdjuntos.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-[#111827]">
@@ -281,8 +519,8 @@ export function ReportesTS() {
                       </p>
                       <div className="space-y-2">
                         {archivosAdjuntos.map((archivo, index) => (
-                          <div 
-                            key={index}
+                          <div
+                            key={`${archivo.name}-${index}`}
                             className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-[#E5E7EB]"
                           >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -315,11 +553,11 @@ export function ReportesTS() {
               </div>
 
               <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setModalNuevo(false)}>
+                <Button variant="outline" onClick={() => abrirNuevoReporte(false)}>
                   Cancelar
                 </Button>
-                <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
-                  Crear Reporte
+                <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]" onClick={guardarReporte} disabled={guardando}>
+                  {guardando ? "Guardando..." : editandoId ? "Actualizar Reporte" : "Crear Reporte"}
                 </Button>
               </div>
             </div>
@@ -327,66 +565,64 @@ export function ReportesTS() {
         </Dialog>
       </PageTitle>
 
-      {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Total Reportes</p>
-                <p className="text-2xl font-bold text-[#7C3AED] mt-1">{estadisticas.total}</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <FileText className="h-6 w-6 text-[#7C3AED]" />
               </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Total Reportes</p>
+                <p className="text-2xl font-bold text-[#7C3AED]">{estadisticas.total}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-red-50 to-red-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">En Seguimiento</p>
-                <p className="text-2xl font-bold text-[#1D4ED8] mt-1">{estadisticas.enSeguimiento}</p>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <AlertTriangle className="h-6 w-6 text-[#E11D48]" />
               </div>
-              <div className="p-3 bg-blue-100 rounded-xl">
+              <div>
+                <p className="text-sm text-[#6B7280]">Abiertos</p>
+                <p className="text-2xl font-bold text-[#E11D48]">{estadisticas.abiertos}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <Clock className="h-6 w-6 text-[#1D4ED8]" />
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[#6B7280]">Resueltos</p>
-                <p className="text-2xl font-bold text-[#059669] mt-1">{estadisticas.resueltos}</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-xl">
-                <CheckCircle className="h-6 w-6 text-[#059669]" />
+                <p className="text-sm text-[#6B7280]">En Seguimiento</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">{estadisticas.enSeguimiento}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-gray-50 to-gray-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <XCircle className="h-6 w-6 text-[#6B7280]" />
+              </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Cerrados</p>
-                <p className="text-2xl font-bold text-[#6B7280] mt-1">{estadisticas.cerrados}</p>
-              </div>
-              <div className="p-3 bg-gray-100 rounded-xl">
-                <XCircle className="h-6 w-6 text-[#6B7280]" />
+                <p className="text-2xl font-bold text-[#6B7280]">{estadisticas.cerrados}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filtros */}
       <Card className="border-[#E5E7EB]">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -408,8 +644,8 @@ export function ReportesTS() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="abierto">Abiertos</SelectItem>
                 <SelectItem value="en_seguimiento">En Seguimiento</SelectItem>
-                <SelectItem value="resuelto">Resueltos</SelectItem>
                 <SelectItem value="cerrado">Cerrados</SelectItem>
               </SelectContent>
             </Select>
@@ -417,83 +653,8 @@ export function ReportesTS() {
         </CardContent>
       </Card>
 
-      {/* Tabs por tipo */}
-      <Tabs defaultValue="todos" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="todos">Todos</TabsTrigger>
-          <TabsTrigger value="conducta">Conducta</TabsTrigger>
-          <TabsTrigger value="asistencia">Asistencia</TabsTrigger>
-          <TabsTrigger value="academico">Académico</TabsTrigger>
-          <TabsTrigger value="emocional">Emocional</TabsTrigger>
-        </TabsList>
+      {renderListaReportes("todos")}
 
-        <TabsContent value="todos" className="mt-6">
-          <Card className="border-[#E5E7EB]">
-            <CardHeader>
-              <CardTitle>Todos los Reportes</CardTitle>
-              <CardDescription>Lista completa de reportes registrados</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {reportes.map((reporte) => (
-                  <div
-                    key={reporte.id}
-                    className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-semibold text-[#111827]">{reporte.alumno}</h4>
-                          <Badge variant="outline">{reporte.grupo}</Badge>
-                          <Badge className={getBadgeGravedad(reporte.gravedad)}>
-                            {reporte.gravedad}
-                          </Badge>
-                          <Badge className={getBadgeEstado(reporte.estado)}>
-                            {getEstadoTexto(reporte.estado)}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="secondary">{reporte.tipo}</Badge>
-                          <span className="text-xs text-[#6B7280]">
-                            {reporte.fecha} • {reporte.reportadoPor}
-                          </span>
-                        </div>
-                        <p className="text-sm text-[#6B7280] mb-2">{reporte.descripcion}</p>
-                        <div className="flex items-center gap-4 text-xs text-[#6B7280]">
-                          <span>{reporte.seguimientos} seguimiento(s)</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => verDetalle(reporte)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Otros tabs tendrían contenido similar filtrado por tipo */}
-        <TabsContent value="conducta">
-          <Card className="border-[#E5E7EB]">
-            <CardContent className="pt-6">
-              <p className="text-center text-[#6B7280]">Reportes de conducta</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Modal de detalle */}
       <Dialog open={modalDetalle} onOpenChange={setModalDetalle}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -507,15 +668,15 @@ export function ReportesTS() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-[#6B7280]">Alumno</Label>
-                  <p className="font-semibold">{reporteSeleccionado.alumno}</p>
+                  <p className="font-semibold">{getAlumno(reporteSeleccionado.alumnoId)?.nombre ?? `Alumno #${reporteSeleccionado.alumnoId}`}</p>
                 </div>
                 <div>
                   <Label className="text-[#6B7280]">Grupo</Label>
-                  <p className="font-semibold">{reporteSeleccionado.grupo}</p>
+                  <p className="font-semibold">{getAlumno(reporteSeleccionado.alumnoId)?.grupo ?? "Sin grupo"}</p>
                 </div>
                 <div>
                   <Label className="text-[#6B7280]">Tipo</Label>
-                  <Badge variant="secondary">{reporteSeleccionado.tipo}</Badge>
+                  <Badge variant="secondary">{reporteSeleccionado.tipoReporte}</Badge>
                 </div>
                 <div>
                   <Label className="text-[#6B7280]">Gravedad</Label>
@@ -532,13 +693,13 @@ export function ReportesTS() {
 
               <div>
                 <Label className="text-[#6B7280]">Acciones Tomadas</Label>
-                <p className="mt-1">{reporteSeleccionado.acciones}</p>
+                <p className="mt-1">{reporteSeleccionado.observaciones || "Sin observaciones"}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-[#6B7280]">Reportado por</Label>
-                  <p>{reporteSeleccionado.reportadoPor}</p>
+                  <p>{reporteSeleccionado.reportadoPorNombre}</p>
                 </div>
                 <div>
                   <Label className="text-[#6B7280]">Fecha</Label>
@@ -546,11 +707,26 @@ export function ReportesTS() {
                 </div>
               </div>
 
+              {reporteSeleccionado.archivoAdjunto && (
+                <div>
+                  <Label className="text-[#6B7280]">Archivo adjunto</Label>
+                  <a
+                    href={reporteSeleccionado.archivoAdjunto}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-flex items-center gap-2 text-sm text-[#1D4ED8] underline underline-offset-2"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    Ver archivo adjunto
+                  </a>
+                </div>
+              )}
+
               <div className="flex gap-2 justify-end pt-4 border-t">
                 <Button variant="outline" onClick={() => setModalDetalle(false)}>
                   Cerrar
                 </Button>
-                <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
+                <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]" onClick={() => abrirEdicion(reporteSeleccionado)}>
                   Editar Reporte
                 </Button>
               </div>

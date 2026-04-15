@@ -19,7 +19,8 @@ class AlumnoAdminController extends Controller
 
         $query = Alumno::with([
             'persona:id,nombre,apellidos,curp,telefono,direccion',
-        ]);
+            'tutores' => fn ($q) => $q->with('persona:id,nombre,apellidos')->withPivot('parentesco')->limit(1),
+        ])->withCount('tutores');
 
         // Incluir grupo actual del ciclo activo si existe
         if ($cicloActivoId) {
@@ -47,6 +48,10 @@ class AlumnoAdminController extends Controller
         $alumnos = $query->orderByRaw(
             'EXISTS(SELECT 1 FROM personas WHERE personas.id = alumnos.persona_id ORDER BY personas.apellidos)'
         )->get();
+
+        $alumnos = $alumnos->map(fn ($a) => array_merge($a->toArray(), [
+            'tiene_tutor' => $a->tutores_count > 0,
+        ]));
 
         return response()->json(['alumnos' => $alumnos]);
     }

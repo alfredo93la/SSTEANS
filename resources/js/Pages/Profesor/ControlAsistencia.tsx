@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { usePage } from "@inertiajs/react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../Components/ui/table";
@@ -8,22 +10,48 @@ import { Input } from "../../Components/ui/input";
 import { toast } from "sonner";
 import { Save, CheckCircle2, XCircle, Clock, Calendar } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
-import { alumnos, grupos, materias, asistencias as asistenciasIniciales } from "../../data/mockData";
+
+interface GrupoData { id: number; nombre: string; }
+interface AlumnoData { id: number; nombre: string; grupo: string; }
+interface MateriaData { id: number; nombre: string; diasSemana: string[]; }
+
+const DIA_SEMANA_JS: Record<number, string> = {
+  0: 'domingo', 1: 'lunes', 2: 'martes', 3: 'miercoles',
+  4: 'jueves',  5: 'viernes', 6: 'sabado',
+};
+
+const NOMBRE_DIA: Record<string, string> = {
+  lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles',
+  jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo',
+};
 
 type EstadoAsistencia = "Presente" | "Falta" | "Retardo";
 
 export function ControlAsistencia() {
-  const [grupoSeleccionado, setGrupoSeleccionado] = useState("2");
-  const [materiaSeleccionada, setMateriaSeleccionada] = useState("1");
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(
-    new Date().toISOString().split('T')[0]
-  );
+  const { cicloActivo } = usePage().props;
+  const [grupos, setGrupos] = useState<GrupoData[]>([]);
+  const [materias, setMaterias] = useState<MateriaData[]>([]);
+  const [alumnosDelGrupo, setAlumnosDelGrupo] = useState<AlumnoData[]>([]);
+  const [grupoSeleccionado, setGrupoSeleccionado] = useState("");
+  const [materiaSeleccionada, setMateriaSeleccionada] = useState("");
+  const hoyLocal = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(hoyLocal);
   const [asistencias, setAsistencias] = useState<Record<number, EstadoAsistencia>>({});
   const [guardado, setGuardado] = useState(false);
 
-  const grupo = grupos.find(g => g.id === parseInt(grupoSeleccionado));
-  const materia = materias.find(m => m.id === parseInt(materiaSeleccionada));
-  const alumnosDelGrupo = alumnos.filter(a => a.grupo === grupo?.nombre);
+  const grupo = grupos.find(g => g.id.toString() === grupoSeleccionado);
+  const materia = materias.find(m => m.id.toString() === materiaSeleccionada);
+
+  // Días válidos de la materia seleccionada
+  const diasValidos: string[] = materia?.diasSemana ?? [];
+  const fechaEsValida = diasValidos.length === 0
+    ? false
+    : diasValidos.includes(DIA_SEMANA_JS[new Date(fechaSeleccionada + 'T00:00:00').getDay()]);
+  const nombresValidos = diasValidos.map(d => NOMBRE_DIA[d] ?? d).join(', ');
 
   // Convertir fecha ISO a formato dd/mm/aaaa
   const formatearFecha = (fechaISO: string) => {
@@ -33,24 +61,52 @@ export function ControlAsistencia() {
 
   const fechaFormateada = formatearFecha(fechaSeleccionada);
 
+  useEffect(() => {
+    axios.get("/api/profesor/grupos")
+      .then(({ data }) => {
+        const lista: GrupoData[] = data.grupos ?? [];
+        setGrupos(lista);
+        if (lista.length > 0) setGrupoSeleccionado(lista[0].id.toString());
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!grupoSeleccionado) return;
+    setMateriaSeleccionada("");
+    setMaterias([]);
+    axios.get("/api/profesor/materias", { params: { grupo_id: grupoSeleccionado } })
+      .then(({ data }) => {
+        const lista: MateriaData[] = data.materias ?? [];
+        setMaterias(lista);
+        if (lista.length > 0) setMateriaSeleccionada(lista[0].id.toString());
+      })
+      .catch(() => {});
+    axios.get("/api/profesor/alumnos", { params: { grupo_id: grupoSeleccionado } })
+      .then(({ data }) => setAlumnosDelGrupo(data.alumnos ?? []))
+      .catch(() => {});
+  }, [grupoSeleccionado]);
+
   // Cargar asistencias existentes para la fecha y materia seleccionadas
   useEffect(() => {
-    const asistenciasDelDia: Record<number, EstadoAsistencia> = {};
-    
-    alumnosDelGrupo.forEach(alumno => {
-      const asistencia = asistenciasIniciales.find(
-        a => a.alumnoId === alumno.id && 
-             a.fecha === fechaFormateada && 
-             a.materiaId === parseInt(materiaSeleccionada)
-      );
-      if (asistencia) {
-        asistenciasDelDia[alumno.id] = asistencia.estado as EstadoAsistencia;
-      }
-    });
-
-    setAsistencias(asistenciasDelDia);
-    setGuardado(Object.keys(asistenciasDelDia).length > 0);
-  }, [grupoSeleccionado, materiaSeleccionada, fechaSeleccionada, alumnosDelGrupo, fechaFormateada]);
+    if (!grupoSeleccionado || !materiaSeleccionada || !fechaEsValida) {
+      setAsistencias({});
+      setGuardado(false);
+      return;
+    }
+    axios.get("/api/asistencias", {
+      params: { grupo_id: grupoSeleccionado, materia_id: materiaSeleccionada, fecha: fechaSeleccionada }
+    })
+      .then(({ data }) => {
+        const asistenciasDelDia: Record<number, EstadoAsistencia> = {};
+        (data.asistencias ?? []).forEach((a: { alumnoId: number; estado: string }) => {
+          asistenciasDelDia[a.alumnoId] = a.estado as EstadoAsistencia;
+        });
+        setAsistencias(asistenciasDelDia);
+        setGuardado(Object.keys(asistenciasDelDia).length > 0);
+      })
+      .catch(() => {});
+  }, [grupoSeleccionado, materiaSeleccionada, fechaSeleccionada, fechaEsValida]);
 
   const marcarAsistencia = (alumnoId: number, estado: EstadoAsistencia) => {
     setAsistencias(prev => ({
@@ -60,18 +116,9 @@ export function ControlAsistencia() {
     setGuardado(false);
   };
 
-  const marcarTodos = (estado: EstadoAsistencia) => {
-    const nuevasAsistencias: Record<number, EstadoAsistencia> = {};
-    alumnosDelGrupo.forEach(alumno => {
-      nuevasAsistencias[alumno.id] = estado;
-    });
-    setAsistencias(nuevasAsistencias);
-    setGuardado(false);
-  };
-
   const guardarAsistencias = () => {
     const alumnosRegistrados = Object.keys(asistencias).length;
-    
+
     if (alumnosRegistrados === 0) {
       toast.error("Debes marcar al menos un alumno antes de guardar");
       return;
@@ -82,8 +129,20 @@ export function ControlAsistencia() {
       toast.warning(`Hay ${faltantes} alumno(s) sin marcar. Se guardarán los registros existentes.`);
     }
 
-    toast.success(`Asistencia guardada: ${materia?.nombre} - ${grupo?.nombre} - ${fechaFormateada}`);
-    setGuardado(true);
+    axios.post("/api/asistencias/bulk", {
+      grupo_id: parseInt(grupoSeleccionado),
+      materia_id: parseInt(materiaSeleccionada),
+      fecha: fechaSeleccionada,
+      asistencias: Object.entries(asistencias).map(([alumnoId, estado]) => ({
+        alumnoId: parseInt(alumnoId),
+        estado,
+      })),
+    })
+      .then(() => {
+        toast.success(`Asistencia guardada: ${materia?.nombre} - ${grupo?.nombre} - ${fechaFormateada}`);
+        setGuardado(true);
+      })
+      .catch(() => toast.error("Error al guardar asistencia"));
   };
 
   const getEstadoBadge = (estado?: EstadoAsistencia) => {
@@ -98,12 +157,6 @@ export function ControlAsistencia() {
         return { icon: null, className: "bg-gray-200 text-[#6B7280]", text: "Sin marcar" };
     }
   };
-
-  // Estadísticas
-  const presentes = Object.values(asistencias).filter(a => a === "Presente").length;
-  const faltas = Object.values(asistencias).filter(a => a === "Falta").length;
-  const retardos = Object.values(asistencias).filter(a => a === "Retardo").length;
-  const sinMarcar = alumnosDelGrupo.length - Object.keys(asistencias).length;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -154,7 +207,17 @@ export function ControlAsistencia() {
               <Input
                 type="date"
                 value={fechaSeleccionada}
-                onChange={(e) => setFechaSeleccionada(e.target.value)}
+                min={cicloActivo?.fecha_inicio ?? undefined}
+                max={hoyLocal()}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  const hoy = hoyLocal();
+                  const minFecha = cicloActivo?.fecha_inicio;
+                  if (val > hoy) return;
+                  if (minFecha && val < minFecha) return;
+                  setFechaSeleccionada(val);
+                }}
                 className="rounded-lg"
               />
             </div>
@@ -181,7 +244,16 @@ export function ControlAsistencia() {
             </Button>
           </div> */}
 
-          {!guardado && Object.keys(asistencias).length > 0 && (
+          {materiaSeleccionada && !fechaEsValida && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-[#E11D48]" />
+              <span className="text-sm text-[#E11D48]">
+                Esta clase solo se imparte los días: <strong>{nombresValidos}</strong>. Selecciona una fecha válida.
+              </span>
+            </div>
+          )}
+
+          {!guardado && Object.keys(asistencias).length > 0 && fechaEsValida && (
             <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
               <Calendar className="h-4 w-4 text-[#D97706]" />
               <span className="text-sm text-[#D97706]">
@@ -243,7 +315,7 @@ export function ControlAsistencia() {
             </div>
             <Button
               onClick={guardarAsistencias}
-              disabled={guardado || Object.keys(asistencias).length === 0}
+              disabled={guardado || Object.keys(asistencias).length === 0 || !fechaEsValida}
               className="bg-[#1D4ED8] hover:bg-[#1E40AF]"
             >
               <Save className="h-4 w-4 mr-2" />
@@ -295,6 +367,7 @@ export function ControlAsistencia() {
                               size="sm"
                               variant={estado === "Presente" ? "default" : "outline"}
                               onClick={() => marcarAsistencia(alumno.id, "Presente")}
+                              disabled={!fechaEsValida}
                               className={estado === "Presente" ? "bg-[#059669] hover:bg-[#047857]" : ""}
                             >
                               <CheckCircle2 className="h-4 w-4" />
@@ -303,6 +376,7 @@ export function ControlAsistencia() {
                               size="sm"
                               variant={estado === "Retardo" ? "default" : "outline"}
                               onClick={() => marcarAsistencia(alumno.id, "Retardo")}
+                              disabled={!fechaEsValida}
                               className={estado === "Retardo" ? "bg-[#D97706] hover:bg-[#B45309]" : ""}
                             >
                               <Clock className="h-4 w-4" />
@@ -311,6 +385,7 @@ export function ControlAsistencia() {
                               size="sm"
                               variant={estado === "Falta" ? "default" : "outline"}
                               onClick={() => marcarAsistencia(alumno.id, "Falta")}
+                              disabled={!fechaEsValida}
                               className={estado === "Falta" ? "bg-[#E11D48] hover:bg-[#BE123C]" : ""}
                             >
                               <XCircle className="h-4 w-4" />

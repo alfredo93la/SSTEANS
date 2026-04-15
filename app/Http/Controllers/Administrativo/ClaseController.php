@@ -58,12 +58,8 @@ class ClaseController extends Controller
             ->where('profesor_user_id', $validated['profesor_user_id'])
             ->where('dia_semana', $validated['dia_semana'])
             ->where(function ($q) use ($validated): void {
-                $q->whereBetween('hora_inicio', [$validated['hora_inicio'], $validated['hora_fin']])
-                    ->orWhereBetween('hora_fin', [$validated['hora_inicio'], $validated['hora_fin']])
-                    ->orWhere(function ($q2) use ($validated): void {
-                        $q2->where('hora_inicio', '<=', $validated['hora_inicio'])
-                            ->where('hora_fin', '>=', $validated['hora_fin']);
-                    });
+                $q->where('hora_inicio', '<', $validated['hora_fin'])
+                    ->where('hora_fin', '>', $validated['hora_inicio']);
             })->exists();
 
         if ($conflictoProfesor) {
@@ -76,12 +72,8 @@ class ClaseController extends Controller
                 ->where('salon_id', $validated['salon_id'])
                 ->where('dia_semana', $validated['dia_semana'])
                 ->where(function ($q) use ($validated): void {
-                    $q->whereBetween('hora_inicio', [$validated['hora_inicio'], $validated['hora_fin']])
-                        ->orWhereBetween('hora_fin', [$validated['hora_inicio'], $validated['hora_fin']])
-                        ->orWhere(function ($q2) use ($validated): void {
-                            $q2->where('hora_inicio', '<=', $validated['hora_inicio'])
-                                ->where('hora_fin', '>=', $validated['hora_fin']);
-                        });
+                    $q->where('hora_inicio', '<', $validated['hora_fin'])
+                        ->where('hora_fin', '>', $validated['hora_inicio']);
                 })->exists();
 
             if ($conflictoSalon) {
@@ -117,12 +109,8 @@ class ClaseController extends Controller
             ->where('profesor_user_id', $validated['profesor_user_id'])
             ->where('dia_semana', $validated['dia_semana'])
             ->where(function ($q) use ($validated): void {
-                $q->whereBetween('hora_inicio', [$validated['hora_inicio'], $validated['hora_fin']])
-                    ->orWhereBetween('hora_fin', [$validated['hora_inicio'], $validated['hora_fin']])
-                    ->orWhere(function ($q2) use ($validated): void {
-                        $q2->where('hora_inicio', '<=', $validated['hora_inicio'])
-                            ->where('hora_fin', '>=', $validated['hora_fin']);
-                    });
+                $q->where('hora_inicio', '<', $validated['hora_fin'])
+                    ->where('hora_fin', '>', $validated['hora_inicio']);
             })->exists();
 
         if ($conflictoProfesor) {

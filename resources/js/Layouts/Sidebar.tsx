@@ -44,7 +44,6 @@ const getMenuItems = (userRole: string): MenuItem[] => {
       { id: "general", label: "Inicio", icon: Home, route: "#/dashboard", roles: ["Profesor"] },
       { id: "calificaciones", label: "Calificaciones", icon: GraduationCap, route: "#/dashboard/calificaciones", roles: ["Profesor"] },
       { id: "asistencia", label: "Asistencia", icon: CheckCircle2, route: "#/dashboard/asistencia", roles: ["Profesor"] },
-      { id: "asignar-tarea", label: "Asignar Tarea", icon: ClipboardList, route: "#/dashboard/asignar-tarea", roles: ["Profesor"] },
       { id: "gestionar-tareas", label: "Gestionar Tareas", icon: FileText, route: "#/dashboard/gestionar-tareas", roles: ["Profesor"] },
       { id: "notificaciones", label: "Notificaciones", icon: Bell, route: "#/notificaciones", roles: ["Profesor"] },
       { id: "horario", label: "Horario", icon: CalendarDays, route: "#/dashboard/horario", roles: ["Profesor"] },
@@ -67,6 +66,7 @@ const getMenuItems = (userRole: string): MenuItem[] => {
       { id: "general", label: "Inicio", icon: Home, route: "#/dashboard", roles: ["Personal Administrativo"] },
       { id: "alumnos", label: "Alumnos", icon: GraduationCap, route: "#/administrativo/alumnos", roles: ["Personal Administrativo"] },
       { id: "tutores", label: "Tutores", icon: Users, route: "#/administrativo/tutores", roles: ["Personal Administrativo"] },
+      { id: "grupos", label: "Grupos", icon: Users, route: "#/administrativo/grupos", roles: ["Personal Administrativo"] },
       { id: "horarios", label: "Horarios", icon: Clock, route: "#/administrativo/horarios", roles: ["Personal Administrativo"] },
       { id: "agenda", label: "Agenda Escolar", icon: CalendarCheck, route: "#/agenda", roles: ["Personal Administrativo"] },
       { id: "circulares", label: "Circulares", icon: FileText, route: "#/circulares", roles: ["Personal Administrativo"] }
@@ -77,15 +77,13 @@ const getMenuItems = (userRole: string): MenuItem[] => {
       { id: "general", label: "Inicio", icon: Home, route: "#/dashboard", roles: ["Administrador"] },
       { id: "usuarios", label: "Usuarios", icon: Users, route: "#/admin/usuarios", roles: ["Administrador"] },
       { id: "roles", label: "Roles y Permisos", icon: Settings, route: "#/admin/roles", roles: ["Administrador"] },
+      { id: "alumnos", label: "Alumnos", icon: GraduationCap, route: "#/administrativo/alumnos", roles: ["Administrador"] },
       { id: "materias", label: "Materias", icon: BookMarked, route: "#/administrativo/materias", roles: ["Administrador"] },
       { id: "grupos", label: "Grupos", icon: Users, route: "#/administrativo/grupos", roles: ["Administrador"] },
-      { id: "alumnos", label: "Alumnos", icon: GraduationCap, route: "#/administrativo/alumnos", roles: ["Administrador"] },
       { id: "ciclos", label: "Ciclos Escolares", icon: CalendarRange, route: "#/admin/ciclos", roles: ["Administrador"] },
       { id: "periodos", label: "Periodos de Evaluación", icon: BookKey, route: "#/admin/periodos", roles: ["Administrador"] },
       { id: "configuracion", label: "Configuración General", icon: Settings2, route: "#/admin/configuracion", roles: ["Administrador"] },
     ] : []),
-
-    // Sin item genérico de Administración - cada rol tiene su propio submenú
   ];
 
   return baseItems.filter(item => item.roles.includes(userRole));

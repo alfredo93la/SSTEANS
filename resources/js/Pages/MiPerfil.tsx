@@ -61,6 +61,18 @@ function getRoleSummary(role: string): string {
   }
 }
 
+function rolAlumno(parentesco: string | null | undefined, sexo: string | null | undefined): string {
+  const f = sexo === "Femenino";
+  switch (parentesco) {
+    case "Padre": case "Madre":     return f ? "Hija"     : "Hijo";
+    case "Abuelo": case "Abuela":   return f ? "Nieta"    : "Nieto";
+    case "Tío": case "Tía":         return f ? "Sobrina"  : "Sobrino";
+    case "Hermano": case "Hermana": return f ? "Hermana"  : "Hermano";
+    case "Tutor legal":             return f ? "Tutelada" : "Tutelado";
+    default: return parentesco ?? "—";
+  }
+}
+
 function EmptyValue({ label }: { label: string }) {
   return <span className="text-[#9CA3AF]">{label}</span>;
 }
@@ -184,7 +196,6 @@ export function MyProfile({ user }: MyProfileProps) {
           {user.role === "Tutor" && user.tutor_profile ? (
             <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
               <div className="grid gap-4">
-                <InfoRow icon={Users} label="Parentesco" value={user.tutor_profile.parentesco} />
                 <InfoRow icon={Briefcase} label="Ocupacion" value={user.tutor_profile.ocupacion} />
                 <InfoRow
                   icon={Users}
@@ -196,11 +207,16 @@ export function MyProfile({ user }: MyProfileProps) {
               <div className="rounded-2xl border border-[#E5E7EB] bg-slate-50 p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#6B7280]">Alumnos asignados</p>
                 {user.tutor_profile.alumnos && user.tutor_profile.alumnos.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-3 space-y-2">
                     {user.tutor_profile.alumnos.map((alumno) => (
-                      <Badge key={alumno.id} variant="outline" className="bg-white px-3 py-1 text-sm">
-                        {alumno.nombre || `Alumno ${alumno.id}`}
-                      </Badge>
+                      <div key={alumno.id} className="flex items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-3 py-2">
+                        <span className="text-sm font-medium">{alumno.nombre || `Alumno ${alumno.id}`}</span>
+                        {alumno.parentesco && (
+                          <Badge variant="outline" className="text-xs text-[#6B7280]">
+                            {rolAlumno(alumno.parentesco, alumno.sexo)}
+                          </Badge>
+                        )}
+                      </div>
                     ))}
                   </div>
                 ) : (

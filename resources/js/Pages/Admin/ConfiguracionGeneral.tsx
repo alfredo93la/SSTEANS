@@ -23,11 +23,10 @@ interface Config {
   direccion: string;
   nivel_educativo: string;
   servicio_educativo: string;
-  minimo_aprobatorio: number;
-  escala_calificacion: string;
-  permitir_captura: boolean;
-  notificaciones: boolean;
-  registro_tutores: boolean;
+  acceso_tutor: boolean;
+  acceso_profesor: boolean;
+  acceso_trab_social: boolean;
+  acceso_administrativo: boolean;
 }
 
 const defaults: Config = {
@@ -42,11 +41,10 @@ const defaults: Config = {
   direccion: "",
   nivel_educativo: "Secundaria",
   servicio_educativo: "General",
-  minimo_aprobatorio: 6,
-  escala_calificacion: "0-10",
-  permitir_captura: true,
-  notificaciones: true,
-  registro_tutores: false,
+  acceso_tutor: true,
+  acceso_profesor: true,
+  acceso_trab_social: true,
+  acceso_administrativo: true,
 };
 
 export function ConfiguracionGeneral() {
@@ -57,7 +55,10 @@ export function ConfiguracionGeneral() {
 
   useEffect(() => {
     axios.get("/api/admin/configuracion")
-      .then(({ data }) => setConfig({ ...defaults, ...data }))
+      .then(({ data }) => {
+        const clean = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== null && v !== undefined));
+        setConfig({ ...defaults, ...clean });
+      })
       .catch(() => toast.error("No se pudo cargar la configuración."))
       .finally(() => setLoading(false));
   }, []);
@@ -217,14 +218,12 @@ export function ConfiguracionGeneral() {
             </CardHeader>
             <CardContent className="space-y-3">
               {([
-                { key: "permitir_captura", label: "Permitir captura de calificaciones", desc: "Habilita que los profesores registren calificaciones" },
-                { key: "notificaciones",   label: "Notificaciones automáticas",          desc: "Envío de avisos por correo a tutores" },
-                { key: "registro_tutores", label: "Registro abierto de tutores",         desc: "Los tutores pueden registrarse de forma autónoma" },
+                { key: "acceso_tutor",        label: "Acceso de tutores",             desc: "Los tutores pueden iniciar sesión en el sistema" },
+                { key: "acceso_profesor",     label: "Acceso de profesores",          desc: "Los profesores pueden iniciar sesión en el sistema" },
+                { key: "acceso_trab_social",  label: "Acceso de trabajadores sociales", desc: "Los trabajadores sociales pueden iniciar sesión" },
+                { key: "acceso_administrativo", label: "Acceso de personal administrativo", desc: "El personal administrativo puede iniciar sesión" },
               ] as { key: keyof Config; label: string; desc: string }[]).map(({ key, label, desc }) => (
-                <div
-                  key={key}
-                  className="flex items-center justify-between p-3 rounded-xl border border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors"
-                >
+                <div key={key} className="flex items-center justify-between p-3 rounded-xl border border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors">
                   <div>
                     <p className="text-sm font-medium text-[#111827]">{label}</p>
                     <p className="text-xs text-[#6B7280] mt-0.5">{desc}</p>

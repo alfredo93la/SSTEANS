@@ -1,27 +1,46 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { Card, CardContent } from "../../Components/ui/card";
 import { Badge } from "../../Components/ui/badge";
 import { Button } from "../../Components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../Components/ui/dialog";
-import { AlertTriangle, FileText, User, Calendar, AlertCircle, CheckCircle } from "lucide-react";
-import { reportesConducta, getUsuarioById } from "../../data/mockData";
+import { AlertTriangle, FileText, User, Calendar, AlertCircle, CheckCircle, Paperclip } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
+
+interface ReporteData {
+  id: number;
+  alumnoId: number;
+  tipoReporte: string;
+  gravedad: "Baja" | "Media" | "Alta";
+  descripcion: string;
+  observaciones: string;
+  archivoAdjunto: string | null;
+  fecha: string;
+  estatus: string;
+  reportadoPor: number;
+  reportadoPorNombre: string;
+}
 
 interface ReportesConductaTutorProps {
   alumnoId: number;
 }
 
 export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) {
-  const [reporteSeleccionado, setReporteSeleccionado] = useState<typeof reportesConducta[0] | null>(null);
+  const [reportes, setReportes] = useState<ReporteData[]>([]);
+  const [reporteSeleccionado, setReporteSeleccionado] = useState<ReporteData | null>(null);
   const [dialogAbierto, setDialogAbierto] = useState(false);
 
-  // Filtrar reportes del alumno
-  const reportesAlumno = reportesConducta.filter((r) => r.alumnoId === alumnoId);
+  useEffect(() => {
+    if (!alumnoId) return;
+    axios.get(`/api/tutor/reportes-conducta/${alumnoId}`)
+      .then(({ data }) => setReportes(data.reportes ?? []))
+      .catch(() => {});
+  }, [alumnoId]);
 
   // Estadísticas
-  const totalReportes = reportesAlumno.length;
-  const reportesEnSeguimiento = reportesAlumno.filter((r) => r.estatus === "En seguimiento").length;
-  const reportesCerrados = reportesAlumno.filter((r) => r.estatus === "Cerrado").length;
+  const totalReportes = reportes.length;
+  const reportesEnSeguimiento = reportes.filter((r) => r.estatus === "En seguimiento").length;
+  const reportesCerrados = reportes.filter((r) => r.estatus === "Cerrado").length;
 
   const getEstatusBadge = (estatus: string) => {
     switch (estatus) {
@@ -36,21 +55,28 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
 
   const getTipoColor = (tipo: string) => {
     switch (tipo) {
-      case "Disciplina":
-        return "text-[#E11D48] bg-red-100";
-      case "Material":
-        return "text-[#D97706] bg-amber-100";
-      case "Asistencia":
-        return "text-[#1D4ED8] bg-blue-100";
-      default:
-        return "text-[#6B7280] bg-gray-100";
+      case "Disciplina": return "text-[#E11D48] bg-red-100";
+      case "Material":   return "text-[#D97706] bg-amber-100";
+      case "Asistencia": return "text-[#1D4ED8] bg-blue-100";
+      default:           return "text-[#6B7280] bg-gray-100";
     }
   };
 
-  const verDetalle = (reporte: typeof reportesConducta[0]) => {
+  const getGravedadBadge = (gravedad: string) => {
+    switch (gravedad) {
+      case "Alta":  return { className: "bg-[#E11D48] text-white", text: "Alta" };
+      case "Media": return { className: "bg-[#D97706] text-white", text: "Media" };
+      case "Baja":  return { className: "bg-[#059669] text-white", text: "Baja" };
+      default:      return { className: "bg-[#6B7280] text-white", text: gravedad };
+    }
+  };
+
+  const verDetalle = (reporte: ReporteData) => {
     setReporteSeleccionado(reporte);
     setDialogAbierto(true);
   };
+
+  const nombreArchivo = (url: string) => url.split("/").pop() ?? "archivo";
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -108,7 +134,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
       </div>
 
       {/* Mensaje si no hay reportes */}
-      {reportesAlumno.length === 0 ? (
+      {reportes.length === 0 ? (
         <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-emerald-50">
           <CardContent className="py-12 text-center">
             <CheckCircle className="h-16 w-16 text-[#059669] mx-auto mb-4" />
@@ -118,10 +144,10 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
         </Card>
       ) : (
         <div className="space-y-4">
-          {reportesAlumno.map((reporte) => {
+          {reportes.map((reporte) => {
             const badge = getEstatusBadge(reporte.estatus);
             const tipoColor = getTipoColor(reporte.tipoReporte);
-            const profesor = getUsuarioById(reporte.reportadoPor);
+            const gravedadBadge = getGravedadBadge(reporte.gravedad);
 
             return (
               <Card key={reporte.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
@@ -142,9 +168,12 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                     <div className="flex-1 space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
                             <Badge variant="secondary" className={tipoColor}>
                               {reporte.tipoReporte}
+                            </Badge>
+                            <Badge className={gravedadBadge.className}>
+                              Gravedad: {gravedadBadge.text}
                             </Badge>
                             <Badge className={badge.className}>
                               {badge.text}
@@ -161,8 +190,21 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                         </div>
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4" />
-                          <span>Reportado por: {profesor?.nombre || "Desconocido"}</span>
+                          <span>Reportado por: {reporte.reportadoPorNombre}</span>
                         </div>
+                        {reporte.archivoAdjunto && (
+                          <div className="flex items-center gap-2">
+                            <Paperclip className="h-4 w-4" />
+                            <a
+                              href={reporte.archivoAdjunto}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[#1D4ED8] underline underline-offset-2"
+                            >
+                              {nombreArchivo(reporte.archivoAdjunto)}
+                            </a>
+                          </div>
+                        )}
                       </div>
 
                       <Button
@@ -192,9 +234,12 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
 
           {reporteSeleccionado && (
             <div className="space-y-4 mt-4">
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary" className={getTipoColor(reporteSeleccionado.tipoReporte)}>
                   {reporteSeleccionado.tipoReporte}
+                </Badge>
+                <Badge className={getGravedadBadge(reporteSeleccionado.gravedad).className}>
+                  Gravedad: {reporteSeleccionado.gravedad}
                 </Badge>
                 <Badge className={getEstatusBadge(reporteSeleccionado.estatus).className}>
                   {reporteSeleccionado.estatus}
@@ -214,15 +259,28 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
 
                 <div>
                   <h4 className="font-semibold text-[#111827] mb-1">Observaciones</h4>
-                  <p className="text-sm text-[#6B7280]">{reporteSeleccionado.observaciones}</p>
+                  <p className="text-sm text-[#6B7280]">{reporteSeleccionado.observaciones || "Sin observaciones"}</p>
                 </div>
 
                 <div>
                   <h4 className="font-semibold text-[#111827] mb-1">Reportado por</h4>
-                  <p className="text-sm text-[#6B7280]">
-                    {getUsuarioById(reporteSeleccionado.reportadoPor)?.nombre || "Desconocido"}
-                  </p>
+                  <p className="text-sm text-[#6B7280]">{reporteSeleccionado.reportadoPorNombre}</p>
                 </div>
+
+                {reporteSeleccionado.archivoAdjunto && (
+                  <div>
+                    <h4 className="font-semibold text-[#111827] mb-1">Archivo adjunto</h4>
+                    <a
+                      href={reporteSeleccionado.archivoAdjunto}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-[#1D4ED8] underline underline-offset-2"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                      {nombreArchivo(reporteSeleccionado.archivoAdjunto)}
+                    </a>
+                  </div>
+                )}
 
                 <div>
                   <h4 className="font-semibold text-[#111827] mb-1">Estatus</h4>
@@ -232,9 +290,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                         <CheckCircle className="h-5 w-5 text-[#059669] mt-0.5" />
                         <div>
                           <p className="text-sm font-medium text-[#059669]">Reporte cerrado</p>
-                          <p className="text-xs text-[#6B7280] mt-1">
-                            El caso ha sido resuelto y cerrado.
-                          </p>
+                          <p className="text-xs text-[#6B7280] mt-1">El caso ha sido resuelto y cerrado.</p>
                         </div>
                       </>
                     ) : (
@@ -242,9 +298,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                         <AlertCircle className="h-5 w-5 text-[#D97706] mt-0.5" />
                         <div>
                           <p className="text-sm font-medium text-[#D97706]">En seguimiento</p>
-                          <p className="text-xs text-[#6B7280] mt-1">
-                            El caso está siendo monitoreado activamente.
-                          </p>
+                          <p className="text-xs text-[#6B7280] mt-1">El caso está siendo monitoreado activamente.</p>
                         </div>
                       </>
                     )}

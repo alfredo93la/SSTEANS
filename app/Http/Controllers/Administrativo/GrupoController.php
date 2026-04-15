@@ -21,10 +21,11 @@ class GrupoController extends Controller
 
         if (! $cicloId) {
             return response()->json([
-                'grupos'  => [],
-                'ciclos'  => CicloEscolar::orderByDesc('fecha_inicio')->get(),
-                'grados'  => Grado::orderBy('numero')->get(['id', 'numero', 'descripcion']),
-                'mensaje' => 'No hay ciclo escolar activo.',
+                'grupos'             => [],
+                'ciclos'             => CicloEscolar::orderByDesc('fecha_inicio')->get(),
+                'grados'             => Grado::orderBy('numero')->get(['id', 'numero', 'descripcion']),
+                'turnos_disponibles' => \App\Models\ConfiguracionEscuela::value('turnos_disponibles') ?? 'matutino',
+                'mensaje'            => 'No hay ciclo escolar activo.',
             ]);
         }
 
@@ -36,10 +37,11 @@ class GrupoController extends Controller
             ->get();
 
         return response()->json([
-            'grupos'          => $grupos,
-            'ciclos'          => CicloEscolar::orderByDesc('fecha_inicio')->get(),
-            'ciclo_actual_id' => $cicloId,
-            'grados'          => Grado::orderBy('numero')->get(['id', 'numero', 'descripcion']),
+            'grupos'              => $grupos,
+            'ciclos'              => CicloEscolar::orderByDesc('fecha_inicio')->get(),
+            'ciclo_actual_id'     => $cicloId,
+            'grados'              => Grado::orderBy('numero')->get(['id', 'numero', 'descripcion']),
+            'turnos_disponibles'  => \App\Models\ConfiguracionEscuela::value('turnos_disponibles') ?? 'matutino',
         ]);
     }
 

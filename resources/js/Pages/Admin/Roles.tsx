@@ -229,9 +229,9 @@ export function Roles() {
       </PageTitle>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Total Roles</p><p className="text-2xl font-bold text-[#7C3AED] mt-1">{roles.length}</p></div><div className="p-3 bg-purple-100 rounded-xl"><Shield className="h-6 w-6 text-[#7C3AED]" /></div></div></CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Usuarios Asignados</p><p className="text-2xl font-bold text-[#1D4ED8] mt-1">{usuariosAsignados}</p></div><div className="p-3 bg-blue-100 rounded-xl"><CheckCircle className="h-6 w-6 text-[#1D4ED8]" /></div></div></CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Permisos Únicos</p><p className="text-2xl font-bold text-[#059669] mt-1">{permisosUnicos}</p></div><div className="p-3 bg-green-100 rounded-xl"><Settings className="h-6 w-6 text-[#059669]" /></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100"><CardContent className="pt-6"><div className="flex items-center gap-3"><div className="p-3 bg-white rounded-xl"><Shield className="h-6 w-6 text-[#7C3AED]" /></div><div><p className="text-sm text-[#6B7280]">Total Roles</p><p className="text-2xl font-bold text-[#7C3AED]">{roles.length}</p></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100"><CardContent className="pt-6"><div className="flex items-center gap-3"><div className="p-3 bg-white rounded-xl"><CheckCircle className="h-6 w-6 text-[#1D4ED8]" /></div><div><p className="text-sm text-[#6B7280]">Usuarios Asignados</p><p className="text-2xl font-bold text-[#1D4ED8]">{usuariosAsignados}</p></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100"><CardContent className="pt-6"><div className="flex items-center gap-3"><div className="p-3 bg-white rounded-xl"><Settings className="h-6 w-6 text-[#059669]" /></div><div><p className="text-sm text-[#6B7280]">Permisos Únicos</p><p className="text-2xl font-bold text-[#059669]">{permisosUnicos}</p></div></div></CardContent></Card>
       </div>
 
       {loading ? (

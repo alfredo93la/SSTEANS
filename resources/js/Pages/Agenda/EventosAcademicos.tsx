@@ -4,7 +4,7 @@ import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { CalendarDays, Clock, MapPin, Users, Plus, Search, Filter } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
-import { eventosAcademicos } from "../../data/mockData";
+interface EventoData { id: number; titulo: string; descripcion: string; tipo: string; fecha: string; horaInicio: string; horaFin: string; lugar: string; destinatarios: string[]; }
 
 interface EventosAcademicosProps {
   userRole: string;
@@ -15,18 +15,17 @@ export function EventosAcademicos({ userRole, onNavigate }: EventosAcademicosPro
   const [filtroTipo, setFiltroTipo] = useState<string>("Todos");
   const [busqueda, setBusqueda] = useState("");
 
-  // Filtrar eventos según el rol del usuario
-  const eventosVisibles = eventosAcademicos.filter(evento => 
+  const eventosAcademicos: EventoData[] = [];
+
+  const eventosVisibles = eventosAcademicos.filter(evento =>
     evento.destinatarios.includes(userRole)
   );
 
-  // Aplicar filtros de tipo y búsqueda
   const eventosFiltrados = eventosVisibles.filter(evento => {
     const cumpleFiltroTipo = filtroTipo === "Todos" || evento.tipo === filtroTipo;
-    const cumpleBusqueda = busqueda === "" || 
+    const cumpleBusqueda = busqueda === "" ||
       evento.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
       evento.descripcion.toLowerCase().includes(busqueda.toLowerCase());
-    
     return cumpleFiltroTipo && cumpleBusqueda;
   });
 
@@ -100,7 +99,7 @@ export function EventosAcademicos({ userRole, onNavigate }: EventosAcademicosPro
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   {/* Fecha */}
-                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-100 to-purple-200 flex flex-col items-center justify-center flex-shrink-0">
+                  <div className="w-16 h-16 rounded-xl bg-linear-to-br from-purple-100 to-purple-200 flex flex-col items-center justify-center shrink-0">
                     <span className="text-xs text-[#7C3AED]">
                       {evento.fecha.split('/')[1] === "11" ? "Nov" : "Dic"}
                     </span>

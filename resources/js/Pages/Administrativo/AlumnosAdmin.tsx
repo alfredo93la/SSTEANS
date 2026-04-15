@@ -25,6 +25,7 @@ import { toast } from "sonner";
 
 interface Persona { id: number; nombre: string; apellidos: string; curp: string; telefono: string | null; direccion: string | null; }
 interface AsignacionGrupo { estado: string; grupo?: { id: number; nombre: string; turno: string; grado?: { numero: number } }; }
+interface TutorPivot { persona: { nombre: string; apellidos: string }; pivot: { parentesco: string | null } }
 interface Alumno {
   id: number;
   estado: string;
@@ -32,6 +33,19 @@ interface Alumno {
   sexo: string;
   persona: Persona;
   asignaciones?: AsignacionGrupo[];
+  tutores?: TutorPivot[];
+}
+
+function rolAlumno(parentesco: string | null, sexo: string | null): string {
+  const f = sexo === "Femenino";
+  switch (parentesco) {
+    case "Padre": case "Madre":       return f ? "Hija"     : "Hijo";
+    case "Abuelo": case "Abuela":     return f ? "Nieta"    : "Nieto";
+    case "Tío": case "Tía":           return f ? "Sobrina"  : "Sobrino";
+    case "Hermano": case "Hermana":   return f ? "Hermana"  : "Hermano";
+    case "Tutor legal":               return f ? "Tutelada" : "Tutelado";
+    default: return parentesco ?? "—";
+  }
 }
 
 const formVacio = { nombre: "", apellidos: "", curp: "", fecha_nacimiento: "", sexo: "Masculino", telefono: "", direccion: "", estado: "Activo" };
@@ -203,7 +217,7 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
       <PageTitle icon={GraduationCap} title="Gestión de Alumnos" description="Administra el catálogo completo de alumnos" color="bg-[#1D4ED8]">
         <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               <Plus className="h-4 w-4 mr-2" />Nuevo Alumno
             </Button>
           </DialogTrigger>
@@ -215,7 +229,7 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
             <FormAlumno form={form} setForm={setForm} />
             <DialogFooter>
               <Button variant="outline" onClick={() => setModalNuevo(false)}>Cancelar</Button>
-              <Button onClick={handleGuardar} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+              <Button onClick={handleGuardar} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Registrar Alumno"}
               </Button>
             </DialogFooter>
@@ -225,36 +239,36 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl"><GraduationCap className="h-6 w-6 text-[#7C3AED]" /></div>
               <div>
                 <p className="text-sm text-[#6B7280]">Total Alumnos</p>
-                <p className="text-2xl font-bold text-[#7C3AED] mt-1">{alumnos.length}</p>
+                <p className="text-2xl font-bold text-[#7C3AED]">{alumnos.length}</p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-xl"><GraduationCap className="h-6 w-6 text-[#7C3AED]" /></div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl"><Users className="h-6 w-6 text-[#059669]" /></div>
               <div>
                 <p className="text-sm text-[#6B7280]">Activos</p>
-                <p className="text-2xl font-bold text-[#059669] mt-1">{alumnos.filter((a) => a.estado === "Activo").length}</p>
+                <p className="text-2xl font-bold text-[#059669]">{alumnos.filter((a) => a.estado === "Activo").length}</p>
               </div>
-              <div className="p-3 bg-green-100 rounded-xl"><Users className="h-6 w-6 text-[#059669]" /></div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-red-50 to-red-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl"><UserCircle className="h-6 w-6 text-[#DC2626]" /></div>
               <div>
                 <p className="text-sm text-[#6B7280]">Bajas</p>
-                <p className="text-2xl font-bold text-[#DC2626] mt-1">{alumnos.filter((a) => a.estado === "Baja").length}</p>
+                <p className="text-2xl font-bold text-[#DC2626]">{alumnos.filter((a) => a.estado === "Baja").length}</p>
               </div>
-              <div className="p-3 bg-red-100 rounded-xl"><UserCircle className="h-6 w-6 text-[#DC2626]" /></div>
             </div>
           </CardContent>
         </Card>
@@ -330,6 +344,15 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
                             </div>
                           )}
                           <div>{alumno.sexo} · {alumno.fecha_nacimiento}</div>
+                          {alumno.tutores?.[0] && (
+                            <div className="flex items-center gap-1 sm:col-span-2">
+                              <Users className="h-3 w-3" />
+                              {alumno.tutores[0].persona.nombre} {alumno.tutores[0].persona.apellidos}
+                              {alumno.tutores[0].pivot.parentesco && (
+                                <span className="text-[#9CA3AF]">· {rolAlumno(alumno.tutores[0].pivot.parentesco, alumno.sexo)}</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-1">
@@ -363,7 +386,7 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
           </DialogHeader>
           {alumnoSel && (
             <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+              <div className="flex items-center gap-4 p-4 bg-linear-to-r from-blue-50 to-purple-50 rounded-lg">
                 <div className="p-3 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-xl">
                   <GraduationCap className="h-8 w-8 text-white" />
                 </div>
@@ -381,6 +404,19 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
                 <div><p className="text-[#6B7280]">Fecha de nacimiento</p><p className="font-medium">{alumnoSel.fecha_nacimiento}</p></div>
                 {alumnoSel.persona.telefono && <div><p className="text-[#6B7280]">Teléfono</p><p className="font-medium">{alumnoSel.persona.telefono}</p></div>}
                 {alumnoSel.persona.direccion && <div className="col-span-2"><p className="text-[#6B7280]">Dirección</p><p className="font-medium">{alumnoSel.persona.direccion}</p></div>}
+                {alumnoSel.tutores?.[0] && (
+                  <div className="col-span-2 border-t pt-3">
+                    <p className="text-[#6B7280]">Tutor</p>
+                    <p className="font-medium">
+                      {alumnoSel.tutores[0].persona.nombre} {alumnoSel.tutores[0].persona.apellidos}
+                      {alumnoSel.tutores[0].pivot.parentesco && (
+                        <span className="ml-2 text-sm text-[#6B7280] font-normal">
+                          ({rolAlumno(alumnoSel.tutores[0].pivot.parentesco, alumnoSel.sexo)})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -400,7 +436,7 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
           <FormAlumno form={form} setForm={setForm} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalEditar(false)}>Cancelar</Button>
-            <Button onClick={handleEditar} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button onClick={handleEditar} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar cambios"}
             </Button>
           </DialogFooter>

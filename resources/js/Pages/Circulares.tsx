@@ -224,10 +224,10 @@ export function Circulares({ permissions }: CircularesProps) {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB] hover:shadow-md transition-shadow">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-100 rounded-xl">
+              <div className="p-3 bg-white rounded-xl">
                 <FileText className="h-6 w-6 text-[#7C3AED]" />
               </div>
               <div>
@@ -240,10 +240,10 @@ export function Circulares({ permissions }: CircularesProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] hover:shadow-md transition-shadow">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-100 rounded-xl">
+              <div className="p-3 bg-white rounded-xl">
                 <AlertCircle className="h-6 w-6 text-[#1D4ED8]" />
               </div>
               <div>
@@ -256,10 +256,10 @@ export function Circulares({ permissions }: CircularesProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] hover:shadow-md transition-shadow">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-red-50 to-red-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-red-100 rounded-xl">
+              <div className="p-3 bg-white rounded-xl">
                 <AlertCircle className="h-6 w-6 text-[#E11D48]" />
               </div>
               <div>

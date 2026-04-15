@@ -29,6 +29,21 @@ class Persona extends Model
         return $this->hasOne(Tutor::class);
     }
 
+    public function profesor(): HasOne
+    {
+        return $this->hasOne(Profesor::class);
+    }
+
+    public function trabSocial(): HasOne
+    {
+        return $this->hasOne(TrabSocial::class);
+    }
+
+    public function persAdmin(): HasOne
+    {
+        return $this->hasOne(PersAdmin::class);
+    }
+
     public function user(): HasOne
     {
         return $this->hasOne(User::class);

@@ -4,7 +4,7 @@ import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { FileText, Clock, BookOpen, Plus, Search, Filter, Award } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
-import { examenes, getMateriaById, getGrupoById, alumnos } from "../../data/mockData";
+interface ExamenData { id: number; titulo: string; descripcion: string; materia: string | null; grupo: string | null; fecha: string; horaInicio: string; horaFin: string; tipo: string; valor: number; }
 
 interface ExamenesViewProps {
   userRole: string;
@@ -12,35 +12,19 @@ interface ExamenesViewProps {
   onNavigate: (route: string) => void;
 }
 
-export function ExamenesView({ userRole, hijoSeleccionado, onNavigate }: ExamenesViewProps) {
+export function ExamenesView({ userRole }: ExamenesViewProps) {
   const [filtroMateria, setFiltroMateria] = useState<string>("Todas");
   const [busqueda, setBusqueda] = useState("");
 
-  // Obtener grupo del alumno si es tutor
-  let grupoId: number | null = null;
-  if (userRole === "Tutor" && hijoSeleccionado) {
-    const alumno = alumnos.find(a => a.id === hijoSeleccionado);
-    if (alumno) {
-      grupoId = alumno.grupo === "2°B" ? 2 : alumno.grupo === "3°A" ? 3 : 1;
-    }
-  }
+  const examenes: ExamenData[] = [];
 
-  // Filtrar exámenes según el rol
-  let examenesVisibles = examenes;
-  if (userRole === "Tutor" && grupoId) {
-    examenesVisibles = examenes.filter(e => e.grupoId === grupoId);
-  }
-
-  // Aplicar filtros
-  const examenesFiltrados = examenesVisibles
+  const examenesFiltrados = examenes
     .filter(examen => {
-      const materia = getMateriaById(examen.materiaId);
-      const cumpleFiltroMateria = filtroMateria === "Todas" || materia?.nombre === filtroMateria;
-      const cumpleBusqueda = busqueda === "" || 
+      const cumpleFiltroMateria = filtroMateria === "Todas" || examen.materia === filtroMateria;
+      const cumpleBusqueda = busqueda === "" ||
         examen.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
         examen.descripcion.toLowerCase().includes(busqueda.toLowerCase()) ||
-        materia?.nombre.toLowerCase().includes(busqueda.toLowerCase());
-      
+        (examen.materia ?? "").toLowerCase().includes(busqueda.toLowerCase());
       return cumpleFiltroMateria && cumpleBusqueda;
     })
     .sort((a, b) => {
@@ -49,10 +33,7 @@ export function ExamenesView({ userRole, hijoSeleccionado, onNavigate }: Examene
       return dateA.localeCompare(dateB);
     });
 
-  // Obtener materias únicas para filtros
-  const materiasUnicas = ["Todas", ...new Set(
-    examenesVisibles.map(e => getMateriaById(e.materiaId)?.nombre).filter(Boolean)
-  )] as string[];
+  const materiasUnicas = ["Todas", ...new Set(examenes.map(e => e.materia).filter(Boolean))] as string[];
 
   const getBadgeColor = (tipo: string) => {
     switch (tipo) {
@@ -80,29 +61,29 @@ export function ExamenesView({ userRole, hijoSeleccionado, onNavigate }: Examene
 
       {/* Estadísticas rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-red-50 to-red-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-red-100 rounded-xl">
-                <FileText className="h-5 w-5 text-[#E11D48]" />
+              <div className="p-3 bg-white rounded-xl">
+                <FileText className="h-6 w-6 text-[#E11D48]" />
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Total Exámenes</p>
-                <p className="text-2xl font-bold text-[#111827]">{examenesFiltrados.length}</p>
+                <p className="text-2xl font-bold text-[#E11D48]">{examenesFiltrados.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-orange-50 to-orange-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-100 rounded-xl">
-                <Clock className="h-5 w-5 text-orange-600" />
+              <div className="p-3 bg-white rounded-xl">
+                <Clock className="h-6 w-6 text-orange-600" />
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Esta Semana</p>
-                <p className="text-2xl font-bold text-[#111827]">
+                <p className="text-2xl font-bold text-orange-600">
                   {examenesFiltrados.filter(e => {
                     const fecha = new Date(e.fecha.split('/').reverse().join('-'));
                     const hoy = new Date();
@@ -116,15 +97,15 @@ export function ExamenesView({ userRole, hijoSeleccionado, onNavigate }: Examene
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <BookOpen className="h-5 w-5 text-[#7C3AED]" />
+              <div className="p-3 bg-white rounded-xl">
+                <BookOpen className="h-6 w-6 text-[#7C3AED]" />
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Materias</p>
-                <p className="text-2xl font-bold text-[#111827]">{materiasUnicas.length - 1}</p>
+                <p className="text-2xl font-bold text-[#7C3AED]">{materiasUnicas.length - 1}</p>
               </div>
             </div>
           </CardContent>
@@ -169,16 +150,12 @@ export function ExamenesView({ userRole, hijoSeleccionado, onNavigate }: Examene
       {/* Lista de exámenes */}
       <div className="grid grid-cols-1 gap-4">
         {examenesFiltrados.length > 0 ? (
-          examenesFiltrados.map((examen) => {
-            const materia = getMateriaById(examen.materiaId);
-            const grupo = getGrupoById(examen.grupoId);
-            
-            return (
+          examenesFiltrados.map((examen) => (
               <Card key={examen.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
                     {/* Fecha */}
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-red-100 to-red-200 flex flex-col items-center justify-center flex-shrink-0">
+                    <div className="w-16 h-16 rounded-xl bg-linear-to-br from-red-100 to-red-200 flex flex-col items-center justify-center shrink-0">
                       <span className="text-xs text-[#E11D48]">
                         {examen.fecha.split('/')[1] === "11" ? "Nov" : "Dic"}
                       </span>
@@ -192,9 +169,9 @@ export function ExamenesView({ userRole, hijoSeleccionado, onNavigate }: Examene
                       <div className="flex items-start justify-between gap-4 mb-2">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-[#111827] text-lg">{materia?.nombre}</h3>
+                            <h3 className="font-semibold text-[#111827] text-lg">{examen.materia}</h3>
                             <Badge variant="outline" className="text-xs">
-                              {grupo?.nombre}
+                              {examen.grupo}
                             </Badge>
                           </div>
                           <p className="text-sm text-[#6B7280]">{examen.descripcion}</p>
@@ -218,8 +195,7 @@ export function ExamenesView({ userRole, hijoSeleccionado, onNavigate }: Examene
                   </div>
                 </CardContent>
               </Card>
-            );
-          })
+          ))
         ) : (
           <Card className="border-[#E5E7EB]">
             <CardContent className="pt-6">

@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../Components/ui/table";
 import { Badge } from "../../Components/ui/badge";
 import { Input } from "../../Components/ui/input";
 import { Button } from "../../Components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
-import { CheckCircle2, XCircle, Clock, Calendar, TrendingUp, BookOpen } from "lucide-react";
-import { asistencias, materias, getMateriaById } from "../../data/mockData";
+import { CheckCircle2, XCircle, Clock, Calendar, BookOpen } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
+
+interface AsistData { id: number; materiaId: number; materia: string | null; fecha: string; diaSemana: string; estado: string; }
 
 interface AsistenciaTutorProps {
   alumnoId: number;
@@ -17,13 +19,23 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [materiaSeleccionada, setMateriaSeleccionada] = useState<string>("todas");
+  const [asistenciasAlumno, setAsistenciasAlumno] = useState<AsistData[]>([]);
 
-  // Obtener asistencias del alumno
-  const asistenciasAlumno = asistencias.filter((a) => a.alumnoId === alumnoId);
+  useEffect(() => {
+    if (!alumnoId) return;
+    axios.get(`/api/tutor/asistencias/${alumnoId}`)
+      .then(({ data }) => setAsistenciasAlumno(data.asistencias ?? []))
+      .catch(() => {});
+  }, [alumnoId]);
+
+  // Materias únicas derivadas de los registros
+  const materiasUnicas = Array.from(
+    new Map(asistenciasAlumno.map(a => [a.materiaId, { id: a.materiaId, nombre: a.materia ?? "" }])).values()
+  );
 
   // Filtrar por materia si se seleccionó una específica
-  const asistenciasPorMateria = materiaSeleccionada === "todas" 
-    ? asistenciasAlumno 
+  const asistenciasPorMateria = materiaSeleccionada === "todas"
+    ? asistenciasAlumno
     : asistenciasAlumno.filter((a) => a.materiaId === parseInt(materiaSeleccionada));
 
   // Filtrar por rango de fechas
@@ -59,14 +71,14 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
   const porcentajeAsistencia = totalRegistros > 0 ? Math.round((presentes / totalRegistros) * 100) : 0;
 
   // Calcular estadísticas por materia
-  const estadisticasPorMateria = materias.map((materia) => {
+  const estadisticasPorMateria = materiasUnicas.map((materia) => {
     const asistenciasMateria = asistenciasFiltradas.filter((a) => a.materiaId === materia.id);
     const totalMateria = asistenciasMateria.length;
     const presentesMateria = asistenciasMateria.filter((a) => a.estado === "Presente").length;
     const faltasMateria = asistenciasMateria.filter((a) => a.estado === "Falta").length;
     const retardosMateria = asistenciasMateria.filter((a) => a.estado === "Retardo").length;
     const porcentaje = totalMateria > 0 ? Math.round((presentesMateria / totalMateria) * 100) : 0;
-    
+
     return {
       materia: materia.nombre,
       total: totalMateria,
@@ -122,7 +134,7 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas las materias</SelectItem>
-                  {materias.map((materia) => (
+                  {materiasUnicas.map((materia) => (
                     <SelectItem key={materia.id} value={materia.id.toString()}>
                       {materia.nombre}
                     </SelectItem>
@@ -229,22 +241,10 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
               </div>
             </div>
             <div className="flex-1 text-center sm:text-left">
-              <div className="flex items-center gap-2 justify-center sm:justify-start mb-2">
-                <h3 className="font-semibold text-[#111827]">Porcentaje de Asistencia</h3>
-                {porcentajeAsistencia >= 90 && <TrendingUp className="h-5 w-5 text-[#059669]" />}
-              </div>
-              <p className="text-sm text-[#6B7280] mb-3">
-                {presentes} asistencias de {totalRegistros} registros de clase
+              <h3 className="font-semibold text-[#111827] mb-2">Porcentaje de Asistencia</h3>
+              <p className="text-sm text-[#6B7280]">
+                {presentes} presentes · {faltas} faltas · {retardos} retardos de {totalRegistros} registros
               </p>
-              <Badge className={
-                porcentajeAsistencia >= 90 ? "bg-[#059669]" :
-                porcentajeAsistencia >= 80 ? "bg-[#D97706]" :
-                "bg-[#E11D48]"
-              }>
-                {porcentajeAsistencia >= 90 ? "Excelente" :
-                 porcentajeAsistencia >= 80 ? "Bueno" :
-                 "Requiere atención"}
-              </Badge>
             </div>
           </div>
         </CardContent>
@@ -290,15 +290,7 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
                         <Badge className="bg-[#E11D48] text-white">{stat.faltas}</Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <span className={`font-semibold ${
-                            stat.porcentaje >= 90 ? "text-[#059669]" :
-                            stat.porcentaje >= 80 ? "text-[#D97706]" :
-                            "text-[#E11D48]"
-                          }`}>
-                            {stat.porcentaje}%
-                          </span>
-                        </div>
+                        <span className="font-semibold text-[#111827]">{stat.porcentaje}%</span>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -341,23 +333,16 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
                   asistenciasFiltradas.map((asistencia) => {
                     const badge = getEstadoBadge(asistencia.estado);
                     const IconEstado = badge.icon;
-                    const materia = getMateriaById(asistencia.materiaId);
-                    
-                    // Calcular día de la semana
-                    const [dia, mes, anio] = asistencia.fecha.split("/").map(Number);
-                    const fecha = new Date(anio, mes - 1, dia);
-                    const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-                    const diaSemana = diasSemana[fecha.getDay()];
 
                     return (
                       <TableRow key={asistencia.id} className="hover:bg-gray-50">
                         <TableCell className="font-medium">{asistencia.fecha}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-normal">
-                            {materia?.nombre || "N/A"}
+                            {asistencia.materia || "N/A"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-[#6B7280]">{diaSemana}</TableCell>
+                        <TableCell className="text-[#6B7280]">{asistencia.diaSemana}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-2">
                             <Badge className={badge.className}>

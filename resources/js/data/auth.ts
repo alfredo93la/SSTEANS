@@ -17,6 +17,7 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
   "#/notificaciones": ["notificaciones.manage"],
   "#/trabajador-social/reportes": ["reportes.manage"],
   "#/trabajador-social/alumnos": ["alumnos.view"],
+  "#/trabajador-social/alumno/": ["alumnos.view"],
   "#/admin/usuarios": ["usuarios.manage"],
   "#/admin/roles": ["roles.manage"],
   "#/administrativo/grupos": ["grupos.manage"],
@@ -31,13 +32,20 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
 };
 
 export function canAccessRoute(route: string, permissions: string[]): boolean {
-  const requiredPermissions = ROUTE_PERMISSIONS[route];
-
-  if (!requiredPermissions) {
-    return false;
+  // Exact match
+  if (ROUTE_PERMISSIONS[route]) {
+    return ROUTE_PERMISSIONS[route].some((p) => permissions.includes(p));
   }
 
-  return requiredPermissions.some((permission) => permissions.includes(permission));
+  // Prefix match for dynamic routes (e.g. "#/trabajador-social/alumno/5")
+  const prefixEntry = Object.entries(ROUTE_PERMISSIONS).find(
+    ([key]) => key.endsWith("/") && route.startsWith(key),
+  );
+  if (prefixEntry) {
+    return prefixEntry[1].some((p) => permissions.includes(p));
+  }
+
+  return false;
 }
 
 export function getDefaultRoute(permissions: string[]): string {

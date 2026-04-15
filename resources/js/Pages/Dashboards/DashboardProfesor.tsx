@@ -2,26 +2,15 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../Components/ui/tabs";
-import { 
-  Users, 
-  Calendar, 
-  ClipboardCheck, 
+import {
+  Users,
+  Calendar,
+  ClipboardCheck,
   BookOpen,
   FileText,
   AlertCircle,
-  TrendingUp,
-  Home,
-  Edit,
-  Send,
-  CalendarDays
+  Send
 } from "lucide-react";
-import { RegistrarCalificaciones } from "../Profesor/RegistrarCalificaciones";
-import { ControlAsistencia } from "../Profesor/ControlAsistencia";
-import { AsignarTarea } from "../Profesor/AsignarTarea";
-import { GestionarTareas } from "../Profesor/GestionarTareas";
-import { MensajeriaProfesor } from "../Profesor/MensajeriaProfesor";
-import { HorarioDocente } from "../Profesor/HorarioProfesor";
 
 interface DashboardProfesorProps {
   onNavigate: (route: string) => void;
@@ -75,66 +64,66 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
 
       {/* KPIs principales */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" onClick={() => setTabActiva("horario")}>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-all cursor-pointer" onClick={() => setTabActiva("horario")}>
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-purple-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <Users className="h-6 w-6 text-[#7C3AED]" />
               </div>
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Grupos Asignados</p>
-              <p className="text-3xl font-bold text-[#7C3AED] mt-1">{gruposAsignados.length}</p>
-              <p className="text-xs text-[#6B7280] mt-2">
-                {gruposAsignados.reduce((sum, g) => sum + g.alumnos, 0)} alumnos total
-              </p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Grupos Asignados</p>
+                <p className="text-2xl font-bold text-[#7C3AED]">{gruposAsignados.length}</p>
+                <p className="text-xs text-[#6B7280] mt-1">
+                  {gruposAsignados.reduce((sum, g) => sum + g.alumnos, 0)} alumnos total
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" onClick={() => setTabActiva("horario")}>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all cursor-pointer" onClick={() => setTabActiva("horario")}>
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-blue-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <Calendar className="h-6 w-6 text-[#1D4ED8]" />
               </div>
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Sesiones Hoy</p>
-              <p className="text-3xl font-bold text-[#1D4ED8] mt-1">{sesionesHoy.length}</p>
-              <p className="text-xs text-[#6B7280] mt-2">Próxima: {sesionesHoy[0]?.hora}</p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Sesiones Hoy</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">{sesionesHoy.length}</p>
+                <p className="text-xs text-[#6B7280] mt-1">Próxima: {sesionesHoy[0]?.hora}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" onClick={() => setTabActiva("gestionar-tareas")}>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100 hover:shadow-lg transition-all cursor-pointer" onClick={() => setTabActiva("gestionar-tareas")}>
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-amber-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <FileText className="h-6 w-6 text-[#D97706]" />
               </div>
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Tareas Activas</p>
-              <p className="text-3xl font-bold text-[#D97706] mt-1">{tareasProximasAVencer.length}</p>
-              <p className="text-xs text-[#6B7280] mt-2">Por vencer esta semana</p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Tareas Activas</p>
+                <p className="text-2xl font-bold text-[#D97706]">{tareasProximasAVencer.length}</p>
+                <p className="text-xs text-[#6B7280] mt-1">Por vencer esta semana</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] hover:shadow-lg transition-all">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-red-50 to-red-100 hover:shadow-lg transition-all">
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-red-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <AlertCircle className="h-6 w-6 text-[#E11D48]" />
               </div>
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Pendientes</p>
-              <p className="text-3xl font-bold text-[#E11D48] mt-1">{pendientes.length}</p>
-              <p className="text-xs text-[#6B7280] mt-2">
-                {pendientes.filter(p => p.urgente).length} urgentes
-              </p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Pendientes</p>
+                <p className="text-2xl font-bold text-[#E11D48]">{pendientes.length}</p>
+                <p className="text-xs text-[#6B7280] mt-1">
+                  {pendientes.filter(p => p.urgente).length} urgentes
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -252,7 +241,6 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
                     <div className="w-10 h-10 bg-linear-to-br from-[#7C3AED] to-[#1D4ED8] rounded-lg flex items-center justify-center text-white font-bold">
                       {grupo.nombre.split('°')[0]}
                     </div>
-                    <TrendingUp className="h-5 w-5 text-[#059669]" />
                   </div>
                   <h4 className="font-semibold text-[#111827]">{grupo.nombre}</h4>
                   <p className="text-sm text-[#6B7280] mt-1">{grupo.materia}</p>

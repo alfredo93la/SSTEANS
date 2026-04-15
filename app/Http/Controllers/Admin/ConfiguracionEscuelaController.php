@@ -15,15 +15,14 @@ class ConfiguracionEscuelaController extends Controller
         $config = ConfiguracionEscuela::firstOrCreate(
             ['id' => 1],
             [
-                'nombre'              => '',
-                'turnos_disponibles'  => 'matutino',
-                'nivel_educativo'     => 'Secundaria',
-                'servicio_educativo'  => 'General',
-                'minimo_aprobatorio'  => 6,
-                'escala_calificacion' => '0-10',
-                'permitir_captura'    => true,
-                'notificaciones'      => true,
-                'registro_tutores'    => false,
+                'nombre'             => '',
+                'turnos_disponibles' => 'matutino',
+                'nivel_educativo'    => 'Secundaria',
+                'servicio_educativo' => 'General',
+                'acceso_tutor'        => true,
+                'acceso_profesor'     => true,
+                'acceso_trab_social'  => true,
+                'acceso_administrativo' => true,
             ]
         );
 
@@ -33,22 +32,21 @@ class ConfiguracionEscuelaController extends Controller
     public function update(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'nombre'              => ['required', 'string', 'max:255'],
-            'numero'              => ['nullable', 'string', 'max:20'],
-            'cct'                 => ['nullable', 'string', 'max:20'],
-            'turno_escuela'       => ['nullable', 'string', 'max:50'],
-            'turnos_disponibles'  => ['required', Rule::in(['matutino', 'vespertino', 'ambos'])],
-            'director'            => ['nullable', 'string', 'max:255'],
-            'telefono'            => ['nullable', 'string', 'max:30'],
-            'correo'              => ['nullable', 'email', 'max:255'],
-            'direccion'           => ['nullable', 'string', 'max:500'],
-            'nivel_educativo'     => ['nullable', 'string', 'max:100'],
-            'servicio_educativo'  => ['nullable', 'string', 'max:100'],
-            'minimo_aprobatorio'  => ['required', 'integer', 'min:1', 'max:10'],
-            'escala_calificacion' => ['nullable', 'string', 'max:20'],
-            'permitir_captura'    => ['boolean'],
-            'notificaciones'      => ['boolean'],
-            'registro_tutores'    => ['boolean'],
+            'nombre'                => ['required', 'string', 'max:255'],
+            'numero'                => ['nullable', 'string', 'max:20'],
+            'cct'                   => ['nullable', 'string', 'max:20'],
+            'turno_escuela'         => ['nullable', 'string', 'max:50'],
+            'turnos_disponibles'    => ['required', Rule::in(['matutino', 'vespertino', 'ambos'])],
+            'director'              => ['nullable', 'string', 'max:255'],
+            'telefono'              => ['nullable', 'string', 'max:30'],
+            'correo'                => ['nullable', 'email', 'max:255'],
+            'direccion'             => ['nullable', 'string', 'max:500'],
+            'nivel_educativo'       => ['nullable', 'string', 'max:100'],
+            'servicio_educativo'    => ['nullable', 'string', 'max:100'],
+            'acceso_tutor'          => ['boolean'],
+            'acceso_profesor'       => ['boolean'],
+            'acceso_trab_social'    => ['boolean'],
+            'acceso_administrativo' => ['boolean'],
         ]);
 
         $config = ConfiguracionEscuela::firstOrCreate(['id' => 1]);

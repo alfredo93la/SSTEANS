@@ -1,54 +1,68 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
-import { 
-  Users, 
-  BookMarked, 
+import {
+  Users,
+  BookMarked,
   Clock,
   GraduationCap,
   Building2,
   Link2,
   CalendarCheck,
-  FileText,
-  CheckCircle2,
-  AlertTriangle,
-  TrendingUp,
   UserCheck
 } from "lucide-react";
-import { alumnos, grupos, materias, ciclosEscolares } from "../../data/mockData";
+
+interface GrupoData { id: number; nombre: string; asignaciones_count: number; cicloEscolar?: { nombre: string } | null; }
+interface CicloData { id: number; nombre: string; activo: boolean; }
 
 interface DashboardPersonalAdministrativoProps {
   onNavigate: (route: string) => void;
 }
 
 export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersonalAdministrativoProps) {
-  const totalAlumnos = alumnos.length;
+  const [totalAlumnos, setTotalAlumnos] = useState(0);
+  const [grupos, setGrupos] = useState<GrupoData[]>([]);
+  const [totalMaterias, setTotalMaterias] = useState(0);
+  const [cicloActivo, setCicloActivo] = useState<CicloData | null>(null);
+
+  useEffect(() => {
+    axios.get("/api/administrativo/alumnos")
+      .then(({ data }) => setTotalAlumnos((data.alumnos ?? []).length))
+      .catch(() => {});
+    axios.get("/api/administrativo/grupos")
+      .then(({ data }) => setGrupos(data.grupos ?? []))
+      .catch(() => {});
+    axios.get("/api/materias")
+      .then(({ data }) => setTotalMaterias((data.materias ?? []).length))
+      .catch(() => {});
+    axios.get("/api/ciclos")
+      .then(({ data }) => setCicloActivo(data.ciclo_activo ?? null))
+      .catch(() => {});
+  }, []);
+
   const totalGrupos = grupos.length;
-  const totalMaterias = materias.length;
-  const cicloActivo = ciclosEscolares.find(c => c.activo);
-  
-  // Alumno sin tutor vinculado (tutorId = 0)
-  const alumnosSinTutor = alumnos.filter(a => !a.tutorId || a.tutorId === 0).length;
+  const alumnosSinTutor = 0;
 
   const pendientesList = [
-    { tarea: `Asignar tutor a ${alumnosSinTutor} alumno(s) sin vincular`, urgente: alumnosSinTutor > 0 },
     { tarea: "Actualizar horarios del ciclo escolar", urgente: false },
     { tarea: "Revisar alumnos sin grupo asignado", urgente: true },
     { tarea: "Publicar calendario de eventos del mes", urgente: false }
   ];
 
   const actividadesRecientes = [
-    { accion: "Alumno inscrito", detalle: "Luis Alberto Morales → 1°A", fecha: "Hace 1 hora", tipo: "success" },
-    { accion: "Grupo creado", detalle: "3°C agregado al ciclo 2024-2025", fecha: "Hace 3 horas", tipo: "info" },
-    { accion: "Horario actualizado", detalle: "Cambio en Matemáticas – 2°B", fecha: "Ayer", tipo: "info" },
-    { accion: "Tutor vinculado", detalle: "Rosa Flores → Ana Martínez (2°B)", fecha: "Hace 2 días", tipo: "success" },
-    { accion: "Materia registrada", detalle: "Educación Física agregada", fecha: "Hace 3 días", tipo: "info" }
+    { accion: "Alumno inscrito", detalle: "Luis Alberto Morales → 1°A", fecha: "Hace 1 hora" },
+    { accion: "Grupo creado", detalle: "3°C agregado al ciclo 2024-2025", fecha: "Hace 3 horas" },
+    { accion: "Horario actualizado", detalle: "Cambio en Matemáticas – 2°B", fecha: "Ayer" },
+    { accion: "Tutor vinculado", detalle: "Rosa Flores → Ana Martínez (2°B)", fecha: "Hace 2 días" },
+    { accion: "Materia registrada", detalle: "Educación Física agregada", fecha: "Hace 3 días" }
   ];
 
   const resumenGrupos = grupos.slice(0, 5).map(g => ({
     nombre: g.nombre,
-    ciclo: g.ciclo,
-    alumnos: alumnos.filter(a => a.grupo === g.nombre).length
+    ciclo: g.cicloEscolar?.nombre ?? "",
+    alumnos: g.asignaciones_count ?? 0
   }));
 
   return (
@@ -100,83 +114,81 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
 
       {/* KPIs de gestión escolar */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card 
-          className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all cursor-pointer"
           onClick={() => onNavigate("#/administrativo/alumnos")}
         >
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-blue-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <GraduationCap className="h-6 w-6 text-[#1D4ED8]" />
               </div>
-              <TrendingUp className="h-5 w-5 text-[#059669]" />
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Total Alumnos</p>
-              <p className="text-3xl font-bold text-[#1D4ED8] mt-1">{totalAlumnos}</p>
-              <p className="text-xs text-[#6B7280] mt-2">
-                {alumnosSinTutor > 0 
-                  ? <span className="text-[#E11D48]">{alumnosSinTutor} sin tutor vinculado</span>
-                  : "Todos vinculados a tutor"
-                }
-              </p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Total Alumnos</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">{totalAlumnos}</p>
+                <p className="text-xs text-[#6B7280] mt-1">
+                  {alumnosSinTutor > 0
+                    ? `${alumnosSinTutor} sin tutor vinculado`
+                    : "Inscritos en el ciclo activo"
+                  }
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card 
-          className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-all cursor-pointer"
           onClick={() => onNavigate("#/administrativo/grupos")}
         >
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-purple-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <Users className="h-6 w-6 text-[#7C3AED]" />
               </div>
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Grupos Activos</p>
-              <p className="text-3xl font-bold text-[#7C3AED] mt-1">{totalGrupos}</p>
-              <p className="text-xs text-[#6B7280] mt-2">Ciclo {cicloActivo?.nombre || "2024-2025"}</p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Grupos Activos</p>
+                <p className="text-2xl font-bold text-[#7C3AED]">{totalGrupos}</p>
+                <p className="text-xs text-[#6B7280] mt-1">Ciclo {cicloActivo?.nombre || "2024-2025"}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card 
-          className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100 hover:shadow-lg transition-all cursor-pointer"
           onClick={() => onNavigate("#/administrativo/materias")}
         >
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-green-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <BookMarked className="h-6 w-6 text-[#059669]" />
               </div>
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Materias</p>
-              <p className="text-3xl font-bold text-[#059669] mt-1">{totalMaterias}</p>
-              <p className="text-xs text-[#6B7280] mt-2">En el catálogo</p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Materias</p>
+                <p className="text-2xl font-bold text-[#059669]">{totalMaterias}</p>
+                <p className="text-xs text-[#6B7280] mt-1">En el catálogo</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card 
-          className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100 hover:shadow-lg transition-all cursor-pointer"
           onClick={() => onNavigate("#/administrativo/tutores")}
         >
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-amber-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <UserCheck className="h-6 w-6 text-[#D97706]" />
               </div>
-              {alumnosSinTutor > 0 && <AlertTriangle className="h-5 w-5 text-[#E11D48]" />}
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Sin Vincular</p>
-              <p className={`text-3xl font-bold mt-1 ${alumnosSinTutor > 0 ? "text-[#E11D48]" : "text-[#059669]"}`}>
-                {alumnosSinTutor}
-              </p>
-              <p className="text-xs text-[#6B7280] mt-2">Alumnos sin tutor</p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Sin Vincular</p>
+                <p className={`text-2xl font-bold ${alumnosSinTutor > 0 ? "text-[#E11D48]" : "text-[#059669]"}`}>
+                  {alumnosSinTutor}
+                </p>
+                <p className="text-xs text-[#6B7280] mt-1">Alumnos sin tutor</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -233,12 +245,8 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
           <CardContent>
             <div className="space-y-3">
               {actividadesRecientes.map((actividad, idx) => {
-                const tipoColor = 
-                  actividad.tipo === "success" ? "bg-green-100 border-green-200" :
-                  "bg-blue-100 border-blue-200";
-
                 return (
-                  <div key={idx} className={`p-3 rounded-lg border ${tipoColor}`}>
+                  <div key={idx} className="p-3 rounded-lg border border-[#E5E7EB] bg-gray-50">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-[#111827] text-xs">{actividad.accion}</p>

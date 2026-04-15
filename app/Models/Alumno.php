@@ -29,7 +29,7 @@ class Alumno extends Model
     public function tutores(): BelongsToMany
     {
         return $this->belongsToMany(Tutor::class, 'tutor_alumno')
-            ->withPivot('fecha_vinculacion')
+            ->withPivot('fecha_vinculacion', 'parentesco')
             ->withTimestamps();
     }
 

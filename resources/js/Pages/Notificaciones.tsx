@@ -1,180 +1,439 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../Components/ui/card";
 import { Button } from "../Components/ui/button";
 import { Badge } from "../Components/ui/badge";
 import { Input } from "../Components/ui/input";
 import { Textarea } from "../Components/ui/textarea";
 import { Label } from "../Components/ui/label";
-import { 
-  Bell, 
-  Send, 
-  Search, 
-  Filter,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Users,
-  User
+import {
+  Bell, Send, Search, Filter, AlertCircle, CheckCircle,
+  Clock, User, Loader2, Users, X,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../Components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../Components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
 import { PageTitle } from "../Layouts/PageTitle";
+import { toast } from "sonner";
+
+interface NotificacionEnviada {
+  id: number;
+  tipo: string;
+  titulo: string;
+  mensaje: string;
+  destinatario: string;
+  alumno: string | null;
+  fecha: string;
+  estado: string;
+  prioridad: string;
+}
+
+interface TutorDestinatario {
+  userId: number;
+  nombre: string;
+}
+
+interface DestinatarioSeleccionado {
+  nombre: string;
+  alumnoId?: number;
+  alumnoNombre?: string;
+}
+
+interface AlumnoItem {
+  id: number;
+  nombre: string;
+  grupo: string | null;
+  grupoId: number | null;
+  tutores: TutorDestinatario[];
+}
+
+interface GrupoItem {
+  id: number;
+  nombre: string;
+  numAlumnos: number;
+  tutores: TutorDestinatario[];
+}
 
 export function Notificaciones() {
+  const [notificaciones, setNotificaciones] = useState<NotificacionEnviada[]>([]);
+  const [alumnos, setAlumnos] = useState<AlumnoItem[]>([]);
+  const [grupos, setGrupos] = useState<GrupoItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [enviando, setEnviando] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todas");
   const [modalEnviar, setModalEnviar] = useState(false);
 
-  // Datos de ejemplo
-  const notificaciones = [
-    {
-      id: 1,
-      tipo: "Reporte",
-      titulo: "Seguimiento Juan Pérez",
-      mensaje: "Recordatorio de cita con tutor para revisar avances del caso",
-      destinatario: "Tutor - María Pérez",
-      fecha: "25/02/2026",
-      estado: "enviada",
-      prioridad: "alta"
-    },
-    {
-      id: 2,
-      tipo: "Alerta",
-      titulo: "Ausencias repetidas",
-      mensaje: "Alumna Ana García tiene 5 faltas consecutivas. Requiere seguimiento",
-      destinatario: "Tutor - Carlos García",
-      fecha: "24/02/2026",
-      estado: "enviada",
-      prioridad: "urgente"
-    },
-    {
-      id: 3,
-      tipo: "Recordatorio",
-      titulo: "Reunión de seguimiento",
-      mensaje: "Reunión programada para el 28/02/2026 con tutor de Luis Martínez",
-      destinatario: "Tutor - Sandra Martínez",
-      fecha: "23/02/2026",
-      estado: "programada",
-      prioridad: "media"
-    },
-    {
-      id: 4,
-      tipo: "Información",
-      titulo: "Actualización de expediente",
-      mensaje: "Se ha actualizado el expediente del alumno Roberto Sánchez",
-      destinatario: "Tutor - Laura Sánchez",
-      fecha: "22/02/2026",
-      estado: "enviada",
-      prioridad: "baja"
-    }
-  ];
+  // Selector de destinatarios
+  const [tabSelector, setTabSelector] = useState<"alumno" | "grupo">("alumno");
+  const [busquedaAlumno, setBusquedaAlumno] = useState("");
 
-  const estadisticas = {
-    enviadas: 24,
-    programadas: 5,
-    leidas: 18,
-    pendientes: 6
+  // Tutores seleccionados: Map userId → { nombre, alumnoId?, alumnoNombre? }
+  const [seleccionados, setSeleccionados] = useState<Map<number, DestinatarioSeleccionado>>(new Map());
+
+  // Form
+  const [tipo, setTipo] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [prioridad, setPrioridad] = useState("");
+  const [titulo, setTitulo] = useState("");
+  const [mensaje, setMensaje] = useState("");
+
+  useEffect(() => {
+    axios
+      .get("/api/notificaciones/destinatarios")
+      .then((res) => {
+        setAlumnos(res.data.alumnos ?? []);
+        setGrupos(res.data.grupos ?? []);
+      })
+      .catch(() => {});
+
+    axios
+      .get("/api/notificaciones/enviadas")
+      .then((res) => setNotificaciones(res.data.notificaciones ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const resetForm = () => {
+    setSeleccionados(new Map());
+    setBusquedaAlumno("");
+    setTipo("");
+    setCategoria("");
+    setPrioridad("");
+    setTitulo("");
+    setMensaje("");
   };
+
+  const addTutores = (
+    tutores: TutorDestinatario[],
+    alumnoId?: number,
+    alumnoNombre?: string,
+  ) => {
+    setSeleccionados((prev) => {
+      const next = new Map(prev);
+      tutores.forEach((t) =>
+        next.set(t.userId, { nombre: t.nombre, alumnoId, alumnoNombre })
+      );
+      return next;
+    });
+  };
+
+  const removeTutor = (userId: number) => {
+    setSeleccionados((prev) => {
+      const next = new Map(prev);
+      next.delete(userId);
+      return next;
+    });
+  };
+
+  const alumnosFiltrados = useMemo(() =>
+    alumnos.filter((a) =>
+      !busquedaAlumno ||
+      a.nombre.toLowerCase().includes(busquedaAlumno.toLowerCase()) ||
+      (a.grupo ?? "").toLowerCase().includes(busquedaAlumno.toLowerCase())
+    ),
+    [alumnos, busquedaAlumno]
+  );
+
+  const handleEnviar = () => {
+    if (seleccionados.size === 0 || !tipo || !categoria || !prioridad || !titulo || !mensaje) {
+      toast.error("Completa todos los campos y selecciona al menos un destinatario.");
+      return;
+    }
+
+    setEnviando(true);
+    axios
+      .post("/api/notificaciones", {
+        destinatarios: Array.from(seleccionados.entries()).map(([userId, d]) => ({
+          userId,
+          alumnoId: d.alumnoId ?? null,
+        })),
+        titulo,
+        mensaje,
+        tipo,
+        categoria,
+        prioridad,
+      })
+      .then((res) => {
+        toast.success(res.data.message ?? "Notificación enviada.");
+        setModalEnviar(false);
+        resetForm();
+        return axios.get("/api/notificaciones/enviadas");
+      })
+      .then((res) => { if (res) setNotificaciones(res.data.notificaciones ?? []); })
+      .catch(() => toast.error("Error al enviar la notificación."))
+      .finally(() => setEnviando(false));
+  };
+
+  const notificacionesFiltradas = notificaciones.filter((n) => {
+    const coincideBusqueda =
+      !busqueda ||
+      n.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
+      n.destinatario.toLowerCase().includes(busqueda.toLowerCase());
+    const coincideTipo = filtroTipo === "todas" || n.tipo.toLowerCase() === filtroTipo;
+    return coincideBusqueda && coincideTipo;
+  });
+
+  const enviadas   = notificaciones.length;
+  const leidas     = notificaciones.filter((n) => n.estado === "leída").length;
+  const pendientes = notificaciones.filter((n) => n.estado !== "leída").length;
 
   const getBadgeColor = (prioridad: string) => {
     switch (prioridad) {
-      case "urgente": return "bg-red-100 text-red-700";
-      case "alta": return "bg-orange-100 text-orange-700";
-      case "media": return "bg-yellow-100 text-yellow-700";
-      case "baja": return "bg-green-100 text-green-700";
-      default: return "bg-gray-100 text-gray-700";
+      case "Alta":  return "bg-orange-100 text-orange-700";
+      case "Media": return "bg-yellow-100 text-yellow-700";
+      case "Baja":  return "bg-green-100 text-green-700";
+      default:      return "bg-gray-100 text-gray-700";
     }
   };
 
   const getEstadoIcon = (estado: string) => {
     switch (estado) {
-      case "enviada": return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case "programada": return <Clock className="h-4 w-4 text-blue-600" />;
-      default: return <AlertCircle className="h-4 w-4 text-gray-600" />;
+      case "leída":   return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case "enviada": return <Clock className="h-4 w-4 text-blue-600" />;
+      default:        return <AlertCircle className="h-4 w-4 text-gray-600" />;
     }
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Bell} title="Notificaciones" description="Gestiona las notificaciones enviadas a tutores y alumnos" color="bg-[#059669]">
-        <Dialog open={modalEnviar} onOpenChange={setModalEnviar}>
+      <PageTitle icon={Bell} title="Notificaciones" description="Gestiona las notificaciones enviadas a tutores" color="bg-[#059669]">
+        <Dialog open={modalEnviar} onOpenChange={(open) => { setModalEnviar(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               <Send className="h-4 w-4 mr-2" />
               Nueva Notificación
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Enviar Notificación</DialogTitle>
+              <DialogDescription>
+                Busca por alumno o selecciona un grupo completo.
+              </DialogDescription>
             </DialogHeader>
+
             <div className="space-y-4">
+
+              {/* ── Selector de destinatarios ── */}
               <div>
-                <Label htmlFor="destinatario">Destinatario</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar destinatario" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tutor1">Tutor - María Pérez</SelectItem>
-                    <SelectItem value="tutor2">Tutor - Carlos García</SelectItem>
-                    <SelectItem value="tutor3">Tutor - Sandra Martínez</SelectItem>
-                    <SelectItem value="grupo1">Grupo 1°A (Todos los tutores)</SelectItem>
-                    <SelectItem value="grupo2">Grupo 2°B (Todos los tutores)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Destinatarios</Label>
+
+                {/* Tabs */}
+                <div className="flex gap-1 mt-2 mb-3 bg-gray-100 rounded-lg p-1 w-fit">
+                  <button
+                    type="button"
+                    onClick={() => setTabSelector("alumno")}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      tabSelector === "alumno"
+                        ? "bg-white text-[#1D4ED8] shadow-sm"
+                        : "text-[#6B7280] hover:text-[#111827]"
+                    }`}
+                  >
+                    <User className="h-3.5 w-3.5" />
+                    Por alumno
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTabSelector("grupo")}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      tabSelector === "grupo"
+                        ? "bg-white text-[#1D4ED8] shadow-sm"
+                        : "text-[#6B7280] hover:text-[#111827]"
+                    }`}
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                    Por grupo
+                  </button>
+                </div>
+
+                {/* Tab: Por alumno */}
+                {tabSelector === "alumno" && (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+                      <Input
+                        placeholder="Buscar alumno por nombre o grupo..."
+                        value={busquedaAlumno}
+                        onChange={(e) => setBusquedaAlumno(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                    <div className="max-h-44 overflow-y-auto border border-[#E5E7EB] rounded-lg divide-y divide-[#F3F4F6]">
+                      {alumnosFiltrados.length === 0 ? (
+                        <p className="text-sm text-[#6B7280] text-center py-4">Sin resultados</p>
+                      ) : (
+                        alumnosFiltrados.map((alumno) => (
+                          <div
+                            key={alumno.id}
+                            className="flex items-center justify-between px-3 py-2 hover:bg-gray-50"
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-[#111827]">{alumno.nombre}</p>
+                              <p className="text-xs text-[#6B7280]">
+                                {alumno.grupo ?? "Sin grupo"} ·{" "}
+                                {alumno.tutores.map((t) => t.nombre).join(", ")}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-7"
+                              onClick={() => addTutores(alumno.tutores, alumno.id, alumno.nombre)}
+                            >
+                              Agregar tutor
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab: Por grupo */}
+                {tabSelector === "grupo" && (
+                  <div className="max-h-44 overflow-y-auto border border-[#E5E7EB] rounded-lg divide-y divide-[#F3F4F6]">
+                    {grupos.length === 0 ? (
+                      <p className="text-sm text-[#6B7280] text-center py-4">Sin grupos con tutores registrados</p>
+                    ) : (
+                      grupos.map((grupo) => (
+                        <div
+                          key={grupo.id}
+                          className="flex items-center justify-between px-3 py-2 hover:bg-gray-50"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-[#111827]">{grupo.nombre}</p>
+                            <p className="text-xs text-[#6B7280]">
+                              {grupo.numAlumnos} alumno(s) · {grupo.tutores.length} tutor(es)
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7"
+                            onClick={() => addTutores(grupo.tutores)}
+                          >
+                            Agregar todos
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* Chips de seleccionados */}
+                {seleccionados.size > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs text-[#6B7280] mb-2">
+                      {seleccionados.size} tutor(es) seleccionado(s):
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Array.from(seleccionados.entries()).map(([userId, dest]) => (
+                        <span
+                          key={userId}
+                          className="inline-flex items-center gap-1 bg-blue-100 text-[#1D4ED8] text-xs font-medium px-2 py-1 rounded-full"
+                        >
+                          {dest.nombre}
+                          {dest.alumnoNombre && (
+                            <span className="text-[#6B7280] font-normal">
+                              · {dest.alumnoNombre}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeTutor(userId)}
+                            className="hover:text-red-500 transition-colors ml-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div>
-                <Label htmlFor="tipo">Tipo de Notificación</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="reporte">Reporte</SelectItem>
-                    <SelectItem value="alerta">Alerta</SelectItem>
-                    <SelectItem value="recordatorio">Recordatorio</SelectItem>
-                    <SelectItem value="informacion">Información</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="prioridad">Prioridad</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar prioridad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="urgente">Urgente</SelectItem>
-                    <SelectItem value="alta">Alta</SelectItem>
-                    <SelectItem value="media">Media</SelectItem>
-                    <SelectItem value="baja">Baja</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* ── Campos del mensaje ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <Label>Tipo</Label>
+                  <Select value={tipo} onValueChange={setTipo}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Reporte">Reporte</SelectItem>
+                      <SelectItem value="Alerta">Alerta</SelectItem>
+                      <SelectItem value="Recordatorio">Recordatorio</SelectItem>
+                      <SelectItem value="Información">Información</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Categoría</Label>
+                  <Select value={categoria} onValueChange={setCategoria}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Seleccionar categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Académico">Académico</SelectItem>
+                      <SelectItem value="Administrativo">Administrativo</SelectItem>
+                      <SelectItem value="Evento">Evento</SelectItem>
+                      <SelectItem value="Conducta">Conducta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Prioridad</Label>
+                  <Select value={prioridad} onValueChange={setPrioridad}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Seleccionar prioridad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Alta">Alta</SelectItem>
+                      <SelectItem value="Media">Media</SelectItem>
+                      <SelectItem value="Baja">Baja</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div>
                 <Label htmlFor="asunto">Asunto</Label>
-                <Input id="asunto" placeholder="Escribe el asunto de la notificación" />
+                <Input
+                  id="asunto"
+                  className="mt-1"
+                  placeholder="Escribe el asunto de la notificación"
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                />
               </div>
 
               <div>
                 <Label htmlFor="mensaje">Mensaje</Label>
-                <Textarea 
-                  id="mensaje" 
+                <Textarea
+                  id="mensaje"
+                  className="mt-1"
                   placeholder="Escribe el contenido de la notificación"
                   rows={4}
+                  value={mensaje}
+                  onChange={(e) => setMensaje(e.target.value)}
                 />
               </div>
 
               <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setModalEnviar(false)}>
+                <Button variant="outline" onClick={() => { setModalEnviar(false); resetForm(); }}>
                   Cancelar
                 </Button>
-                <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
-                  <Send className="h-4 w-4 mr-2" />
+                <Button
+                  className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]"
+                  onClick={handleEnviar}
+                  disabled={enviando}
+                >
+                  {enviando
+                    ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    : <Send className="h-4 w-4 mr-2" />}
                   Enviar Notificación
                 </Button>
               </div>
@@ -184,58 +443,42 @@ export function Notificaciones() {
       </PageTitle>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-[#E5E7EB]">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Enviadas</p>
-                <p className="text-2xl font-bold text-[#1D4ED8] mt-1">{estadisticas.enviadas}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <Send className="h-6 w-6 text-[#1D4ED8]" />
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[#6B7280]">Programadas</p>
-                <p className="text-2xl font-bold text-[#7C3AED] mt-1">{estadisticas.programadas}</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <Clock className="h-6 w-6 text-[#7C3AED]" />
+                <p className="text-sm text-[#6B7280]">Enviadas</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">{enviadas}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Leídas</p>
-                <p className="text-2xl font-bold text-[#059669] mt-1">{estadisticas.leidas}</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <CheckCircle className="h-6 w-6 text-[#059669]" />
               </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Leídas</p>
+                <p className="text-2xl font-bold text-[#059669]">{leidas}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
-
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#6B7280]">Pendientes</p>
-                <p className="text-2xl font-bold text-[#D97706] mt-1">{estadisticas.pendientes}</p>
-              </div>
-              <div className="p-3 bg-amber-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <AlertCircle className="h-6 w-6 text-[#D97706]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Sin leer</p>
+                <p className="text-2xl font-bold text-[#D97706]">{pendientes}</p>
               </div>
             </div>
           </CardContent>
@@ -267,55 +510,76 @@ export function Notificaciones() {
                 <SelectItem value="reporte">Reportes</SelectItem>
                 <SelectItem value="alerta">Alertas</SelectItem>
                 <SelectItem value="recordatorio">Recordatorios</SelectItem>
-                <SelectItem value="informacion">Información</SelectItem>
+                <SelectItem value="información">Información</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Lista de notificaciones */}
+      {/* Lista */}
       <Card className="border-[#E5E7EB]">
         <CardHeader>
           <CardTitle>Historial de Notificaciones</CardTitle>
           <CardDescription>Últimas notificaciones enviadas</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {notificaciones.map((notif) => (
-              <div
-                key={notif.id}
-                className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {getEstadoIcon(notif.estado)}
-                      <h4 className="font-semibold text-[#111827]">{notif.titulo}</h4>
-                      <Badge className={getBadgeColor(notif.prioridad)}>
-                        {notif.prioridad}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-[#6B7280] mb-2">{notif.mensaje}</p>
-                    <div className="flex items-center gap-4 text-xs text-[#6B7280]">
-                      <div className="flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        <span>{notif.destinatario}</span>
+          {loading ? (
+            <div className="py-12 flex justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-[#6B7280]" />
+            </div>
+          ) : notificacionesFiltradas.length === 0 ? (
+            <div className="py-12 text-center">
+              <Bell className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />
+              <p className="text-[#6B7280]">No hay notificaciones enviadas aún</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {notificacionesFiltradas.map((notif) => (
+                <div
+                  key={notif.id}
+                  className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        {getEstadoIcon(notif.estado)}
+                        <h4 className="font-semibold text-[#111827]">{notif.titulo}</h4>
+                        <Badge className={getBadgeColor(notif.prioridad)}>
+                          {notif.prioridad}
+                        </Badge>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Bell className="h-3 w-3" />
-                        <span>{notif.tipo}</span>
+                      <p className="text-sm text-[#6B7280] mb-2 line-clamp-2">{notif.mensaje}</p>
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-[#6B7280]">
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          <span>{notif.destinatario}</span>
+                        </div>
+                        {notif.alumno && (
+                          <span className="bg-blue-50 text-[#1D4ED8] px-1.5 py-0.5 rounded font-medium">
+                            Alumno: {notif.alumno}
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Bell className="h-3 w-3" />
+                          <span>{notif.tipo}</span>
+                        </div>
+                        <span>{notif.fecha}</span>
                       </div>
-                      <span>{notif.fecha}</span>
                     </div>
+                    <Badge
+                      variant="outline"
+                      className={notif.estado === "leída"
+                        ? "text-green-600 border-green-300"
+                        : "text-blue-600 border-blue-300"}
+                    >
+                      {notif.estado}
+                    </Badge>
                   </div>
-                  <Button variant="ghost" size="sm">
-                    Ver detalles
-                  </Button>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -15,7 +15,7 @@ class TutorAdminController extends Controller
         $query = Tutor::with([
             'persona:id,nombre,apellidos,curp,telefono,direccion',
             'persona.user:id,persona_id,email,status',
-            'alumnos.persona:id,nombre,apellidos,curp',
+            'alumnos' => fn ($q) => $q->with('persona:id,nombre,apellidos,curp')->withPivot('parentesco', 'fecha_vinculacion')->select(['alumnos.id', 'alumnos.persona_id', 'alumnos.sexo']),
         ]);
 
         if ($request->filled('q')) {
@@ -34,6 +34,7 @@ class TutorAdminController extends Controller
     {
         $validated = $request->validate([
             'alumno_id'         => ['required', 'exists:alumnos,id'],
+            'parentesco'        => ['nullable', 'string', 'max:50'],
             'fecha_vinculacion' => ['nullable', 'date'],
         ]);
 
@@ -43,7 +44,12 @@ class TutorAdminController extends Controller
             return response()->json(['message' => 'El tutor ya está vinculado con ese alumno.'], 422);
         }
 
+        if ($alumno->tutores()->exists()) {
+            return response()->json(['message' => 'Este alumno ya tiene un tutor asignado.'], 422);
+        }
+
         $tutor->alumnos()->attach($alumno->id, [
+            'parentesco'        => $validated['parentesco'] ?? null,
             'fecha_vinculacion' => $validated['fecha_vinculacion'] ?? now()->toDateString(),
         ]);
 

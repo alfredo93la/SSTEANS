@@ -16,16 +16,16 @@ import { NotificacionesTutor } from "./Tutor/NotificacionesTutor";
 import { HorarioTutor } from "./Tutor/HorarioTutor";
 import { RegistrarCalificaciones } from "./Profesor/RegistrarCalificaciones";
 import { ControlAsistencia } from "./Profesor/ControlAsistencia";
-import { AsignarTarea } from "./Profesor/AsignarTarea";
 import { GestionarTareas } from "./Profesor/GestionarTareas";
 import { HorarioDocente } from "./Profesor/HorarioProfesor";
 import { Notificaciones } from "./Notificaciones";
 import { ReportesTS } from "./TrabSocial/ReportesTS";
 import { AlumnosTS } from "./TrabSocial/AlumnosTS";
+import { PerfilAlumnoTS } from "./TrabSocial/PerfilAlumnoTS";
 import { Usuarios } from "./Admin/Usuarios";
 import { Roles } from "./Admin/Roles";
 import { Grupos } from "./Administrativo/Grupos";
-import { Materias } from "./Administrativo/Materias";
+import { Materias } from "./Admin/Materias";
 import { Horarios } from "./Administrativo/Horarios";
 import { AlumnosAdmin } from "./Administrativo/AlumnosAdmin";
 import { TutoresAdmin } from "./Administrativo/TutoresAdmin";
@@ -52,10 +52,6 @@ export default function App() {
     if (!user) {
       router.visit(route("login"));
       return;
-    }
-
-    if (userRole === "Tutor") {
-      setHijoSeleccionado(1);
     }
 
     const initialRoute = window.location.hash || getDefaultRoute(permissions);
@@ -122,6 +118,7 @@ export default function App() {
     "#/notificaciones": "Notificaciones",
     "#/trabajador-social/reportes": "Reportes",
     "#/trabajador-social/alumnos": "Alumnos",
+    "#/trabajador-social/alumno/": "Perfil Alumno",
     "#/admin/usuarios": "Usuarios",
     "#/admin/roles": "Roles",
     "#/administrativo/grupos": "Grupos",
@@ -141,7 +138,11 @@ export default function App() {
 
   return (
     <>
-      <Head title={pageTitles[currentRoute] ?? "Inicio"} />
+      <Head title={
+        pageTitles[currentRoute] ??
+        Object.entries(pageTitles).find(([k]) => k.endsWith("/") && currentRoute.startsWith(k))?.[1] ??
+        "Inicio"
+      } />
       <ResponsiveLayout
         currentRoute={currentRoute}
         onNavigate={handleNavigate}
@@ -179,7 +180,6 @@ export default function App() {
 
         {currentRoute === "#/dashboard/calificaciones" && userRole === "Profesor" && <RegistrarCalificaciones />}
         {currentRoute === "#/dashboard/asistencia" && userRole === "Profesor" && <ControlAsistencia />}
-        {currentRoute === "#/dashboard/asignar-tarea" && <AsignarTarea />}
         {currentRoute === "#/dashboard/gestionar-tareas" && <GestionarTareas />}
         {currentRoute === "#/dashboard/horario" && userRole === "Profesor" && <HorarioDocente />}
 
@@ -198,6 +198,12 @@ export default function App() {
         {currentRoute === "#/notificaciones" && <Notificaciones />}
         {currentRoute === "#/trabajador-social/reportes" && <ReportesTS />}
         {currentRoute === "#/trabajador-social/alumnos" && <AlumnosTS onNavigate={handleNavigate} />}
+        {currentRoute.startsWith("#/trabajador-social/alumno/") && (
+          <PerfilAlumnoTS
+            alumnoId={Number(currentRoute.split("/").at(-1))}
+            onNavigate={handleNavigate}
+          />
+        )}
 
         {currentRoute === "#/admin/usuarios" && <Usuarios />}
         {currentRoute === "#/admin/roles" && <Roles />}

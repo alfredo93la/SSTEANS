@@ -185,7 +185,7 @@ export function Materias() {
       <PageTitle icon={BookOpen} title="Gestión de Materias" description="Administra el catálogo de materias del plan de estudios" color="bg-[#059669]">
         <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               <Plus className="h-4 w-4 mr-2" />Nueva Materia
             </Button>
           </DialogTrigger>
@@ -197,7 +197,7 @@ export function Materias() {
             <FormMateria form={form} setForm={setForm} grados={grados} />
             <DialogFooter>
               <Button variant="outline" onClick={() => setModalNuevo(false)}>Cancelar</Button>
-              <Button onClick={handleGuardar} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+              <Button onClick={handleGuardar} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Materia"}
               </Button>
             </DialogFooter>
@@ -206,32 +206,32 @@ export function Materias() {
       </PageTitle>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <BookMarked className="h-6 w-6 text-[#7C3AED]" />
+              </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Total Materias</p>
-                <p className="text-2xl font-bold text-[#7C3AED] mt-1">{materias.length}</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <BookMarked className="h-6 w-6 text-[#7C3AED]" />
+                <p className="text-2xl font-bold text-[#7C3AED]">{materias.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         {grados.map((g) => (
-          <Card key={g.id} className="border-[#E5E7EB]">
+          <Card key={g.id} className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-white rounded-xl">
+                  <BookOpen className="h-6 w-6 text-[#1D4ED8]" />
+                </div>
                 <div>
                   <p className="text-sm text-[#6B7280]">Materias {gradoLabel(g.numero)}</p>
-                  <p className="text-2xl font-bold text-[#1D4ED8] mt-1">
+                  <p className="text-2xl font-bold text-[#1D4ED8]">
                     {materias.filter((m) => m.grado_id === g.id).length}
                   </p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-xl">
-                  <BookOpen className="h-6 w-6 text-[#1D4ED8]" />
                 </div>
               </div>
             </CardContent>
@@ -335,7 +335,7 @@ export function Materias() {
           <FormMateria form={form} setForm={setForm} grados={grados} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalEditar(false)}>Cancelar</Button>
-            <Button onClick={handleEditar} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button onClick={handleEditar} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar cambios"}
             </Button>
           </DialogFooter>

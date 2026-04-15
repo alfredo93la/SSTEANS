@@ -1,11 +1,15 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { usePage } from "@inertiajs/react";
-import { Menu, X, Bell, User, ChevronDown, Users, IdCard, LogOut } from "lucide-react";
+import { Menu, X, Bell, User, ChevronDown, Users, IdCard, LogOut, ArrowLeft, Mail, MailOpen, ChevronRight } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { Button } from "../Components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
-import { alumnos } from "../data/mockData";
+import { Popover, PopoverContent, PopoverTrigger } from "../Components/ui/popover";
+import { Badge } from "../Components/ui/badge";
+import axios from "axios";
+
+interface Hijo { id: number; nombre: string; grupo: string; }
 
 interface ResponsiveLayoutProps {
   children: ReactNode;
@@ -64,9 +68,29 @@ export function ResponsiveLayout({
   const { escuela } = usePage().props as { escuela: { nombre: string; servicio_educativo: string; numero: string } };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [hijosDelTutor, setHijosDelTutor] = useState<Hijo[]>([]);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [notifs, setNotifs] = useState<{
+    id: number; titulo: string; mensaje: string;
+    fecha: string; leida: boolean; categoria: string; alumno: string | null;
+  }[]>([]);
 
-  // Obtener hijos del tutor (ID 2 por defecto, ajustar segun usuario actual)
-  const hijosDelTutor = alumnos.filter((alumno) => alumno.tutorId === 2);
+  useEffect(() => {
+    if (userRole !== "Tutor") return;
+    axios.get("/tutor/alumnos-asignados")
+      .then(({ data }) => {
+        const lista: Hijo[] = (data.data ?? []).map((a: any) => ({
+          id: a.id,
+          nombre: a.nombre,
+          grupo: a.grupo ?? "",
+        }));
+        setHijosDelTutor(lista);
+        if (lista.length > 0 && !hijoSeleccionado && onHijoChange) {
+          onHijoChange(lista[0].id);
+        }
+      })
+      .catch(() => {});
+  }, [userRole]);
 
   const handleProfileClick = () => {
     onNavigate("#/perfil");
@@ -198,10 +222,103 @@ export function ResponsiveLayout({
               </div>
             )}
 
-            <button className="relative rounded-lg p-2 transition-colors hover:bg-gray-100" aria-label="Notificaciones">
-              <Bell className="h-5 w-5 text-gray-600" />
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#E11D48]" />
-            </button>
+            {userRole === "Tutor" && (
+              <Popover open={bellOpen} onOpenChange={(open) => {
+                setBellOpen(open);
+                if (open) {
+                  axios.get("/api/notificaciones")
+                    .then(({ data }) => setNotifs((data.notificaciones ?? []).slice(0, 7)))
+                    .catch(() => {});
+                }
+              }}>
+                <PopoverTrigger asChild>
+                  <button className="relative rounded-lg p-2 transition-colors hover:bg-gray-100" aria-label="Notificaciones">
+                    <Bell className="h-5 w-5 text-gray-600" />
+                    {notifs.some(n => !n.leida) ? (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                        {notifs.filter(n => !n.leida).length > 9 ? "9+" : notifs.filter(n => !n.leida).length}
+                      </span>
+                    ) : (
+                      <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#E11D48]" />
+                    )}
+                  </button>
+                </PopoverTrigger>
+
+                <PopoverContent align="end" className="w-96 p-0 shadow-xl rounded-xl overflow-hidden">
+                  {/* Header */}
+                  <div className="px-4 py-3 bg-linear-to-r from-[#1D4ED8] to-[#7C3AED] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-4 w-4 text-white" />
+                      <span className="font-semibold text-white text-sm">Notificaciones recientes</span>
+                    </div>
+                    {notifs.filter(n => !n.leida).length > 0 && (
+                      <Badge className="bg-white/20 text-white border-0 text-xs">
+                        {notifs.filter(n => !n.leida).length} sin leer
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Lista */}
+                  <div className="divide-y divide-[#F3F4F6] max-h-105 overflow-y-auto">
+                    {notifs.length === 0 ? (
+                      <div className="py-10 text-center">
+                        <Bell className="h-8 w-8 text-[#D1D5DB] mx-auto mb-2" />
+                        <p className="text-sm text-[#6B7280]">Sin notificaciones recientes</p>
+                      </div>
+                    ) : notifs.map((notif) => (
+                      <button
+                        key={notif.id}
+                        type="button"
+                        onClick={() => {
+                          if (!notif.leida) {
+                            axios.patch(`/api/notificaciones/${notif.id}/leer`).catch(() => {});
+                            setNotifs(prev => prev.map(n => n.id === notif.id ? { ...n, leida: true } : n));
+                          }
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3 items-start ${!notif.leida ? "bg-blue-50/60" : ""}`}
+                      >
+                        <div className={`mt-0.5 shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${!notif.leida ? "bg-blue-100" : "bg-gray-100"}`}>
+                          {!notif.leida
+                            ? <Mail className="h-4 w-4 text-[#1D4ED8]" />
+                            : <MailOpen className="h-4 w-4 text-[#9CA3AF]" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className={`text-sm leading-tight truncate ${!notif.leida ? "font-semibold text-[#111827]" : "font-medium text-[#374151]"}`}>
+                              {notif.titulo}
+                            </p>
+                            {!notif.leida && <span className="shrink-0 w-2 h-2 bg-[#1D4ED8] rounded-full mt-1" />}
+                          </div>
+                          <p className="text-xs text-[#6B7280] line-clamp-1 mt-0.5">{notif.mensaje}</p>
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                              notif.categoria === "Académico" ? "bg-blue-100 text-[#1D4ED8]" :
+                              notif.categoria === "Conducta" ? "bg-green-100 text-[#059669]" :
+                              notif.categoria === "Evento" ? "bg-amber-100 text-[#D97706]" :
+                              "bg-purple-100 text-[#7C3AED]"
+                            }`}>{notif.categoria}</span>
+                            {notif.alumno && <span className="text-[10px] text-[#6B7280]">· {notif.alumno}</span>}
+                            <span className="text-[10px] text-[#9CA3AF] ml-auto">{notif.fecha}</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-4 py-3 border-t border-[#E5E7EB] bg-gray-50">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between text-[#1D4ED8] hover:bg-blue-50 h-8 text-sm font-medium"
+                      onClick={() => { setBellOpen(false); onNavigate("#/dashboard/notificaciones"); }}
+                    >
+                      Ver todas las notificaciones
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
 
             <div className="relative">
               <button
@@ -273,11 +390,8 @@ export function ResponsiveLayout({
           <div className="container mx-auto max-w-7xl p-4 pb-20 sm:p-6 lg:p-8 lg:pb-8">
             {showPageNavigation && (
               <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-[#E5E7EB] bg-white/80 px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#6B7280]">Navegacion</p>
-                  <p className="mt-1 text-sm text-[#111827]">{currentPageLabel}</p>
-                </div>
                 <Button variant="ghost" className="justify-start px-0 text-[#1D4ED8] sm:justify-center" onClick={() => onNavigate("#/dashboard")}>
+                  <ArrowLeft className="h-4 w-4" />
                   Volver al inicio
                 </Button>
               </div>
@@ -287,7 +401,7 @@ export function ResponsiveLayout({
         </main>
       </div>
 
-      <BottomNav currentRoute={currentRoute} onNavigate={onNavigate} userRole={userRole} />
+      {/* <BottomNav currentRoute={currentRoute} onNavigate={onNavigate} userRole={userRole} /> */}
     </div>
   );
 }

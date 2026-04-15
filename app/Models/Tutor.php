@@ -15,7 +15,6 @@ class Tutor extends Model
 
     protected $fillable = [
         'persona_id',
-        'parentesco',
         'ocupacion',
     ];
 
@@ -27,7 +26,7 @@ class Tutor extends Model
     public function alumnos(): BelongsToMany
     {
         return $this->belongsToMany(Alumno::class, 'tutor_alumno')
-            ->withPivot('fecha_vinculacion')
+            ->withPivot('fecha_vinculacion', 'parentesco')
             ->withTimestamps();
     }
 }

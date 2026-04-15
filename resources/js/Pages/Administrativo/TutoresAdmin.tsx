@@ -24,24 +24,44 @@ import { toast } from "sonner";
 
 interface UserInfo { id: number; email: string; status: string; }
 interface Persona { id: number; nombre: string; apellidos: string; curp: string | null; telefono: string | null; direccion: string | null; user?: UserInfo; }
-interface AlumnoVinculado { id: number; persona: Persona; }
+interface AlumnoVinculado { id: number; sexo: string | null; persona: Persona; pivot?: { parentesco: string | null } }
+interface AlumnoListado { id: number; sexo: string | null; persona: Persona; tiene_tutor: boolean; }
 interface Tutor {
   id: number;
-  parentesco: string | null;
   ocupacion: string | null;
   persona: Persona;
   alumnos: AlumnoVinculado[];
 }
 
+const PARENTESCO_OPCIONES = ["Padre", "Madre", "Abuelo", "Abuela", "Tío", "Tía", "Hermano", "Hermana", "Tutor legal", "Otro"];
+
+// Convierte el parentesco del tutor al rol del alumno según su sexo
+function rolAlumno(parentesco: string | null, sexo: string | null): string {
+  const f = sexo === "Femenino";
+  switch (parentesco) {
+    case "Padre":
+    case "Madre":       return f ? "Hija"      : "Hijo";
+    case "Abuelo":
+    case "Abuela":      return f ? "Nieta"     : "Nieto";
+    case "Tío":
+    case "Tía":         return f ? "Sobrina"   : "Sobrino";
+    case "Hermano":
+    case "Hermana":     return f ? "Hermana"   : "Hermano";
+    case "Tutor legal": return f ? "Tutelada"  : "Tutelado";
+    default:            return parentesco ?? "—";
+  }
+}
+
 export function TutoresAdmin() {
   const [tutores, setTutores] = useState<Tutor[]>([]);
-  const [alumnos, setAlumnos] = useState<{ id: number; persona: Persona }[]>([]);
+  const [alumnos, setAlumnos] = useState<AlumnoListado[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [modalDetalle, setModalDetalle] = useState(false);
   const [modalVincular, setModalVincular] = useState(false);
   const [tutorSel, setTutorSel] = useState<Tutor | null>(null);
   const [alumnoVincularId, setAlumnoVincularId] = useState("");
+  const [parentescoVincular, setParentescoVincular] = useState("");
   const [saving, setSaving] = useState(false);
 
   const cargar = () => {
@@ -63,17 +83,25 @@ export function TutoresAdmin() {
   const handleVincular = () => {
     if (!tutorSel || !alumnoVincularId) { toast.error("Selecciona un alumno."); return; }
     setSaving(true);
-    axios.post(`/api/administrativo/tutores/${tutorSel.id}/vincular`, { alumno_id: alumnoVincularId })
+    axios.post(`/api/administrativo/tutores/${tutorSel.id}/vincular`, {
+      alumno_id: alumnoVincularId,
+      parentesco: parentescoVincular || undefined,
+    })
       .then(() => {
-        const alumno = alumnos.find((a) => a.id.toString() === alumnoVincularId);
-        if (alumno) {
-          setTutores((prev) => prev.map((t) =>
-            t.id === tutorSel.id ? { ...t, alumnos: [...t.alumnos, alumno] } : t
-          ));
-          setTutorSel((prev) => prev ? { ...prev, alumnos: [...prev.alumnos, alumno] } : prev);
-        }
+        // Refrescar tutores y alumnos desde el servidor para garantizar consistencia
+        Promise.all([
+          axios.get("/api/administrativo/tutores"),
+          axios.get("/api/administrativo/alumnos"),
+        ]).then(([tRes, aRes]) => {
+          const tutoresActualizados = tRes.data.tutores as Tutor[];
+          setTutores(tutoresActualizados);
+          setAlumnos(aRes.data.alumnos);
+          // Mantener tutorSel actualizado
+          setTutorSel((prev) => prev ? (tutoresActualizados.find((t) => t.id === prev.id) ?? prev) : prev);
+        });
         setModalVincular(false);
         setAlumnoVincularId("");
+        setParentescoVincular("");
         toast.success("Alumno vinculado al tutor.");
       })
       .catch((err) => toast.error(err.response?.data?.message ?? "Error al vincular."))
@@ -84,10 +112,15 @@ export function TutoresAdmin() {
     if (!confirm(`¿Desvincular a ${alumno.persona.nombre} ${alumno.persona.apellidos} de este tutor?`)) return;
     axios.delete(`/api/administrativo/tutores/${tutor.id}/desvincular`, { data: { alumno_id: alumno.id } })
       .then(() => {
-        const actualizar = (t: Tutor) =>
-          t.id === tutor.id ? { ...t, alumnos: t.alumnos.filter((a) => a.id !== alumno.id) } : t;
-        setTutores((prev) => prev.map(actualizar));
-        setTutorSel((prev) => prev ? actualizar(prev) : prev);
+        Promise.all([
+          axios.get("/api/administrativo/tutores"),
+          axios.get("/api/administrativo/alumnos"),
+        ]).then(([tRes, aRes]) => {
+          const tutoresActualizados = tRes.data.tutores as Tutor[];
+          setTutores(tutoresActualizados);
+          setAlumnos(aRes.data.alumnos);
+          setTutorSel((prev) => prev ? (tutoresActualizados.find((t) => t.id === prev.id) ?? prev) : prev);
+        });
         toast.success("Vínculo eliminado.");
       })
       .catch((err) => toast.error(err.response?.data?.message ?? "Error al desvincular."));
@@ -113,27 +146,27 @@ export function TutoresAdmin() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-[#6B7280]">Total Tutores</p><p className="text-2xl font-bold text-[#7C3AED] mt-1">{tutores.length}</p></div>
-              <div className="p-3 bg-purple-100 rounded-xl"><Users className="h-6 w-6 text-[#7C3AED]" /></div>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl"><Users className="h-6 w-6 text-[#7C3AED]" /></div>
+              <div><p className="text-sm text-[#6B7280]">Total Tutores</p><p className="text-2xl font-bold text-[#7C3AED]">{tutores.length}</p></div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-[#6B7280]">Alumnos vinculados</p><p className="text-2xl font-bold text-[#1D4ED8] mt-1">{tutores.reduce((s, t) => s + t.alumnos.length, 0)}</p></div>
-              <div className="p-3 bg-blue-100 rounded-xl"><GraduationCap className="h-6 w-6 text-[#1D4ED8]" /></div>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl"><GraduationCap className="h-6 w-6 text-[#1D4ED8]" /></div>
+              <div><p className="text-sm text-[#6B7280]">Alumnos vinculados</p><p className="text-2xl font-bold text-[#1D4ED8]">{tutores.reduce((s, t) => s + t.alumnos.length, 0)}</p></div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-[#6B7280]">Sin alumnos</p><p className="text-2xl font-bold text-[#F59E0B] mt-1">{tutores.filter((t) => t.alumnos.length === 0).length}</p></div>
-              <div className="p-3 bg-amber-100 rounded-xl"><UserCircle className="h-6 w-6 text-[#F59E0B]" /></div>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl"><UserCircle className="h-6 w-6 text-[#F59E0B]" /></div>
+              <div><p className="text-sm text-[#6B7280]">Sin alumnos</p><p className="text-2xl font-bold text-[#F59E0B]">{tutores.filter((t) => t.alumnos.length === 0).length}</p></div>
             </div>
           </CardContent>
         </Card>
@@ -176,7 +209,6 @@ export function TutoresAdmin() {
                             {statusBadge(tutor.persona.user?.status)}
                           </div>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            {tutor.parentesco && <Badge variant="outline" className="text-xs">{tutor.parentesco}</Badge>}
                             {tutor.ocupacion && <span className="text-xs text-[#6B7280]">{tutor.ocupacion}</span>}
                           </div>
                         </div>
@@ -226,7 +258,6 @@ export function TutoresAdmin() {
                 <div className="p-2 bg-purple-100 rounded-lg"><UserCircle className="h-6 w-6 text-[#7C3AED]" /></div>
                 <div>
                   <p className="font-bold">{tutorSel.persona.nombre} {tutorSel.persona.apellidos}</p>
-                  {tutorSel.parentesco && <p className="text-[#6B7280] text-xs">{tutorSel.parentesco}</p>}
                   {statusBadge(tutorSel.persona.user?.status)}
                 </div>
               </div>
@@ -246,7 +277,10 @@ export function TutoresAdmin() {
                     <div key={a.id} className="flex items-center justify-between p-2 bg-blue-50 rounded-lg mb-1">
                       <div className="flex items-center gap-2">
                         <GraduationCap className="h-4 w-4 text-[#1D4ED8]" />
-                        <span>{a.persona.nombre} {a.persona.apellidos}</span>
+                        <div>
+                          <span>{a.persona.nombre} {a.persona.apellidos}</span>
+                          {a.pivot?.parentesco && <span className="ml-2 text-xs text-[#6B7280]">({rolAlumno(a.pivot.parentesco, a.sexo)})</span>}
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -265,7 +299,7 @@ export function TutoresAdmin() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => { setModalDetalle(false); setTutorSel(null); }}>Cerrar</Button>
-            <Button onClick={() => { setModalDetalle(false); setModalVincular(true); }} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button onClick={() => { setModalDetalle(false); setModalVincular(true); }} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               <LinkIcon className="h-4 w-4 mr-2" />Vincular alumno
             </Button>
           </DialogFooter>
@@ -273,30 +307,54 @@ export function TutoresAdmin() {
       </Dialog>
 
       {/* Modal vincular alumno */}
-      <Dialog open={modalVincular} onOpenChange={(open) => { setModalVincular(open); if (!open) setAlumnoVincularId(""); }}>
+      <Dialog open={modalVincular} onOpenChange={(open) => { setModalVincular(open); if (!open) { setAlumnoVincularId(""); setParentescoVincular(""); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Vincular Alumno</DialogTitle>
             <DialogDescription>Vincula un alumno a {tutorSel?.persona.nombre} {tutorSel?.persona.apellidos}.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label>Seleccionar alumno</Label>
-            <Select value={alumnoVincularId} onValueChange={setAlumnoVincularId}>
-              <SelectTrigger><SelectValue placeholder="Buscar alumno..." /></SelectTrigger>
-              <SelectContent>
-                {alumnos
-                  .filter((a) => !tutorSel?.alumnos.some((ta) => ta.id === a.id))
-                  .map((a) => (
-                    <SelectItem key={a.id} value={a.id.toString()}>
-                      {a.persona.nombre} {a.persona.apellidos}{a.persona.curp ? ` — ${a.persona.curp}` : ""}
-                    </SelectItem>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Seleccionar alumno</Label>
+              {alumnos.filter((a) => !a.tiene_tutor).length === 0 ? (
+                <p className="text-sm text-[#6B7280] py-2">Todos los alumnos ya tienen un tutor asignado.</p>
+              ) : (
+                <Select
+                  value={alumnoVincularId}
+                  onValueChange={(v) => { setAlumnoVincularId(v); setParentescoVincular(""); }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Buscar alumno..." /></SelectTrigger>
+                  <SelectContent>
+                    {alumnos
+                      .filter((a) => !a.tiene_tutor)
+                      .map((a) => (
+                        <SelectItem key={a.id} value={a.id.toString()}>
+                          {a.persona.nombre} {a.persona.apellidos}{a.persona.curp ? ` — ${a.persona.curp}` : ""}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Parentesco</Label>
+              <Select
+                value={parentescoVincular}
+                onValueChange={setParentescoVincular}
+                disabled={!alumnoVincularId}
+              >
+                <SelectTrigger><SelectValue placeholder={alumnoVincularId ? "Seleccionar parentesco" : "Primero selecciona un alumno"} /></SelectTrigger>
+                <SelectContent>
+                  {PARENTESCO_OPCIONES.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalVincular(false)}>Cancelar</Button>
-            <Button onClick={handleVincular} disabled={saving || !alumnoVincularId} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button onClick={handleVincular} disabled={saving || !alumnoVincularId || alumnos.filter((a) => !a.tiene_tutor).length === 0} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vincular"}
             </Button>
           </DialogFooter>

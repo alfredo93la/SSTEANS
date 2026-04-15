@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Card, CardContent } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
@@ -8,14 +9,19 @@ import { Input } from "../../Components/ui/input";
 import { Textarea } from "../../Components/ui/textarea";
 import { Label } from "../../Components/ui/label";
 import { toast } from "sonner";
-import { FileText, Calendar, Edit, Trash2, Users, CheckCircle, Clock } from "lucide-react";
+import { FileText, Calendar, Edit, Trash2, Users, CheckCircle, Clock, Plus, Save, X, BookOpen, ClipboardList } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
-import { tareas as tareasIniciales, getMateriaById, grupos } from "../../data/mockData";
+
+interface GrupoData { id: number; nombre: string; }
+interface MateriaData { id: number; nombre: string; }
+interface TareaData { id: number; titulo: string; descripcion: string; materiaId: number; materia: string | null; grupoId: number; grupo: string | null; fechaEntrega: string; entregadasCount: number; totalAlumnos: number; }
+interface EntregaData { alumnoId: number; nombre: string; estado: "Pendiente" | "Entregada" | "Tarde" | "No Entregada"; fechaEntrega: string | null; }
 
 export function GestionarTareas() {
-  const [tareas, setTareas] = useState(tareasIniciales);
+  const [grupos, setGrupos] = useState<GrupoData[]>([]);
+  const [tareas, setTareas] = useState<TareaData[]>([]);
   const [filtroGrupo, setFiltroGrupo] = useState("todos");
-  const [tareaEditar, setTareaEditar] = useState<typeof tareasIniciales[0] | null>(null);
+  const [tareaEditar, setTareaEditar] = useState<TareaData | null>(null);
   const [dialogEditarAbierto, setDialogEditarAbierto] = useState(false);
   const [dialogEliminarAbierto, setDialogEliminarAbierto] = useState(false);
   const [tareaEliminar, setTareaEliminar] = useState<number | null>(null);
@@ -25,11 +31,113 @@ export function GestionarTareas() {
   const [descripcionEdit, setDescripcionEdit] = useState("");
   const [fechaEntregaEdit, setFechaEntregaEdit] = useState("");
 
-  const tareasFiltradas = tareas.filter(t => 
+  // Estado para entregas
+  const [dialogEntregasAbierto, setDialogEntregasAbierto] = useState(false);
+  const [tareaEntregas, setTareaEntregas] = useState<TareaData | null>(null);
+  const [entregas, setEntregas] = useState<EntregaData[]>([]);
+  const [cargandoEntregas, setCargandoEntregas] = useState(false);
+  const [guardandoEntrega, setGuardandoEntrega] = useState<number | null>(null);
+
+  // Estado para nueva tarea
+  const [dialogNuevaTareaAbierto, setDialogNuevaTareaAbierto] = useState(false);
+  const [materiasNueva, setMateriasNueva] = useState<MateriaData[]>([]);
+  const [tituloNueva, setTituloNueva] = useState("");
+  const [descripcionNueva, setDescripcionNueva] = useState("");
+  const [grupoNueva, setGrupoNueva] = useState("");
+  const [materiaNueva, setMateriaNueva] = useState("");
+  const [fechaAsignacionNueva, setFechaAsignacionNueva] = useState(new Date().toISOString().split('T')[0]);
+  const [fechaEntregaNueva, setFechaEntregaNueva] = useState("");
+
+  useEffect(() => {
+    axios.get("/api/profesor/grupos")
+      .then(({ data }) => setGrupos(data.grupos ?? []))
+      .catch(() => {});
+    axios.get("/api/tareas")
+      .then(({ data }) => setTareas(data.tareas ?? []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!grupoNueva) {
+      setMateriasNueva([]);
+      setMateriaNueva("");
+      return;
+    }
+    setMateriaNueva("");
+    setMateriasNueva([]);
+    axios.get("/api/profesor/materias", { params: { grupo_id: grupoNueva } })
+      .then(({ data }) => setMateriasNueva(data.materias ?? []))
+      .catch(() => {});
+  }, [grupoNueva]);
+
+  const limpiarFormularioNueva = () => {
+    setTituloNueva("");
+    setDescripcionNueva("");
+    setGrupoNueva("");
+    setMateriaNueva("");
+    setFechaAsignacionNueva(new Date().toISOString().split('T')[0]);
+    setFechaEntregaNueva("");
+  };
+
+  const formatearFecha = (fechaISO: string) => {
+    if (!fechaISO) return "";
+    const [anio, mes, dia] = fechaISO.split('-');
+    return `${dia}/${mes}/${anio}`;
+  };
+
+  const validarNuevaTarea = () => {
+    if (!tituloNueva.trim()) { toast.error("El título es obligatorio"); return false; }
+    if (!descripcionNueva.trim()) { toast.error("Las instrucciones son obligatorias"); return false; }
+    if (!grupoNueva) { toast.error("Debes seleccionar un grupo"); return false; }
+    if (!materiaNueva) { toast.error("Debes seleccionar una materia"); return false; }
+    if (!fechaEntregaNueva) { toast.error("Debes establecer una fecha de entrega"); return false; }
+    if (new Date(fechaEntregaNueva) <= new Date(fechaAsignacionNueva)) {
+      toast.error("La fecha de entrega debe ser posterior a la fecha de asignación");
+      return false;
+    }
+    return true;
+  };
+
+  const crearTarea = () => {
+    if (!validarNuevaTarea()) return;
+
+    const grupo = grupos.find(g => g.id === parseInt(grupoNueva));
+    const materia = materiasNueva.find(m => m.id === parseInt(materiaNueva));
+
+    axios.post("/api/tareas", {
+      titulo: tituloNueva,
+      descripcion: descripcionNueva,
+      grupo_id: parseInt(grupoNueva),
+      materia_id: parseInt(materiaNueva),
+      fecha_asignacion: fechaAsignacionNueva,
+      fecha_entrega: fechaEntregaNueva,
+    })
+      .then(({ data }) => {
+        const nuevaTarea: TareaData = data.tarea ?? {
+          id: data.id ?? Date.now(),
+          titulo: tituloNueva,
+          descripcion: descripcionNueva,
+          materiaId: parseInt(materiaNueva),
+          materia: materia?.nombre ?? null,
+          grupoId: parseInt(grupoNueva),
+          grupo: grupo?.nombre ?? null,
+          fechaEntrega: formatearFecha(fechaEntregaNueva),
+          entregadasCount: 0,
+          totalAlumnos: 0,
+        };
+        setTareas(prev => [...prev, nuevaTarea]);
+        toast.success(`Tarea "${tituloNueva}" asignada a ${grupo?.nombre} - ${materia?.nombre}`);
+        limpiarFormularioNueva();
+        setDialogNuevaTareaAbierto(false);
+      })
+      .catch(() => toast.error("Error al asignar la tarea"));
+  };
+
+  const tareasFiltradas = tareas.filter(t =>
     filtroGrupo === "todos" || t.grupoId === parseInt(filtroGrupo)
   );
 
-  const abrirEditar = (tarea: typeof tareasIniciales[0]) => {
+  const abrirEditar = (tarea: TareaData) => {
     setTareaEditar(tarea);
     setTituloEdit(tarea.titulo);
     setDescripcionEdit(tarea.descripcion);
@@ -55,20 +163,83 @@ export function GestionarTareas() {
       return;
     }
 
-    setTareas(prev => prev.map(t => 
-      t.id === tareaEditar.id 
-        ? {
-            ...t,
-            titulo: tituloEdit,
-            descripcion: descripcionEdit,
-            fechaEntrega: convertirFechaAFormato(fechaEntregaEdit)
-          }
-        : t
-    ));
+    const fechaFormateada = convertirFechaAFormato(fechaEntregaEdit);
+    axios.put(`/api/tareas/${tareaEditar.id}`, {
+      titulo: tituloEdit,
+      descripcion: descripcionEdit,
+      fecha_entrega: fechaEntregaEdit, // yyyy-mm-dd para el backend
+    })
+      .then(() => {
+        setTareas(prev => prev.map(t =>
+          t.id === tareaEditar.id
+            ? { ...t, titulo: tituloEdit, descripcion: descripcionEdit, fechaEntrega: fechaFormateada }
+            : t
+        ));
+        toast.success("Tarea actualizada exitosamente");
+        setDialogEditarAbierto(false);
+        setTareaEditar(null);
+      })
+      .catch(() => toast.error("Error al actualizar la tarea"));
+  };
 
-    toast.success("Tarea actualizada exitosamente");
-    setDialogEditarAbierto(false);
-    setTareaEditar(null);
+  const abrirEntregas = (tarea: TareaData) => {
+    setTareaEntregas(tarea);
+    setEntregas([]);
+    setCargandoEntregas(true);
+    setDialogEntregasAbierto(true);
+    axios.get(`/api/tareas/${tarea.id}/entregas`)
+      .then(({ data }) => setEntregas(data.entregas ?? []))
+      .catch(() => toast.error("Error al cargar las entregas"))
+      .finally(() => setCargandoEntregas(false));
+  };
+
+  const parsearFechaLimite = (fechaDDMMYYYY: string): Date => {
+    const [dia, mes, anio] = fechaDDMMYYYY.split("/").map(Number);
+    return new Date(anio, mes - 1, dia, 23, 59, 59);
+  };
+
+  const fechaLimitePasada = tareaEntregas
+    ? parsearFechaLimite(tareaEntregas.fechaEntrega) < new Date()
+    : false;
+
+  const cambiarEstadoEntrega = (alumnoId: number, nuevoEstado: EntregaData["estado"]) => {
+    if (!tareaEntregas) return;
+
+    // Determinar la fecha a enviar según el estado y si la fecha límite ya pasó
+    const hoy = new Date().toISOString().split("T")[0];
+    const [dia, mes, anio] = tareaEntregas.fechaEntrega.split("/");
+    const fechaLimiteISO = `${anio}-${mes}-${dia}`;
+
+    let fechaEntrega: string | null = null;
+    if (nuevoEstado === "Entregada") {
+      // Antes del límite → fecha actual; después → fecha límite
+      fechaEntrega = fechaLimitePasada ? fechaLimiteISO : hoy;
+    } else if (nuevoEstado === "Tarde") {
+      fechaEntrega = hoy;
+    } else if (nuevoEstado === "No Entregada") {
+      fechaEntrega = fechaLimiteISO;
+    }
+
+    setGuardandoEntrega(alumnoId);
+    axios.patch(`/api/tareas/${tareaEntregas.id}/entregas/${alumnoId}`, {
+      estado: nuevoEstado,
+      fecha_entrega: fechaEntrega,
+    })
+      .then(() => {
+        const fechaMostrar = fechaEntrega
+          ? fechaEntrega.split("-").reverse().join("/")
+          : null;
+        setEntregas(prev => prev.map(e =>
+          e.alumnoId === alumnoId ? { ...e, estado: nuevoEstado, fechaEntrega: fechaMostrar } : e
+        ));
+        setTareas(prev => prev.map(t => {
+          if (t.id !== tareaEntregas.id) return t;
+          const delta = nuevoEstado !== "Pendiente" ? 1 : -1;
+          return { ...t, entregadasCount: Math.max(0, Math.min(t.entregadasCount + delta, t.totalAlumnos)) };
+        }));
+      })
+      .catch(() => toast.error("Error al actualizar la entrega"))
+      .finally(() => setGuardandoEntrega(null));
   };
 
   const abrirEliminar = (tareaId: number) => {
@@ -79,16 +250,18 @@ export function GestionarTareas() {
   const confirmarEliminar = () => {
     if (tareaEliminar === null) return;
 
-    setTareas(prev => prev.filter(t => t.id !== tareaEliminar));
-    toast.success("Tarea eliminada exitosamente");
-    setDialogEliminarAbierto(false);
-    setTareaEliminar(null);
+    axios.delete(`/api/tareas/${tareaEliminar}`)
+      .then(() => {
+        setTareas(prev => prev.filter(t => t.id !== tareaEliminar));
+        toast.success("Tarea eliminada exitosamente");
+        setDialogEliminarAbierto(false);
+        setTareaEliminar(null);
+      })
+      .catch(() => toast.error("Error al eliminar la tarea"));
   };
 
-  const calcularPorcentajeEntrega = (tarea: typeof tareasIniciales[0]) => {
-    const entregadas = tarea.entregas.filter(e => e.estado === "Entregada").length;
-    const total = tarea.entregas.length;
-    return total > 0 ? Math.round((entregadas / total) * 100) : 0;
+  const calcularPorcentajeEntrega = (tarea: TareaData) => {
+    return tarea.totalAlumnos > 0 ? Math.round((tarea.entregadasCount / tarea.totalAlumnos) * 100) : 0;
   };
 
   const calcularDiasRestantes = (fechaEntrega: string) => {
@@ -102,20 +275,29 @@ export function GestionarTareas() {
   return (
     <div className="space-y-6 animate-fade-in">
       <PageTitle icon={FileText} title="Gestionar Tareas" description="Administra las tareas asignadas a tus grupos" color="bg-[#D97706]">
-        <div className="sm:w-64">
-          <Select value={filtroGrupo} onValueChange={setFiltroGrupo}>
-            <SelectTrigger className="rounded-lg">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos los grupos</SelectItem>
-              {grupos.map((g) => (
-                <SelectItem key={g.id} value={g.id.toString()}>
-                  {g.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex gap-3 flex-wrap">
+          <Button
+            onClick={() => setDialogNuevaTareaAbierto(true)}
+            className="bg-[#D97706] hover:bg-[#B45309]"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Tarea
+          </Button>
+          <div className="sm:w-64">
+            <Select value={filtroGrupo} onValueChange={setFiltroGrupo}>
+              <SelectTrigger className="rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los grupos</SelectItem>
+                {grupos.map((g) => (
+                  <SelectItem key={g.id} value={g.id.toString()}>
+                    {g.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </PageTitle>
 
@@ -123,31 +305,46 @@ export function GestionarTareas() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-[#6B7280]">Total de Tareas</p>
-              <p className="text-3xl font-bold text-[#1D4ED8] mt-1">{tareasFiltradas.length}</p>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <FileText className="h-6 w-6 text-[#1D4ED8]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Total de Tareas</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">{tareasFiltradas.length}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-[#6B7280]">Activas</p>
-              <p className="text-3xl font-bold text-[#059669] mt-1">
-                {tareasFiltradas.filter(t => calcularDiasRestantes(t.fechaEntrega) >= 0).length}
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <CheckCircle className="h-6 w-6 text-[#059669]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Activas</p>
+                <p className="text-2xl font-bold text-[#059669]">
+                  {tareasFiltradas.filter(t => calcularDiasRestantes(t.fechaEntrega) >= 0).length}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-[#E5E7EB] bg-linear-to-br from-gray-50 to-gray-100">
           <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-[#6B7280]">Vencidas</p>
-              <p className="text-3xl font-bold text-[#6B7280] mt-1">
-                {tareasFiltradas.filter(t => calcularDiasRestantes(t.fechaEntrega) < 0).length}
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <Clock className="h-6 w-6 text-[#6B7280]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Vencidas</p>
+                <p className="text-2xl font-bold text-[#6B7280]">
+                  {tareasFiltradas.filter(t => calcularDiasRestantes(t.fechaEntrega) < 0).length}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -164,12 +361,10 @@ export function GestionarTareas() {
           </Card>
         ) : (
           tareasFiltradas.map((tarea) => {
-            const materia = getMateriaById(tarea.materiaId);
-            const grupo = grupos.find(g => g.id === tarea.grupoId);
             const porcentaje = calcularPorcentajeEntrega(tarea);
             const diasRestantes = calcularDiasRestantes(tarea.fechaEntrega);
-            const entregadas = tarea.entregas.filter(e => e.estado === "Entregada").length;
-            const total = tarea.entregas.length;
+            const revisadas = tarea.entregadasCount;
+            const total = tarea.totalAlumnos;
 
             return (
               <Card key={tarea.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
@@ -188,13 +383,13 @@ export function GestionarTareas() {
 
                         <div className="flex flex-wrap gap-2 mt-3">
                           <Badge variant="secondary" className="bg-purple-100 text-[#7C3AED]">
-                            {materia?.nombre}
+                            {tarea.materia}
                           </Badge>
                           <Badge variant="secondary" className="bg-blue-100 text-[#1D4ED8]">
                             <Users className="h-3 w-3 mr-1" />
-                            {grupo?.nombre}
+                            {tarea.grupo}
                           </Badge>
-                          <Badge 
+                          <Badge
                             variant="secondary"
                             className={
                               diasRestantes < 0 ? "bg-gray-100 text-[#6B7280]" :
@@ -209,7 +404,16 @@ export function GestionarTareas() {
                       </div>
 
                       {/* Acciones */}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => abrirEntregas(tarea)}
+                          className="text-[#059669] border-[#059669] hover:bg-green-50"
+                        >
+                          <ClipboardList className="h-4 w-4 mr-1" />
+                          Entregas
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -231,12 +435,12 @@ export function GestionarTareas() {
                       </div>
                     </div>
 
-                    {/* Progreso de entregas */}
+                    {/* Progreso de revisión */}
                     <div className="space-y-2 pt-3 border-t border-[#E5E7EB]">
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2 text-[#6B7280]">
-                          <CheckCircle className="h-4 w-4" />
-                          <span>Entregas: {entregadas} de {total}</span>
+                          <ClipboardList className="h-4 w-4" />
+                          <span>Revisadas: {revisadas} de {total}</span>
                         </div>
                         <Badge className={
                           porcentaje >= 80 ? "bg-[#059669]" :
@@ -282,6 +486,225 @@ export function GestionarTareas() {
         )}
       </div>
 
+      {/* Dialog Nueva Tarea */}
+      <Dialog open={dialogNuevaTareaAbierto} onOpenChange={(open) => { setDialogNuevaTareaAbierto(open); if (!open) limpiarFormularioNueva(); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nueva Tarea</DialogTitle>
+            <DialogDescription>Completa la información de la tarea a asignar</DialogDescription>
+          </DialogHeader>
+
+          <form className="space-y-5 my-2" onSubmit={(e) => { e.preventDefault(); crearTarea(); }}>
+            <div className="space-y-2">
+              <Label htmlFor="nueva-titulo" className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[#7C3AED]" />
+                Título de la tarea *
+              </Label>
+              <Input
+                id="nueva-titulo"
+                placeholder="Ej: Resolver ejercicios del capítulo 3"
+                value={tituloNueva}
+                onChange={(e) => setTituloNueva(e.target.value)}
+                className="rounded-lg"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="nueva-descripcion" className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[#7C3AED]" />
+                Instrucciones *
+              </Label>
+              <Textarea
+                id="nueva-descripcion"
+                placeholder="Describe detalladamente las instrucciones de la tarea..."
+                value={descripcionNueva}
+                onChange={(e) => setDescripcionNueva(e.target.value)}
+                rows={4}
+                className="rounded-lg resize-none"
+              />
+              <p className="text-xs text-[#6B7280]">{descripcionNueva.length}/500 caracteres</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nueva-grupo" className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-[#1D4ED8]" />
+                  Grupo *
+                </Label>
+                <Select value={grupoNueva} onValueChange={setGrupoNueva}>
+                  <SelectTrigger id="nueva-grupo" className="rounded-lg">
+                    <SelectValue placeholder="Selecciona un grupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {grupos.map((g) => (
+                      <SelectItem key={g.id} value={g.id.toString()}>{g.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="nueva-materia" className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-[#7C3AED]" />
+                  Materia *
+                </Label>
+                <Select value={materiaNueva} onValueChange={setMateriaNueva} disabled={!grupoNueva}>
+                  <SelectTrigger id="nueva-materia" className="rounded-lg">
+                    <SelectValue placeholder="Selecciona una materia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {materiasNueva.map((m) => (
+                      <SelectItem key={m.id} value={m.id.toString()}>{m.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nueva-fechaAsignacion" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-[#059669]" />
+                  Fecha de asignación *
+                </Label>
+                <Input
+                  id="nueva-fechaAsignacion"
+                  type="date"
+                  value={fechaAsignacionNueva}
+                  onChange={(e) => setFechaAsignacionNueva(e.target.value)}
+                  className="rounded-lg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="nueva-fechaEntrega" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-[#E11D48]" />
+                  Fecha de entrega *
+                </Label>
+                <Input
+                  id="nueva-fechaEntrega"
+                  type="date"
+                  value={fechaEntregaNueva}
+                  onChange={(e) => setFechaEntregaNueva(e.target.value)}
+                  min={fechaAsignacionNueva}
+                  className="rounded-lg"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => { limpiarFormularioNueva(); setDialogNuevaTareaAbierto(false); }}>
+                <X className="h-4 w-4 mr-2" />
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-[#1D4ED8] hover:bg-[#1E40AF]">
+                <Save className="h-4 w-4 mr-2" />
+                Asignar Tarea
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Entregas */}
+      <Dialog open={dialogEntregasAbierto} onOpenChange={setDialogEntregasAbierto}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-[#059669]" />
+              Registro de Entregas
+            </DialogTitle>
+            <DialogDescription>
+              {tareaEntregas?.titulo} — {tareaEntregas?.grupo}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="my-2 space-y-3">
+            {cargandoEntregas ? (
+              <div className="py-10 text-center text-sm text-[#6B7280]">Cargando alumnos…</div>
+            ) : entregas.length === 0 ? (
+              <div className="py-10 text-center text-sm text-[#6B7280]">No hay alumnos registrados</div>
+            ) : (
+              <>
+                {/* Resumen */}
+                <div className="flex flex-wrap gap-3 text-sm pb-2 border-b border-[#E5E7EB]">
+                  <span className="flex items-center gap-1 text-[#059669]">
+                    <CheckCircle className="h-4 w-4" />
+                    {entregas.filter(e => e.estado === "Entregada").length} entregadas
+                  </span>
+                  <span className="flex items-center gap-1 text-[#D97706]">
+                    <Clock className="h-4 w-4" />
+                    {entregas.filter(e => e.estado === "Tarde").length} tarde
+                  </span>
+                  <span className="flex items-center gap-1 text-[#E11D48]">
+                    <X className="h-4 w-4" />
+                    {entregas.filter(e => e.estado === "No Entregada").length} no entregadas
+                  </span>
+                  <span className="flex items-center gap-1 text-[#6B7280]">
+                    <Clock className="h-4 w-4" />
+                    {entregas.filter(e => e.estado === "Pendiente").length} pendientes
+                  </span>
+                </div>
+
+                {/* Aviso cuando la fecha aún no ha pasado */}
+                {!fechaLimitePasada && (
+                  <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg border border-amber-200 text-xs text-[#D97706]">
+                    <Clock className="h-3.5 w-3.5 shrink-0" />
+                    La fecha límite aún no ha pasado. Solo se puede marcar como <strong className="ml-1">Entregada</strong>.
+                  </div>
+                )}
+
+                {/* Lista de alumnos */}
+                <div className="space-y-2">
+                  {entregas.map((e) => (
+                    <div
+                      key={e.alumnoId}
+                      className="flex items-center justify-between p-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F9FAFB]"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#111827] truncate">{e.nombre}</p>
+                        {e.fechaEntrega && e.estado !== "Pendiente" && (
+                          <p className="text-xs text-[#6B7280]">Fecha: {e.fechaEntrega}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-1 ml-3 shrink-0">
+                        {(["Entregada", "Tarde", "No Entregada"] as const).map((opcion) => {
+                          const activo = e.estado === opcion;
+                          const bloqueado = !fechaLimitePasada && opcion !== "Entregada";
+                          const estilos: Record<string, string> = {
+                            "Entregada":    activo ? "bg-[#059669] text-white border-[#059669]" : "bg-white text-[#6B7280] border-[#D1D5DB] hover:border-[#059669] hover:text-[#059669]",
+                            "Tarde":        activo ? "bg-[#D97706] text-white border-[#D97706]" : "bg-white text-[#6B7280] border-[#D1D5DB] hover:border-[#D97706] hover:text-[#D97706]",
+                            "No Entregada": activo ? "bg-[#E11D48] text-white border-[#E11D48]" : "bg-white text-[#6B7280] border-[#D1D5DB] hover:border-[#E11D48] hover:text-[#E11D48]",
+                          };
+                          return (
+                            <Button
+                              key={opcion}
+                              size="sm"
+                              variant="outline"
+                              disabled={guardandoEntrega === e.alumnoId || bloqueado}
+                              onClick={() => cambiarEstadoEntrega(e.alumnoId, activo ? "Pendiente" : opcion)}
+                              className={`text-xs px-2 ${bloqueado ? "opacity-30 cursor-not-allowed" : estilos[opcion]}`}
+                            >
+                              {opcion}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogEntregasAbierto(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Dialog Editar */}
       <Dialog open={dialogEditarAbierto} onOpenChange={setDialogEditarAbierto}>
         <DialogContent className="max-w-2xl">
@@ -289,7 +712,7 @@ export function GestionarTareas() {
             <DialogTitle>Editar Tarea</DialogTitle>
             <DialogDescription>Modifica los detalles de la tarea</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 my-4">
             <div className="space-y-2">
               <Label htmlFor="edit-titulo">Título</Label>
@@ -344,12 +767,12 @@ export function GestionarTareas() {
               ¿Estás seguro de que deseas eliminar esta tarea? Esta acción no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogEliminarAbierto(false)}>
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={confirmarEliminar}
               className="bg-[#E11D48] hover:bg-[#BE123C]"
             >

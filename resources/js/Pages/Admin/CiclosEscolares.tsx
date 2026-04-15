@@ -88,18 +88,45 @@ export function CiclosEscolares() {
 
       {/* Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Ciclo activo",    value: cicloActivo?.nombre ?? "Sin ciclo activo" },
-          { label: "Total de ciclos", value: ciclos.length.toString() },
-          { label: "Ciclos cerrados", value: ciclos.filter((c) => c.cerrado).length.toString() },
-        ].map(({ label, value }) => (
-          <Card key={label} className="border-[#E5E7EB] rounded-2xl">
-            <CardContent className="pt-5">
-              <p className="text-xs text-[#6B7280]">{label}</p>
-              <p className="font-semibold text-[#111827] mt-1">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <CheckCircle className="h-6 w-6 text-[#059669]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Ciclo activo</p>
+                <p className="text-2xl font-bold text-[#059669]">{cicloActivo?.nombre ?? "—"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <CalendarRange className="h-6 w-6 text-[#1D4ED8]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Total de ciclos</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">{ciclos.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-gray-50 to-gray-100">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <Lock className="h-6 w-6 text-[#6B7280]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Ciclos cerrados</p>
+                <p className="text-2xl font-bold text-[#6B7280]">{ciclos.filter((c) => c.cerrado).length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Listado */}

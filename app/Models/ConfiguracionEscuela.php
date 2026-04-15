@@ -20,20 +20,19 @@ class ConfiguracionEscuela extends Model
         'direccion',
         'nivel_educativo',
         'servicio_educativo',
-        'minimo_aprobatorio',
-        'escala_calificacion',
-        'permitir_captura',
-        'notificaciones',
-        'registro_tutores',
+        'acceso_tutor',
+        'acceso_profesor',
+        'acceso_trab_social',
+        'acceso_administrativo',
     ];
 
     protected function casts(): array
     {
         return [
-            'permitir_captura'   => 'boolean',
-            'notificaciones'     => 'boolean',
-            'registro_tutores'   => 'boolean',
-            'minimo_aprobatorio' => 'integer',
+            'acceso_tutor'        => 'boolean',
+            'acceso_profesor'     => 'boolean',
+            'acceso_trab_social'  => 'boolean',
+            'acceso_administrativo' => 'boolean',
         ];
     }
 }

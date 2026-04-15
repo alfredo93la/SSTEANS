@@ -65,18 +65,16 @@ export function Grupos() {
         setGrados(data.grados ?? []);
         setCiclos(data.ciclos ?? []);
         setCicloActualId(data.ciclo_actual_id ?? null);
+        const disp: string = data.turnos_disponibles ?? "matutino";
+        const turnos = disp === "ambos" ? ["matutino", "vespertino"] : [disp];
+        setTurnosPermitidos(turnos);
+        setForm((prev) => ({ ...prev, turno: turnos[0] }));
       })
       .catch(() => toast.error("No se pudieron cargar los grupos."))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    // Cargar turnos disponibles desde configuración
-    axios.get("/api/admin/configuracion").then(({ data }) => {
-      const disp = data.turnos_disponibles ?? "matutino";
-      setTurnosPermitidos(disp === "ambos" ? ["matutino", "vespertino"] : [disp]);
-      setForm((prev) => ({ ...prev, turno: disp === "vespertino" ? "vespertino" : "matutino" }));
-    }).catch(() => {});
     cargar();
   }, []);
 
@@ -182,7 +180,7 @@ export function Grupos() {
       <PageTitle icon={Users} title="Gestión de Grupos" description="Grupos del ciclo escolar activo" color="bg-[#7C3AED]">
         <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]" disabled={!cicloActivo}>
+            <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]" disabled={!cicloActivo}>
               <Plus className="h-4 w-4 mr-2" />Nuevo Grupo
             </Button>
           </DialogTrigger>
@@ -220,7 +218,7 @@ export function Grupos() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setModalNuevo(false)}>Cancelar</Button>
-              <Button onClick={handleGuardar} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+              <Button onClick={handleGuardar} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Grupo"}
               </Button>
             </DialogFooter>
@@ -257,15 +255,15 @@ export function Grupos() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Total grupos", value: grupos.length, color: "text-[#7C3AED]", bg: "bg-purple-100", Icon: Users },
-          { label: "Total alumnos", value: grupos.reduce((s, g) => s + (g.asignaciones_count ?? 0), 0), color: "text-[#1D4ED8]", bg: "bg-blue-100", Icon: GraduationCap },
-          { label: "Capacidad total", value: grupos.reduce((s, g) => s + g.capacidad_maxima, 0), color: "text-[#059669]", bg: "bg-green-100", Icon: Users },
-        ].map(({ label, value, color, bg, Icon }) => (
-          <Card key={label} className="border-[#E5E7EB]">
+          { label: "Total grupos", value: grupos.length, color: "text-[#7C3AED]", from: "from-purple-50", to: "to-purple-100", Icon: Users },
+          { label: "Total alumnos", value: grupos.reduce((s, g) => s + Number(g.asignaciones_count ?? 0), 0), color: "text-[#1D4ED8]", from: "from-blue-50", to: "to-blue-100", Icon: GraduationCap },
+          { label: "Capacidad total", value: grupos.reduce((s, g) => s + Number(g.capacidad_maxima), 0), color: "text-[#059669]", from: "from-green-50", to: "to-green-100", Icon: Users },
+        ].map(({ label, value, color, from, to, Icon }) => (
+          <Card key={label} className={`border-[#E5E7EB] bg-linear-to-br ${from} ${to}`}>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div><p className="text-sm text-[#6B7280]">{label}</p><p className={`text-2xl font-bold ${color} mt-1`}>{value}</p></div>
-                <div className={`p-3 ${bg} rounded-xl`}><Icon className={`h-6 w-6 ${color}`} /></div>
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-white rounded-xl"><Icon className={`h-6 w-6 ${color}`} /></div>
+                <div><p className="text-sm text-[#6B7280]">{label}</p><p className={`text-2xl font-bold ${color}`}>{value}</p></div>
               </div>
             </CardContent>
           </Card>
@@ -362,7 +360,7 @@ export function Grupos() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalEditar(false)}>Cancelar</Button>
-            <Button onClick={handleEditar} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button onClick={handleEditar} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
             </Button>
           </DialogFooter>
@@ -387,7 +385,7 @@ export function Grupos() {
                     .filter((a) => !asignaciones.some((as) => as.alumno.id === a.id))
                     .map((a) => (
                       <SelectItem key={a.id} value={a.id.toString()}>
-                        {a.persona.nombre} {a.persona.apellidos}
+                        {a.persona.apellidos} {a.persona.nombre}
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -404,7 +402,7 @@ export function Grupos() {
                   <div key={a.id} className="flex items-center justify-between p-2 rounded-lg border border-[#E5E7EB]">
                     <div className="flex items-center gap-2">
                       <GraduationCap className="h-4 w-4 text-[#7C3AED]" />
-                      <span className="text-sm">{a.alumno.persona.nombre} {a.alumno.persona.apellidos}</span>
+                      <span className="text-sm">{a.alumno.persona.apellidos} {a.alumno.persona.nombre}</span>
                     </div>
                     <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" onClick={() => handleDarBaja(a.id)}>
                       <Trash2 className="h-3.5 w-3.5" />

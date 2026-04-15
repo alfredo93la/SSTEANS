@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PersAdmin;
 use App\Models\Persona;
+use App\Models\Profesor;
 use App\Models\Role;
+use App\Models\TrabSocial;
 use App\Models\Tutor;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -24,7 +27,14 @@ class UserManagementController extends Controller
             && Schema::hasColumn('users', 'validated_at');
 
         $query = User::query()
-            ->with(['roles:id,nombre', 'persona:id,nombre,apellidos,curp,telefono,direccion,tipo_persona'])
+            ->with([
+                'roles:id,nombre',
+                'persona:id,nombre,apellidos,curp,telefono,direccion,tipo_persona',
+                'persona.tutor:id,persona_id,ocupacion',
+                'persona.profesor:id,persona_id,academia,cubiculo,hora_entrada,hora_salida',
+                'persona.trabSocial:id,persona_id,horario,extension',
+                'persona.persAdmin:id,persona_id,cargo,departamento,extension',
+            ])
             ->orderBy('name');
 
         if ($request->filled('search')) {
@@ -75,16 +85,29 @@ class UserManagementController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'nombre'    => ['required', 'string', 'max:100'],
-            'apellidos' => ['required', 'string', 'max:100'],
-            'email'     => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password'  => ['required', 'string', 'min:8'],
-            'curp'      => ['nullable', 'string', 'size:18', 'unique:personas,curp'],
-            'telefono'  => ['nullable', 'string', 'max:20'],
-            'direccion' => ['nullable', 'string', 'max:255'],
-            'status'    => ['nullable', Rule::in(['Pendiente', 'Activo', 'Rechazado', 'Inactivo'])],
-            'roles'     => ['required', 'array', 'min:1'],
-            'roles.*'   => ['integer', Rule::exists('roles', 'id')],
+            'nombre'       => ['required', 'string', 'max:100'],
+            'apellidos'    => ['required', 'string', 'max:100'],
+            'email'        => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password'     => ['required', 'string', 'min:8'],
+            'curp'         => ['nullable', 'string', 'size:18', 'unique:personas,curp'],
+            'telefono'     => ['nullable', 'string', 'max:20'],
+            'direccion'    => ['nullable', 'string', 'max:255'],
+            'status'       => ['nullable', Rule::in(['Pendiente', 'Activo', 'Rechazado', 'Inactivo'])],
+            'roles'        => ['required', 'array', 'min:1'],
+            'roles.*'      => ['integer', Rule::exists('roles', 'id')],
+            // Tutor
+            'ocupacion'    => ['nullable', 'string', 'max:100'],
+            // Profesor
+            'academia'     => ['nullable', 'string', 'max:100'],
+            'cubiculo'     => ['nullable', 'string', 'max:50'],
+            'hora_entrada' => ['nullable', 'string', 'max:10'],
+            'hora_salida'  => ['nullable', 'string', 'max:10'],
+            // Trabajador Social
+            'horario'      => ['nullable', 'string', 'max:100'],
+            'extension'    => ['nullable', 'string', 'max:20'],
+            // Personal Administrativo
+            'cargo'        => ['nullable', 'string', 'max:100'],
+            'departamento' => ['nullable', 'string', 'max:100'],
         ]);
 
         $primaryRole = Role::query()->findOrFail($validated['roles'][0]);
@@ -114,39 +137,49 @@ class UserManagementController extends Controller
 
             $user->roles()->sync($validated['roles']);
 
-            if ($primaryRole->nombre === 'Tutor') {
-                Tutor::create(['persona_id' => $persona->id]);
-            }
+            $this->syncRoleSpecificRecord($primaryRole->nombre, $persona->id, $validated);
 
             return $user;
         });
 
         return response()->json([
             'message' => 'Usuario creado correctamente.',
-            'user'    => $user->load(['roles:id,nombre', 'persona:id,nombre,apellidos,curp,telefono,direccion,tipo_persona']),
+            'user'    => $user->load($this->personaRelations()),
         ], 201);
     }
 
     public function update(Request $request, User $user): JsonResponse
     {
         $validated = $request->validate([
-            'nombre'    => ['required', 'string', 'max:100'],
-            'apellidos' => ['required', 'string', 'max:100'],
-            'email'     => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-            'curp'      => ['nullable', 'string', 'size:18',
+            'nombre'       => ['required', 'string', 'max:100'],
+            'apellidos'    => ['required', 'string', 'max:100'],
+            'email'        => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'curp'         => ['nullable', 'string', 'size:18',
                 Rule::unique('personas', 'curp')->ignore($user->persona_id),
             ],
-            'telefono'  => ['nullable', 'string', 'max:20'],
-            'direccion' => ['nullable', 'string', 'max:255'],
-            'status'    => ['required', Rule::in(['Pendiente', 'Activo', 'Rechazado', 'Inactivo'])],
-            'roles'     => ['required', 'array', 'min:1'],
-            'roles.*'   => ['integer', Rule::exists('roles', 'id')],
+            'telefono'     => ['nullable', 'string', 'max:20'],
+            'direccion'    => ['nullable', 'string', 'max:255'],
+            'status'       => ['required', Rule::in(['Pendiente', 'Activo', 'Rechazado', 'Inactivo'])],
+            'roles'        => ['required', 'array', 'min:1'],
+            'roles.*'      => ['integer', Rule::exists('roles', 'id')],
+            // Tutor
+            'ocupacion'    => ['nullable', 'string', 'max:100'],
+            // Profesor
+            'academia'     => ['nullable', 'string', 'max:100'],
+            'cubiculo'     => ['nullable', 'string', 'max:50'],
+            'hora_entrada' => ['nullable', 'string', 'max:10'],
+            'hora_salida'  => ['nullable', 'string', 'max:10'],
+            // Trabajador Social
+            'horario'      => ['nullable', 'string', 'max:100'],
+            'extension'    => ['nullable', 'string', 'max:20'],
+            // Personal Administrativo
+            'cargo'        => ['nullable', 'string', 'max:100'],
+            'departamento' => ['nullable', 'string', 'max:100'],
         ]);
 
         $primaryRole = Role::query()->findOrFail($validated['roles'][0]);
 
         DB::transaction(function () use ($validated, $primaryRole, $request, $user): void {
-            // Update or create linked Persona
             if ($user->persona_id) {
                 $user->persona()->update([
                     'tipo_persona' => $this->tipoPersona($primaryRole->nombre),
@@ -185,17 +218,13 @@ class UserManagementController extends Controller
 
             $personaId = $user->persona_id;
             if ($personaId) {
-                if ($primaryRole->nombre === 'Tutor') {
-                    Tutor::firstOrCreate(['persona_id' => $personaId]);
-                } else {
-                    Tutor::where('persona_id', $personaId)->delete();
-                }
+                $this->syncRoleSpecificRecord($primaryRole->nombre, $personaId, $validated);
             }
         });
 
         return response()->json([
             'message' => 'Usuario actualizado correctamente.',
-            'user'    => $user->fresh(['roles:id,nombre', 'persona:id,nombre,apellidos,curp,telefono,direccion,tipo_persona']),
+            'user'    => $user->fresh($this->personaRelations()),
         ]);
     }
 
@@ -207,11 +236,9 @@ class UserManagementController extends Controller
             $user->delete();
 
             if ($personaId) {
-                Tutor::where('persona_id', $personaId)->delete();
-
                 $persona = Persona::query()->find($personaId);
                 if ($persona && ! $persona->alumno) {
-                    $persona->delete();
+                    $persona->delete(); // cascade eliminará los registros específicos
                 }
             }
         });
@@ -219,13 +246,53 @@ class UserManagementController extends Controller
         return response()->json(['message' => 'Usuario eliminado correctamente.']);
     }
 
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
     private function tipoPersona(string $roleName): string
     {
         return match ($roleName) {
-            'Profesor'              => 'profesor',
-            'Trabajador Social'     => 'trabajador_social',
-            'Tutor'                 => 'tutor',
-            default                 => 'administrativo',
+            'Profesor'                => 'profesor',
+            'Trabajador Social'       => 'trabajador_social',
+            'Tutor'                   => 'tutor',
+            'Personal Administrativo' => 'administrativo',
+            default                   => 'administrativo',
         };
+    }
+
+    /** Crea o actualiza el registro específico del rol, y elimina los demás. */
+    private function syncRoleSpecificRecord(string $roleName, int $personaId, array $data): void
+    {
+        $allModels = [Tutor::class, Profesor::class, TrabSocial::class, PersAdmin::class];
+
+        $roleMap = [
+            'Tutor'                   => [Tutor::class,      ['ocupacion' => $data['ocupacion'] ?? null]],
+            'Profesor'                => [Profesor::class,   ['academia' => $data['academia'] ?? null, 'cubiculo' => $data['cubiculo'] ?? null, 'hora_entrada' => $data['hora_entrada'] ?? null, 'hora_salida' => $data['hora_salida'] ?? null]],
+            'Trabajador Social'       => [TrabSocial::class, ['horario' => $data['horario'] ?? null, 'extension' => $data['extension'] ?? null]],
+            'Personal Administrativo' => [PersAdmin::class,  ['cargo' => $data['cargo'] ?? null, 'departamento' => $data['departamento'] ?? null, 'extension' => $data['extension'] ?? null]],
+        ];
+
+        if (isset($roleMap[$roleName])) {
+            [$model, $fields] = $roleMap[$roleName];
+            $model::updateOrCreate(['persona_id' => $personaId], $fields);
+        }
+
+        // Eliminar registros de roles anteriores que ya no aplican
+        foreach ($allModels as $modelClass) {
+            if (! isset($roleMap[$roleName]) || $roleMap[$roleName][0] !== $modelClass) {
+                $modelClass::where('persona_id', $personaId)->delete();
+            }
+        }
+    }
+
+    private function personaRelations(): array
+    {
+        return [
+            'roles:id,nombre',
+            'persona:id,nombre,apellidos,curp,telefono,direccion,tipo_persona',
+            'persona.tutor:id,persona_id,ocupacion',
+            'persona.profesor:id,persona_id,academia,cubiculo,hora_entrada,hora_salida',
+            'persona.trabSocial:id,persona_id,horario,extension',
+            'persona.persAdmin:id,persona_id,cargo,departamento,extension',
+        ];
     }
 }

@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../Components/ui/card";
+import { Card, CardContent } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { ClipboardList, Calendar, BookOpen, Plus, Search, Filter, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
-import { tareas, getMateriaById, getGrupoById, alumnos } from "../../data/mockData";
+interface TareaData { id: number; titulo: string; descripcion: string; materia: string | null; grupo: string | null; fechaEntrega: string; estadoEntrega: string; fechaEntregaAlumno: string | null; }
 
 interface EntregasViewProps {
   userRole: string;
@@ -12,57 +12,21 @@ interface EntregasViewProps {
   onNavigate: (route: string) => void;
 }
 
-export function EntregasView({ userRole, hijoSeleccionado, onNavigate }: EntregasViewProps) {
+export function EntregasView({ userRole }: EntregasViewProps) {
   const [filtroEstado, setFiltroEstado] = useState<string>("Todas");
   const [filtroMateria, setFiltroMateria] = useState<string>("Todas");
   const [busqueda, setBusqueda] = useState("");
 
-  // Obtener grupo del alumno si es tutor
-  let grupoId: number | null = null;
-  if (userRole === "Tutor" && hijoSeleccionado) {
-    const alumno = alumnos.find(a => a.id === hijoSeleccionado);
-    if (alumno) {
-      grupoId = alumno.grupo === "2°B" ? 2 : alumno.grupo === "3°A" ? 3 : 1;
-    }
-  }
+  const tareasConEstado: TareaData[] = [];
 
-  // Filtrar tareas según el rol
-  let tareasVisibles = tareas;
-  if (userRole === "Tutor" && grupoId) {
-    tareasVisibles = tareas.filter(t => t.grupoId === grupoId);
-  }
-
-  // Mapear tareas con información de entrega del alumno
-  const tareasConEstado = tareasVisibles.map(tarea => {
-    let estadoEntrega = "Pendiente";
-    let fechaEntregaAlumno = null;
-    
-    if (userRole === "Tutor" && hijoSeleccionado) {
-      const entrega = tarea.entregas.find(e => e.alumnoId === hijoSeleccionado);
-      if (entrega) {
-        estadoEntrega = entrega.estado;
-        fechaEntregaAlumno = entrega.fechaEntrega;
-      }
-    }
-    
-    return {
-      ...tarea,
-      estadoEntrega,
-      fechaEntregaAlumno
-    };
-  });
-
-  // Aplicar filtros
   const tareasFiltradas = tareasConEstado
     .filter(tarea => {
-      const materia = getMateriaById(tarea.materiaId);
       const cumpleFiltroEstado = filtroEstado === "Todas" || tarea.estadoEntrega === filtroEstado;
-      const cumpleFiltroMateria = filtroMateria === "Todas" || materia?.nombre === filtroMateria;
-      const cumpleBusqueda = busqueda === "" || 
+      const cumpleFiltroMateria = filtroMateria === "Todas" || tarea.materia === filtroMateria;
+      const cumpleBusqueda = busqueda === "" ||
         tarea.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
         tarea.descripcion.toLowerCase().includes(busqueda.toLowerCase()) ||
-        materia?.nombre.toLowerCase().includes(busqueda.toLowerCase());
-      
+        (tarea.materia ?? "").toLowerCase().includes(busqueda.toLowerCase());
       return cumpleFiltroEstado && cumpleFiltroMateria && cumpleBusqueda;
     })
     .sort((a, b) => {
@@ -71,10 +35,7 @@ export function EntregasView({ userRole, hijoSeleccionado, onNavigate }: Entrega
       return dateA.localeCompare(dateB);
     });
 
-  // Obtener materias únicas para filtros
-  const materiasUnicas = ["Todas", ...new Set(
-    tareasVisibles.map(t => getMateriaById(t.materiaId)?.nombre).filter(Boolean)
-  )] as string[];
+  const materiasUnicas = ["Todas", ...new Set(tareasConEstado.map(t => t.materia).filter(Boolean))] as string[];
 
   const estadosPosibles = ["Todas", "Pendiente", "Entregada"];
 
@@ -108,25 +69,25 @@ export function EntregasView({ userRole, hijoSeleccionado, onNavigate }: Entrega
 
       {/* Estadísticas rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <ClipboardList className="h-5 w-5 text-[#1D4ED8]" />
+              <div className="p-3 bg-white rounded-xl">
+                <ClipboardList className="h-6 w-6 text-[#1D4ED8]" />
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Total Tareas</p>
-                <p className="text-2xl font-bold text-[#111827]">{totalTareas}</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">{totalTareas}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-amber-100 rounded-xl">
-                <Clock className="h-5 w-5 text-[#D97706]" />
+              <div className="p-3 bg-white rounded-xl">
+                <Clock className="h-6 w-6 text-[#D97706]" />
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Pendientes</p>
@@ -136,11 +97,11 @@ export function EntregasView({ userRole, hijoSeleccionado, onNavigate }: Entrega
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-100 rounded-xl">
-                <CheckCircle2 className="h-5 w-5 text-[#059669]" />
+              <div className="p-3 bg-white rounded-xl">
+                <CheckCircle2 className="h-6 w-6 text-[#059669]" />
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Entregadas</p>
@@ -205,8 +166,6 @@ export function EntregasView({ userRole, hijoSeleccionado, onNavigate }: Entrega
       <div className="grid grid-cols-1 gap-4">
         {tareasFiltradas.length > 0 ? (
           tareasFiltradas.map((tarea) => {
-            const materia = getMateriaById(tarea.materiaId);
-            const grupo = getGrupoById(tarea.grupoId);
             const badgeInfo = getBadgeEstado(tarea.estadoEntrega);
             const EstadoIcon = badgeInfo.icon;
             
@@ -215,7 +174,7 @@ export function EntregasView({ userRole, hijoSeleccionado, onNavigate }: Entrega
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
                     {/* Fecha de entrega */}
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 flex flex-col items-center justify-center flex-shrink-0">
+                    <div className="w-16 h-16 rounded-xl bg-linear-to-br from-blue-100 to-blue-200 flex flex-col items-center justify-center shrink-0">
                       <span className="text-xs text-[#1D4ED8]">
                         {tarea.fechaEntrega.split('/')[1] === "11" ? "Nov" : "Dic"}
                       </span>
@@ -231,7 +190,7 @@ export function EntregasView({ userRole, hijoSeleccionado, onNavigate }: Entrega
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-[#111827] text-lg">{tarea.titulo}</h3>
                             <Badge variant="outline" className="text-xs">
-                              {materia?.nombre}
+                              {tarea.materia}
                             </Badge>
                           </div>
                           <p className="text-sm text-[#6B7280]">{tarea.descripcion}</p>
@@ -249,7 +208,7 @@ export function EntregasView({ userRole, hijoSeleccionado, onNavigate }: Entrega
                         </div>
                         <div className="flex items-center gap-2">
                           <BookOpen className="h-4 w-4" />
-                          <span>{grupo?.nombre}</span>
+                          <span>{tarea.grupo}</span>
                         </div>
                         {tarea.fechaEntregaAlumno && (
                           <div className="flex items-center gap-2 text-[#059669]">

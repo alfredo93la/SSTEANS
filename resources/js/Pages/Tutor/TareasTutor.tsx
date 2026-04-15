@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Badge } from "../../Components/ui/badge";
 import { Button } from "../../Components/ui/button";
 import { CheckCircle2, Clock, AlertCircle, Calendar, FileText, ClipboardList } from "lucide-react";
-import { tareas, getMateriaById } from "../../data/mockData";
 import { PageTitle } from "../../Layouts/PageTitle";
+
+interface TareaData { id: number; titulo: string; descripcion: string; materiaId: number; materia: string | null; fechaEntrega: string; estadoEntrega: string; fechaEntregaAlumno: string | null; }
 
 interface TareasTutorProps {
   alumnoId: number;
@@ -14,16 +16,14 @@ interface TareasTutorProps {
 export function TareasTutor({ alumnoId }: TareasTutorProps) {
   const [materiaFiltro, setMateriaFiltro] = useState("todas");
   const [estadoFiltro, setEstadoFiltro] = useState("todos");
+  const [tareasConEstado, setTareasConEstado] = useState<TareaData[]>([]);
 
-  // Obtener todas las tareas con el estado de entrega del alumno
-  const tareasConEstado = tareas.map((tarea) => {
-    const entrega = tarea.entregas.find((e) => e.alumnoId === alumnoId);
-    return {
-      ...tarea,
-      estadoEntrega: entrega?.estado || "Pendiente",
-      fechaEntregaAlumno: entrega?.fechaEntrega || null,
-    };
-  });
+  useEffect(() => {
+    if (!alumnoId) return;
+    axios.get(`/api/tutor/tareas/${alumnoId}`)
+      .then(({ data }) => setTareasConEstado(data.tareas ?? []))
+      .catch(() => {});
+  }, [alumnoId]);
 
   // Filtrar tareas
   const tareasFiltradas = tareasConEstado.filter((tarea) => {
@@ -34,17 +34,19 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
 
   // Estadísticas
   const totalTareas = tareasConEstado.length;
-  const tareasEntregadas = tareasConEstado.filter((t) => t.estadoEntrega === "Entregada").length;
-  const tareasPendientes = totalTareas - tareasEntregadas;
+  const tareasEntregadas = tareasConEstado.filter((t) => t.estadoEntrega === "Entregada" || t.estadoEntrega === "Tarde").length;
+  const tareasPendientes = tareasConEstado.filter((t) => t.estadoEntrega === "Pendiente").length;
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
       case "Entregada":
-        return { icon: CheckCircle2, className: "bg-[#059669] text-white", text: "Entregada" };
-      case "Pendiente":
-        return { icon: Clock, className: "bg-[#D97706] text-white", text: "Pendiente" };
-      default:
-        return { icon: AlertCircle, className: "bg-[#E11D48] text-white", text: "No entregada" };
+        return { icon: CheckCircle2, className: "bg-[#059669] text-white", text: "Entregada", color: "text-[#059669]", bg: "bg-green-100" };
+      case "Tarde":
+        return { icon: Clock, className: "bg-[#D97706] text-white", text: "Entregada tarde", color: "text-[#D97706]", bg: "bg-amber-100" };
+      case "No Entregada":
+        return { icon: AlertCircle, className: "bg-[#E11D48] text-white", text: "No entregada", color: "text-[#E11D48]", bg: "bg-red-100" };
+      default: // Pendiente
+        return { icon: Clock, className: "bg-[#6B7280] text-white", text: "Pendiente", color: "text-[#6B7280]", bg: "bg-gray-100" };
     }
   };
 
@@ -78,11 +80,9 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todas las materias</SelectItem>
-                <SelectItem value="1">Matemáticas</SelectItem>
-                <SelectItem value="2">Español</SelectItem>
-                <SelectItem value="3">Historia</SelectItem>
-                <SelectItem value="4">Ciencias</SelectItem>
-                <SelectItem value="5">Inglés</SelectItem>
+                {Array.from(new Map(tareasConEstado.map(t => [t.materiaId, t.materia])).entries()).map(([id, nombre]) => (
+                  <SelectItem key={id} value={id.toString()}>{nombre}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -97,6 +97,8 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
                 <SelectItem value="todos">Todos los estados</SelectItem>
                 <SelectItem value="Pendiente">Pendientes</SelectItem>
                 <SelectItem value="Entregada">Entregadas</SelectItem>
+                <SelectItem value="Tarde">Entregadas tarde</SelectItem>
+                <SelectItem value="No Entregada">No entregadas</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -159,7 +161,6 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
           </Card>
         ) : (
           tareasFiltradas.map((tarea) => {
-            const materia = getMateriaById(tarea.materiaId);
             const badge = getEstadoBadge(tarea.estadoEntrega);
             const IconEstado = badge.icon;
             const diasRestantes = calcularDiasRestantes(tarea.fechaEntrega);
@@ -170,12 +171,8 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
                   <div className="flex flex-col sm:flex-row gap-4">
                     {/* Indicador de estado */}
                     <div className="shrink-0">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                        tarea.estadoEntrega === "Entregada" ? "bg-green-100" : "bg-amber-100"
-                      }`}>
-                        <IconEstado className={`h-6 w-6 ${
-                          tarea.estadoEntrega === "Entregada" ? "text-[#059669]" : "text-[#D97706]"
-                        }`} />
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${badge.bg}`}>
+                        <IconEstado className={`h-6 w-6 ${badge.color}`} />
                       </div>
                     </div>
 
@@ -194,7 +191,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
                       <div className="flex flex-wrap gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-[#7C3AED]" />
-                          <span className="text-[#6B7280]">{materia?.nombre}</span>
+                          <span className="text-[#6B7280]">{tarea.materia}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-[#1D4ED8]" />
@@ -230,6 +227,24 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
                           <CheckCircle2 className="h-4 w-4 text-[#059669]" />
                           <span className="text-sm text-[#059669] font-medium">
                             Entregada el {tarea.fechaEntregaAlumno}
+                          </span>
+                        </div>
+                      )}
+
+                      {tarea.estadoEntrega === "Tarde" && (
+                        <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                          <Clock className="h-4 w-4 text-[#D97706]" />
+                          <span className="text-sm text-[#D97706] font-medium">
+                            Entregada fuera de tiempo{tarea.fechaEntregaAlumno ? ` el ${tarea.fechaEntregaAlumno}` : ""}
+                          </span>
+                        </div>
+                      )}
+
+                      {tarea.estadoEntrega === "No Entregada" && (
+                        <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+                          <AlertCircle className="h-4 w-4 text-[#E11D48]" />
+                          <span className="text-sm text-[#E11D48] font-medium">
+                            Tarea no entregada
                           </span>
                         </div>
                       )}

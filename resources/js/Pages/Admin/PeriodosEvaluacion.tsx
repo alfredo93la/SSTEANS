@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
@@ -8,29 +9,41 @@ import { Switch } from "../../Components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../Components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../../Components/ui/dialog";
-import { Plus, BookKey, Pencil, Trash2 } from "lucide-react";
+import { Plus, BookKey, Pencil, Trash2, CheckCircle, CalendarRange } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { toast } from "sonner";
-import { ciclosEscolares } from "../../data/mockData";
 
-const PERIODOS_INICIALES = [
-  { id: 1, cicloId: 1, nombre: "1er Trimestre",        fechaInicio: "01/09/2025", fechaFin: "31/10/2025", capturaAbierta: false },
-  { id: 2, cicloId: 1, nombre: "2do Trimestre",        fechaInicio: "03/11/2025", fechaFin: "19/12/2025", capturaAbierta: true  },
-  { id: 3, cicloId: 1, nombre: "3er Trimestre",        fechaInicio: "12/01/2026", fechaFin: "27/02/2026", capturaAbierta: false },
-  { id: 4, cicloId: 1, nombre: "Calificación Final", fechaInicio: "02/03/2026", fechaFin: "30/06/2026", capturaAbierta: false },
-  { id: 5, cicloId: 2, nombre: "1er Trimestre",        fechaInicio: "01/09/2024", fechaFin: "31/10/2024", capturaAbierta: false },
-  { id: 6, cicloId: 2, nombre: "2do Trimestre",        fechaInicio: "04/11/2024", fechaFin: "20/12/2024", capturaAbierta: false },
-  { id: 7, cicloId: 2, nombre: "3er Trimestre",        fechaInicio: "13/01/2025", fechaFin: "28/02/2025", capturaAbierta: false },
-  { id: 8, cicloId: 2, nombre: "Calificación Final", fechaInicio: "03/03/2025", fechaFin: "30/06/2025", capturaAbierta: false },
-];
+interface CicloData { id: number; nombre: string; }
+interface PeriodoData { id: number; cicloId: number; nombre: string; fechaInicio: string; fechaFin: string; capturaAbierta: boolean; }
 
 export function PeriodosEvaluacion() {
-  const [periodos, setPeriodos] = useState(PERIODOS_INICIALES);
-  const [ciclos] = useState(ciclosEscolares);
-  const [filtroCiclo, setFiltroCiclo] = useState("1");
+  const [periodos, setPeriodos] = useState<PeriodoData[]>([]);
+  const [ciclos, setCiclos] = useState<CicloData[]>([]);
+  const [filtroCiclo, setFiltroCiclo] = useState("");
+  const [cargando, setCargando] = useState(true);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
-  const [form, setForm] = useState({ cicloId: "1", nombre: "", fechaInicio: "", fechaFin: "" });
+  const [form, setForm] = useState({ cicloId: "", nombre: "", fechaInicio: "", fechaFin: "" });
+
+  useEffect(() => {
+    axios.get("/api/admin/ciclos")
+      .then(({ data }) => {
+        const lista: CicloData[] = data.ciclos ?? [];
+        setCiclos(lista);
+        if (lista.length > 0) setFiltroCiclo(lista[0].id.toString());
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!filtroCiclo) return;
+    setCargando(true);
+    axios.get("/api/periodos", { params: { ciclo_id: filtroCiclo } })
+      .then(({ data }) => setPeriodos(data.periodos ?? []))
+      .catch(() => toast.error("Error al cargar periodos"))
+      .finally(() => setCargando(false));
+  }, [filtroCiclo]);
 
   const resetForm = () => {
     setDialogOpen(false);
@@ -43,42 +56,52 @@ export function PeriodosEvaluacion() {
       toast.error("Completa todos los campos obligatorios");
       return;
     }
+
     if (editandoId !== null) {
-      setPeriodos(periodos.map(p =>
-        p.id === editandoId
-          ? { ...p, nombre: form.nombre, fechaInicio: form.fechaInicio, fechaFin: form.fechaFin, cicloId: parseInt(form.cicloId) }
-          : p
-      ));
-      toast.success("Periodo actualizado correctamente.");
+      axios.put(`/api/periodos/${editandoId}`, form)
+        .then(({ data }) => {
+          setPeriodos(prev => prev.map(p => p.id === editandoId ? data.periodo : p));
+          toast.success("Periodo actualizado correctamente.");
+          resetForm();
+        })
+        .catch(() => toast.error("Error al actualizar el periodo"));
     } else {
-      setPeriodos([...periodos, {
-        id: periodos.length + 1,
-        cicloId: parseInt(form.cicloId),
-        nombre: form.nombre,
-        fechaInicio: form.fechaInicio,
-        fechaFin: form.fechaFin,
-        capturaAbierta: false,
-      }]);
-      toast.success("Periodo de evaluación creado.");
+      axios.post("/api/periodos", { ...form, cicloId: parseInt(form.cicloId) })
+        .then(({ data }) => {
+          setPeriodos(prev => [...prev, data.periodo]);
+          toast.success("Periodo de evaluación creado.");
+          resetForm();
+        })
+        .catch(() => toast.error("Error al crear el periodo"));
     }
-    resetForm();
   };
 
-  const handleEditar = (p: typeof periodos[0]) => {
-    setForm({ cicloId: p.cicloId.toString(), nombre: p.nombre, fechaInicio: p.fechaInicio, fechaFin: p.fechaFin });
+  const handleEditar = (p: PeriodoData) => {
+    const toISO = (fecha: string) => {
+      const [d, m, y] = fecha.split('/');
+      return `${y}-${m}-${d}`;
+    };
+    setForm({ cicloId: p.cicloId.toString(), nombre: p.nombre, fechaInicio: toISO(p.fechaInicio), fechaFin: toISO(p.fechaFin) });
     setEditandoId(p.id);
     setDialogOpen(true);
   };
 
   const handleEliminar = (id: number) => {
-    setPeriodos(periodos.filter(p => p.id !== id));
-    toast.success("Periodo eliminado.");
+    axios.delete(`/api/periodos/${id}`)
+      .then(() => {
+        setPeriodos(prev => prev.filter(p => p.id !== id));
+        toast.success("Periodo eliminado.");
+      })
+      .catch(() => toast.error("Error al eliminar el periodo"));
   };
 
   const handleToggleCaptura = (id: number) => {
-    const p = periodos.find(x => x.id === id);
-    setPeriodos(periodos.map(x => x.id === id ? { ...x, capturaAbierta: !x.capturaAbierta } : x));
-    toast.success(p?.capturaAbierta ? "Captura de calificaciones cerrada." : "Captura de calificaciones abierta.");
+    axios.patch(`/api/periodos/${id}/captura`)
+      .then(({ data }) => {
+        setPeriodos(prev => prev.map(x => x.id === id ? { ...x, capturaAbierta: data.capturaAbierta } : x));
+        toast.success(data.capturaAbierta ? "Captura de calificaciones abierta." : "Captura de calificaciones cerrada.");
+      })
+      .catch(() => toast.error("Error al cambiar el estado de captura"));
   };
 
   const periodosFiltrados = periodos.filter(p => p.cicloId === parseInt(filtroCiclo));
@@ -90,18 +113,45 @@ export function PeriodosEvaluacion() {
 
       {/* Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Periodos en este ciclo", value: periodosFiltrados.length.toString() },
-          { label: "Captura abierta",         value: periodosFiltrados.filter(p => p.capturaAbierta).length.toString() },
-          { label: "Ciclo seleccionado",      value: cicloNombre },
-        ].map(({ label, value }) => (
-          <Card key={label} className="border-[#E5E7EB] rounded-2xl">
-            <CardContent className="pt-5">
-              <p className="text-xs text-[#6B7280]">{label}</p>
-              <p className="font-semibold text-[#111827] mt-1">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <BookKey className="h-6 w-6 text-[#D97706]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Periodos en este ciclo</p>
+                <p className="text-2xl font-bold text-[#D97706]">{periodosFiltrados.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <CheckCircle className="h-6 w-6 text-[#059669]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Captura abierta</p>
+                <p className="text-2xl font-bold text-[#059669]">{periodosFiltrados.filter(p => p.capturaAbierta).length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <CalendarRange className="h-6 w-6 text-[#1D4ED8]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Ciclo seleccionado</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">{cicloNombre || "—"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabla */}
@@ -200,7 +250,9 @@ export function PeriodosEvaluacion() {
           </div>
         </CardHeader>
         <CardContent>
-          {periodosFiltrados.length === 0 ? (
+          {cargando ? (
+            <div className="text-center py-12 text-sm text-[#6B7280]">Cargando periodos…</div>
+          ) : periodosFiltrados.length === 0 ? (
             <div className="text-center py-12">
               <BookKey className="h-10 w-10 text-[#D1D5DB] mx-auto mb-3" />
               <p className="text-sm text-[#6B7280]">No hay periodos para el ciclo <strong>{cicloNombre}</strong></p>

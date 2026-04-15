@@ -15,7 +15,10 @@ class EnsureUserHasPermission
     {
         $user = $request->user();
 
-        if (! $user || ! $user->hasPermission($permission)) {
+        // Soporta OR: 'permiso.a|permiso.b' — el usuario necesita al menos uno
+        $any = collect(explode('|', $permission))->some(fn ($p) => $user?->hasPermission(trim($p)));
+
+        if (! $user || ! $any) {
             abort(403, 'No tienes permisos para acceder a este recurso.');
         }
 

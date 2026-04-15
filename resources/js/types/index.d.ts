@@ -16,12 +16,13 @@ export interface User {
         curp?: string | null;
     } | null;
     tutor_profile?: {
-        parentesco?: string | null;
         ocupacion?: string | null;
         alumnos_count?: number;
         alumnos?: Array<{
             id: number;
             nombre: string;
+            sexo?: string | null;
+            parentesco?: string | null;
         }>;
     } | null;
     permissions: string[];
@@ -39,5 +40,11 @@ export type PageProps<
         servicio_educativo: string;
         numero: string;
     };
+    cicloActivo?: {
+        id: number;
+        nombre: string;
+        fecha_inicio: string;
+        fecha_fin: string;
+    } | null;
     ziggy: Config & { location: string };
 };

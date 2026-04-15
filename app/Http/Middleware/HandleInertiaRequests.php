@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\CicloEscolar;
 use App\Models\ConfiguracionEscuela;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -37,7 +38,7 @@ class HandleInertiaRequests extends Middleware
         if ($user) {
             $user->loadMissing([
                 'persona',
-                'tutorProfile.alumnos.persona',
+                'tutorProfile.alumnos' => fn ($q) => $q->with('persona')->withPivot('parentesco'),
             ]);
         }
 
@@ -66,7 +67,6 @@ class HandleInertiaRequests extends Middleware
                             : null,
                         'tutor_profile' => $user->tutorProfile
                             ? [
-                                'parentesco' => $user->tutorProfile->parentesco,
                                 'ocupacion' => $user->tutorProfile->ocupacion,
                                 'alumnos_count' => $user->tutorProfile->alumnos->count(),
                                 'alumnos' => $user->tutorProfile->alumnos->map(fn ($alumno) => [
@@ -75,6 +75,8 @@ class HandleInertiaRequests extends Middleware
                                         $alumno->persona?->nombre,
                                         $alumno->persona?->apellidos,
                                     ]))),
+                                    'sexo' => $alumno->sexo,
+                                    'parentesco' => $alumno->pivot?->parentesco,
                                 ])->values()->all(),
                             ]
                             : null,
@@ -83,6 +85,9 @@ class HandleInertiaRequests extends Middleware
                     : null,
             ],
             'escuela' => fn () => ConfiguracionEscuela::first()?->only('nombre', 'numero', 'servicio_educativo') ?? ['nombre' => '', 'numero' => '', 'servicio_educativo' => ''],
+            'cicloActivo' => fn () => ($c = CicloEscolar::where('activo', true)->first())
+                ? ['id' => $c->id, 'nombre' => $c->nombre, 'fecha_inicio' => $c->fecha_inicio->format('Y-m-d'), 'fecha_fin' => $c->fecha_fin->format('Y-m-d')]
+                : null,
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),

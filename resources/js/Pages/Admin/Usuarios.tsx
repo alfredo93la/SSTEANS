@@ -18,6 +18,8 @@ import { PageTitle } from "../../Layouts/PageTitle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { toast } from "sonner";
 
+// ─── Tipos ─────────────────────────────────────────────────────────────────
+
 type Role = { id: number; nombre: string };
 
 interface Persona {
@@ -28,6 +30,10 @@ interface Persona {
   telefono: string | null;
   direccion: string | null;
   tipo_persona: string | null;
+  tutor?: { ocupacion: string | null } | null;
+  profesor?: { academia: string | null; cubiculo: string | null; hora_entrada: string | null; hora_salida: string | null } | null;
+  trab_social?: { horario: string | null; extension: string | null } | null;
+  pers_admin?: { cargo: string | null; departamento: string | null; extension: string | null } | null;
 }
 
 interface UsuarioItem {
@@ -42,25 +48,139 @@ interface UsuarioItem {
   persona: Persona | null;
 }
 
+// ─── Estado inicial del formulario ─────────────────────────────────────────
+
 const formVacio = {
   nombre: "", apellidos: "", email: "", password: "",
   curp: "", telefono: "", direccion: "",
   rolId: "", status: "Activo" as UsuarioItem["status"],
+  // Tutor
+  ocupacion: "",
+  // Profesor
+  academia: "", cubiculo: "", hora_entrada: "", hora_salida: "",
+  // Trabajador Social
+  horario: "", extension: "",
+  // Personal Administrativo
+  cargo: "", departamento: "",
 };
 
 type FormState = typeof formVacio;
 
-function FormUsuario({
-  form, setForm, roles, isEdit = false,
-}: {
+// ─── Sección de campos específicos por rol ─────────────────────────────────
+
+function CamposEspecificosRol({ rolNombre, form, setForm }: {
+  rolNombre: string;
+  form: FormState;
+  setForm: (f: FormState) => void;
+}) {
+  if (!rolNombre) return null;
+
+  const header = (label: string) => (
+    <div className="col-span-2 border-t border-dashed border-[#D1D5DB] pt-4 mt-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280] mb-3">
+        Datos específicos — {label}
+      </p>
+    </div>
+  );
+
+  if (rolNombre === "Tutor") {
+    return (
+      <>
+        {header("Tutor")}
+        <div className="space-y-1.5">
+          <Label>Ocupación</Label>
+          <Input value={form.ocupacion} onChange={(e) => setForm({ ...form, ocupacion: e.target.value })} placeholder="Profesión u ocupación" />
+        </div>
+      </>
+    );
+  }
+
+  if (rolNombre === "Profesor") {
+    return (
+      <>
+        {header("Profesor")}
+        <div className="space-y-1.5">
+          <Label>Academia</Label>
+          <Input value={form.academia} onChange={(e) => setForm({ ...form, academia: e.target.value })} placeholder="Ej. Ciencias Naturales" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Cubículo</Label>
+          <Input value={form.cubiculo} onChange={(e) => setForm({ ...form, cubiculo: e.target.value })} placeholder="Ej. C-12" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Hora de entrada</Label>
+          <Input type="time" value={form.hora_entrada} onChange={(e) => setForm({ ...form, hora_entrada: e.target.value })} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Hora de salida</Label>
+          <Input type="time" value={form.hora_salida} onChange={(e) => setForm({ ...form, hora_salida: e.target.value })} />
+        </div>
+      </>
+    );
+  }
+
+  if (rolNombre === "Trabajador Social") {
+    return (
+      <>
+        {header("Trabajador Social")}
+        <div className="space-y-1.5">
+          <Label>Horario</Label>
+          <Input value={form.horario} onChange={(e) => setForm({ ...form, horario: e.target.value })} placeholder="Ej. Lunes a Viernes 8:00-15:00" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Extensión telefónica</Label>
+          <Input value={form.extension} onChange={(e) => setForm({ ...form, extension: e.target.value })} placeholder="Ej. 101" />
+        </div>
+      </>
+    );
+  }
+
+  if (rolNombre === "Personal Administrativo") {
+    return (
+      <>
+        {header("Personal Administrativo")}
+        <div className="space-y-1.5">
+          <Label>Cargo</Label>
+          <Input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })} placeholder="Ej. Secretaria, Prefecto" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Departamento</Label>
+          <Input value={form.departamento} onChange={(e) => setForm({ ...form, departamento: e.target.value })} placeholder="Ej. Dirección, Control Escolar" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Extensión telefónica</Label>
+          <Input value={form.extension} onChange={(e) => setForm({ ...form, extension: e.target.value })} placeholder="Ej. 102" />
+        </div>
+      </>
+    );
+  }
+
+  return null;
+}
+
+// ─── Formulario principal ──────────────────────────────────────────────────
+
+function FormUsuario({ form, setForm, roles, isEdit = false }: {
   form: FormState;
   setForm: (f: FormState) => void;
   roles: Role[];
   isEdit?: boolean;
 }) {
+  const rolNombre = roles.find((r) => String(r.id) === form.rolId)?.nombre ?? "";
+
+  const resetEspecificos = (rolId: string) =>
+    setForm({
+      ...form, rolId,
+      ocupacion: "",
+      academia: "", cubiculo: "", hora_entrada: "", hora_salida: "",
+      horario: "", extension: "",
+      cargo: "", departamento: "",
+    });
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
+        {/* Datos comunes */}
         <div className="space-y-1.5">
           <Label>Nombre(s) *</Label>
           <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Juan" />
@@ -91,9 +211,11 @@ function FormUsuario({
           <Label>Dirección</Label>
           <Textarea rows={2} value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} placeholder="Calle, número, colonia, municipio" className="resize-none" />
         </div>
+
+        {/* Rol y estado */}
         <div className="space-y-1.5">
           <Label>Rol *</Label>
-          <Select value={form.rolId} onValueChange={(v) => setForm({ ...form, rolId: v })}>
+          <Select value={form.rolId} onValueChange={resetEspecificos}>
             <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
             <SelectContent>
               {roles.map((r) => <SelectItem key={r.id} value={String(r.id)}>{r.nombre}</SelectItem>)}
@@ -112,10 +234,61 @@ function FormUsuario({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Campos específicos por rol */}
+        <CamposEspecificosRol rolNombre={rolNombre} form={form} setForm={setForm} />
       </div>
     </div>
   );
 }
+
+// ─── Detalle específico por rol en el modal ────────────────────────────────
+
+function DetalleEspecificoRol({ usuario }: { usuario: UsuarioItem }) {
+  const p = usuario.persona;
+  if (!p) return null;
+
+  const row = (label: string, value: string | null | undefined) => (
+    <div key={label}>
+      <p className="text-[#6B7280] text-xs">{label}</p>
+      <p className="font-medium">{value ?? "—"}</p>
+    </div>
+  );
+
+  let fields: JSX.Element[] = [];
+
+  if (usuario.role === "Tutor" && p.tutor) {
+    fields = [row("Ocupación", p.tutor.ocupacion)];
+  } else if (usuario.role === "Profesor" && p.profesor) {
+    fields = [
+      row("Academia", p.profesor.academia),
+      row("Cubículo", p.profesor.cubiculo),
+      row("Hora entrada", p.profesor.hora_entrada),
+      row("Hora salida", p.profesor.hora_salida),
+    ];
+  } else if (usuario.role === "Trabajador Social" && p.trab_social) {
+    fields = [row("Horario", p.trab_social.horario), row("Extensión", p.trab_social.extension)];
+  } else if (usuario.role === "Personal Administrativo" && p.pers_admin) {
+    fields = [
+      row("Cargo", p.pers_admin.cargo),
+      row("Departamento", p.pers_admin.departamento),
+      row("Extensión", p.pers_admin.extension),
+    ];
+  }
+
+  if (fields.length === 0) return null;
+
+  return (
+    <div className="col-span-2 border-t border-dashed border-[#D1D5DB] pt-3 mt-1">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280] mb-2">
+        Datos de {usuario.role}
+      </p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">{fields}</div>
+    </div>
+  );
+}
+
+// ─── Componente principal ──────────────────────────────────────────────────
 
 export function Usuarios() {
   const [users, setUsers] = useState<UsuarioItem[]>([]);
@@ -147,10 +320,7 @@ export function Usuarios() {
         status: filtroEstado === "todos" ? "" : filtroEstado,
       },
     })
-      .then(({ data }) => {
-        setUsers(data.users ?? []);
-        setRoles(data.roles ?? []);
-      })
+      .then(({ data }) => { setUsers(data.users ?? []); setRoles(data.roles ?? []); })
       .catch(() => toast.error("No se pudo cargar la lista de usuarios"))
       .finally(() => setLoading(false));
   };
@@ -164,29 +334,37 @@ export function Usuarios() {
     profesores: users.filter((u) => u.role === "Profesor").length,
   }), [users]);
 
+  // Construye el payload de campos específicos según el rol
+  const payloadEspecifico = (rolNombre: string) => {
+    switch (rolNombre) {
+      case "Tutor":
+        return { ocupacion: form.ocupacion || undefined };
+      case "Profesor":
+        return { academia: form.academia || undefined, cubiculo: form.cubiculo || undefined, hora_entrada: form.hora_entrada || undefined, hora_salida: form.hora_salida || undefined };
+      case "Trabajador Social":
+        return { horario: form.horario || undefined, extension: form.extension || undefined };
+      case "Personal Administrativo":
+        return { cargo: form.cargo || undefined, departamento: form.departamento || undefined, extension: form.extension || undefined };
+      default:
+        return {};
+    }
+  };
+
   const handleCrear = () => {
     if (!form.nombre || !form.apellidos || !form.email || !form.password || !form.rolId) {
       toast.error("Nombre, apellidos, correo, contraseña y rol son obligatorios.");
       return;
     }
+    const rolNombre = roles.find((r) => String(r.id) === form.rolId)?.nombre ?? "";
     setSaving(true);
     axios.post("/admin/usuarios", {
-      nombre: form.nombre,
-      apellidos: form.apellidos,
-      email: form.email,
-      password: form.password,
-      curp: form.curp || undefined,
-      telefono: form.telefono || undefined,
-      direccion: form.direccion || undefined,
-      roles: [Number(form.rolId)],
-      status: form.status,
+      nombre: form.nombre, apellidos: form.apellidos, email: form.email,
+      password: form.password, curp: form.curp || undefined,
+      telefono: form.telefono || undefined, direccion: form.direccion || undefined,
+      roles: [Number(form.rolId)], status: form.status,
+      ...payloadEspecifico(rolNombre),
     })
-      .then(({ data }) => {
-        setUsers((prev) => [...prev, data.user]);
-        setModalNuevo(false);
-        setForm(formVacio);
-        toast.success("Usuario creado correctamente.");
-      })
+      .then(({ data }) => { setUsers((prev) => [...prev, data.user]); setModalNuevo(false); setForm(formVacio); toast.success("Usuario creado correctamente."); })
       .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo crear el usuario."))
       .finally(() => setSaving(false));
   };
@@ -197,23 +375,16 @@ export function Usuarios() {
       toast.error("Nombre, apellidos, correo y rol son obligatorios.");
       return;
     }
+    const rolNombre = roles.find((r) => String(r.id) === form.rolId)?.nombre ?? "";
     setSaving(true);
     axios.put(`/admin/usuarios/${usuarioSel.id}`, {
-      nombre: form.nombre,
-      apellidos: form.apellidos,
-      email: form.email,
-      curp: form.curp || undefined,
-      telefono: form.telefono || undefined,
+      nombre: form.nombre, apellidos: form.apellidos, email: form.email,
+      curp: form.curp || undefined, telefono: form.telefono || undefined,
       direccion: form.direccion || undefined,
-      roles: [Number(form.rolId)],
-      status: form.status,
+      roles: [Number(form.rolId)], status: form.status,
+      ...payloadEspecifico(rolNombre),
     })
-      .then(({ data }) => {
-        setUsers((prev) => prev.map((u) => u.id === data.user.id ? data.user : u));
-        setModalEditar(false);
-        setUsuarioSel(null);
-        toast.success("Usuario actualizado correctamente.");
-      })
+      .then(({ data }) => { setUsers((prev) => prev.map((u) => u.id === data.user.id ? data.user : u)); setModalEditar(false); setUsuarioSel(null); toast.success("Usuario actualizado correctamente."); })
       .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo actualizar el usuario."))
       .finally(() => setSaving(false));
   };
@@ -221,82 +392,61 @@ export function Usuarios() {
   const handleEliminar = (id: number) => {
     if (!confirm("¿Eliminar este usuario? Esta acción no se puede deshacer.")) return;
     axios.delete(`/admin/usuarios/${id}`)
-      .then(() => {
-        setUsers((prev) => prev.filter((u) => u.id !== id));
-        toast.success("Usuario eliminado.");
-      })
+      .then(() => { setUsers((prev) => prev.filter((u) => u.id !== id)); toast.success("Usuario eliminado."); })
       .catch(() => toast.error("No se pudo eliminar el usuario."));
   };
 
   const abrirEditar = (u: UsuarioItem) => {
+    const p = u.persona;
     setUsuarioSel(u);
     setForm({
-      nombre: u.persona?.nombre ?? "",
-      apellidos: u.persona?.apellidos ?? "",
-      email: u.email,
-      password: "",
-      curp: u.persona?.curp ?? "",
-      telefono: u.persona?.telefono ?? "",
-      direccion: u.persona?.direccion ?? "",
-      rolId: u.roles[0]?.id.toString() ?? "",
-      status: u.status,
+      nombre: p?.nombre ?? "", apellidos: p?.apellidos ?? "",
+      email: u.email, password: "",
+      curp: p?.curp ?? "", telefono: p?.telefono ?? "", direccion: p?.direccion ?? "",
+      rolId: u.roles[0]?.id.toString() ?? "", status: u.status,
+      // Tutor
+      ocupacion: p?.tutor?.ocupacion ?? "",
+      // Profesor
+      academia: p?.profesor?.academia ?? "", cubiculo: p?.profesor?.cubiculo ?? "",
+      hora_entrada: p?.profesor?.hora_entrada ?? "", hora_salida: p?.profesor?.hora_salida ?? "",
+      // Trabajador Social
+      horario: p?.trab_social?.horario ?? "", extension: p?.trab_social?.extension ?? p?.pers_admin?.extension ?? "",
+      // Personal Administrativo
+      cargo: p?.pers_admin?.cargo ?? "", departamento: p?.pers_admin?.departamento ?? "",
     });
     setModalEditar(true);
   };
 
-  const handleValidar = (u: UsuarioItem) => {
-    setUsuarioSel(u);
-    setModalValidar(true);
-  };
+  const handleValidar = (u: UsuarioItem) => { setUsuarioSel(u); setModalValidar(true); };
 
   const handleAprobar = async (id: number) => {
     try {
       await axios.post(`/admin/validar-usuarios/${id}/aprobar`);
-      toast.success("Solicitud aprobada");
-      setModalValidar(false);
-      cargar();
-    } catch {
-      toast.error("No se pudo aprobar");
-    }
+      toast.success("Solicitud aprobada"); setModalValidar(false); cargar();
+    } catch { toast.error("No se pudo aprobar"); }
   };
 
   const handleConfirmarRechazo = async () => {
     if (!usuarioSel) return;
-    if (!motivoRechazo.trim()) {
-      toast.error("Debes indicar el motivo del rechazo.");
-      return;
-    }
+    if (!motivoRechazo.trim()) { toast.error("Debes indicar el motivo del rechazo."); return; }
     try {
-      await axios.post(`/admin/validar-usuarios/${usuarioSel.id}/rechazar`, {
-        reason: motivoRechazo,
-      });
-      toast.success("Solicitud rechazada");
-      setModalRechazo(false);
-      setModalValidar(false);
-      setMotivoRechazo("");
-      cargar();
-    } catch {
-      toast.error("No se pudo rechazar");
-    }
+      await axios.post(`/admin/validar-usuarios/${usuarioSel.id}/rechazar`, { reason: motivoRechazo });
+      toast.success("Solicitud rechazada"); setModalRechazo(false); setModalValidar(false); setMotivoRechazo(""); cargar();
+    } catch { toast.error("No se pudo rechazar"); }
   };
 
-  const abrirDetalle = (u: UsuarioItem) => {
-    setUsuarioSel(u);
-    setModalDetalle(true);
-  };
+  const abrirDetalle = (u: UsuarioItem) => { setUsuarioSel(u); setModalDetalle(true); };
 
   const getBadgeRol = (rol: string) => {
     switch (rol) {
-      case "Administrador": return "bg-purple-100 text-purple-700 border-purple-200";
+      case "Administrador":           return "bg-purple-100 text-purple-700 border-purple-200";
       case "Personal Administrativo": return "bg-blue-100 text-blue-700 border-blue-200";
-      case "Profesor": return "bg-green-100 text-green-700 border-green-200";
-      case "Trabajador Social": return "bg-orange-100 text-orange-700 border-orange-200";
-      case "Tutor": return "bg-pink-100 text-pink-700 border-pink-200";
-      default: return "bg-gray-100 text-gray-700 border-gray-200";
+      case "Profesor":                return "bg-green-100 text-green-700 border-green-200";
+      case "Trabajador Social":       return "bg-orange-100 text-orange-700 border-orange-200";
+      case "Tutor":                   return "bg-pink-100 text-pink-700 border-pink-200";
+      default:                        return "bg-gray-100 text-gray-700 border-gray-200";
     }
   };
-
-  const getEstadoLabel = (s: UsuarioItem["status"]) => s;
 
   const getBadgeEstado = (s: UsuarioItem["status"]) => {
     switch (s) {
@@ -313,7 +463,7 @@ export function Usuarios() {
       <PageTitle icon={Users} title="Gestión de Usuarios" description="Administra los usuarios y sus permisos del sistema" color="bg-[#1D4ED8]">
         <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               <Plus className="h-4 w-4 mr-2" />Nuevo Usuario
             </Button>
           </DialogTrigger>
@@ -325,7 +475,7 @@ export function Usuarios() {
             <FormUsuario form={form} setForm={setForm} roles={roles} />
             <DialogFooter>
               <Button variant="outline" onClick={() => setModalNuevo(false)}>Cancelar</Button>
-              <Button onClick={handleCrear} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+              <Button onClick={handleCrear} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Usuario"}
               </Button>
             </DialogFooter>
@@ -335,10 +485,10 @@ export function Usuarios() {
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Total Usuarios</p><p className="text-2xl font-bold">{estadisticas.total}</p></div><div className="p-2.5 rounded-xl bg-indigo-100"><Users className="h-5 w-5 text-indigo-600" /></div></div></CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Activos</p><p className="text-2xl font-bold text-[#059669]">{estadisticas.activos}</p></div><div className="p-2.5 rounded-xl bg-emerald-100"><CheckCircle className="h-5 w-5 text-emerald-600" /></div></div></CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Inactivos</p><p className="text-2xl font-bold text-[#DC2626]">{estadisticas.inactivos}</p></div><div className="p-2.5 rounded-xl bg-rose-100"><XCircle className="h-5 w-5 text-rose-600" /></div></div></CardContent></Card>
-        <Card className="border-[#E5E7EB]"><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-[#6B7280]">Profesores</p><p className="text-2xl font-bold text-[#1D4ED8]">{estadisticas.profesores}</p></div><div className="p-2.5 rounded-xl bg-blue-100"><UserCog className="h-5 w-5 text-blue-600" /></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-indigo-50 to-indigo-100"><CardContent className="pt-6"><div className="flex items-center gap-3"><div className="p-3 bg-white rounded-xl"><Users className="h-6 w-6 text-indigo-600" /></div><div><p className="text-sm text-[#6B7280]">Total Usuarios</p><p className="text-2xl font-bold text-indigo-600">{estadisticas.total}</p></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-emerald-50 to-emerald-100"><CardContent className="pt-6"><div className="flex items-center gap-3"><div className="p-3 bg-white rounded-xl"><CheckCircle className="h-6 w-6 text-emerald-600" /></div><div><p className="text-sm text-[#6B7280]">Activos</p><p className="text-2xl font-bold text-[#059669]">{estadisticas.activos}</p></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-rose-50 to-rose-100"><CardContent className="pt-6"><div className="flex items-center gap-3"><div className="p-3 bg-white rounded-xl"><XCircle className="h-6 w-6 text-rose-600" /></div><div><p className="text-sm text-[#6B7280]">Inactivos</p><p className="text-2xl font-bold text-[#DC2626]">{estadisticas.inactivos}</p></div></div></CardContent></Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100"><CardContent className="pt-6"><div className="flex items-center gap-3"><div className="p-3 bg-white rounded-xl"><UserCog className="h-6 w-6 text-blue-600" /></div><div><p className="text-sm text-[#6B7280]">Profesores</p><p className="text-2xl font-bold text-[#1D4ED8]">{estadisticas.profesores}</p></div></div></CardContent></Card>
       </div>
 
       {/* Filtros */}
@@ -400,7 +550,7 @@ export function Usuarios() {
                         </p>
                         <div className="flex gap-2 mt-1">
                           <Badge className={getBadgeRol(u.role)}>{u.role}</Badge>
-                          <Badge className={getBadgeEstado(u.status)}>{getEstadoLabel(u.status)}</Badge>
+                          <Badge className={getBadgeEstado(u.status)}>{u.status}</Badge>
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
@@ -483,8 +633,9 @@ export function Usuarios() {
                 </div>
                 <div>
                   <p className="text-[#6B7280] text-xs">Estado</p>
-                  <Badge variant="outline">{getEstadoLabel(usuarioSel.status)}</Badge>
+                  <Badge variant="outline">{usuarioSel.status}</Badge>
                 </div>
+                <DetalleEspecificoRol usuario={usuarioSel} />
               </div>
               <DialogFooter className="pt-2">
                 <Button variant="outline" onClick={() => setModalDetalle(false)}>Cerrar</Button>
@@ -502,12 +653,12 @@ export function Usuarios() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Usuario</DialogTitle>
-            <DialogDescription>Modifica los datos del usuario y su persona.</DialogDescription>
+            <DialogDescription>Modifica los datos del usuario y su perfil.</DialogDescription>
           </DialogHeader>
           <FormUsuario form={form} setForm={setForm} roles={roles} isEdit />
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalEditar(false)}>Cancelar</Button>
-            <Button onClick={handleEditar} disabled={saving} className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button onClick={handleEditar} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar cambios"}
             </Button>
           </DialogFooter>

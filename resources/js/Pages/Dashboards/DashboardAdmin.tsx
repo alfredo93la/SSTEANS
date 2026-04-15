@@ -1,46 +1,55 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
-import { 
-  Users, 
-  UserCheck, 
+import {
+  Users,
+  UserCheck,
   UserX,
   Settings,
   Shield,
-  TrendingUp,
   Lock,
   Key,
   Activity,
-  AlertTriangle,
   CheckCircle2,
   Clock
 } from "lucide-react";
-import { usuarios } from "../../data/mockData";
+
+interface UsuarioData { id: number; name: string; email: string; role: string; status: string; }
 
 interface DashboardAdminProps {
   onNavigate: (route: string) => void;
 }
 
 export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
-  const usuariosActivos = usuarios.filter(u => u.estatus === "Activo").length;
-  const usuariosInactivos = usuarios.filter(u => u.estatus === "Inactivo").length;
+  const [usuarios, setUsuarios] = useState<UsuarioData[]>([]);
+
+  useEffect(() => {
+    axios.get("/admin/usuarios")
+      .then(({ data }) => setUsuarios(data.users ?? []))
+      .catch(() => {});
+  }, []);
+
+  const usuariosActivos = usuarios.filter(u => u.status === "Activo").length;
+  const usuariosInactivos = usuarios.filter(u => u.status === "Inactivo").length;
   const totalUsuarios = usuarios.length;
-  const rolesUnicos = [...new Set(usuarios.map(u => u.rol))].length;
+  const rolesUnicos = [...new Set(usuarios.map(u => u.role))].length;
 
   const distribucionRoles = [
-    { rol: "Tutor", cantidad: usuarios.filter(u => u.rol === "Tutor").length, color: "bg-blue-100 text-[#1D4ED8]" },
-    { rol: "Profesor", cantidad: usuarios.filter(u => u.rol === "Profesor").length, color: "bg-purple-100 text-[#7C3AED]" },
-    { rol: "Trabajador Social", cantidad: usuarios.filter(u => u.rol === "Trabajador Social").length, color: "bg-green-100 text-[#059669]" },
-    { rol: "Personal Administrativo", cantidad: usuarios.filter(u => u.rol === "Personal Administrativo").length, color: "bg-amber-100 text-[#D97706]" },
-    { rol: "Administrador", cantidad: usuarios.filter(u => u.rol === "Administrador").length, color: "bg-red-100 text-[#E11D48]" }
+    { rol: "Tutor", cantidad: usuarios.filter(u => u.role === "Tutor").length, color: "bg-blue-100 text-[#1D4ED8]" },
+    { rol: "Profesor", cantidad: usuarios.filter(u => u.role === "Profesor").length, color: "bg-purple-100 text-[#7C3AED]" },
+    { rol: "Trabajador Social", cantidad: usuarios.filter(u => u.role === "Trabajador Social").length, color: "bg-green-100 text-[#059669]" },
+    { rol: "Personal Administrativo", cantidad: usuarios.filter(u => u.role === "Personal Administrativo").length, color: "bg-amber-100 text-[#D97706]" },
+    { rol: "Administrador", cantidad: usuarios.filter(u => u.role === "Administrador").length, color: "bg-red-100 text-[#E11D48]" }
   ];
 
   const actividadesRecientes = [
-    { accion: "Usuario creado", detalle: "Nuevo profesor registrado: Prof. Ramírez", fecha: "Hace 2 horas", tipo: "success" },
-    { accion: "Contraseña restablecida", detalle: "Usuario: m.lopez@esc.edu.mx", fecha: "Hace 4 horas", tipo: "info" },
-    { accion: "Usuario desactivado", detalle: "Cuenta suspendida: jgomez", fecha: "Ayer", tipo: "warning" },
-    { accion: "Rol modificado", detalle: "Personal Administrativo → Trabajador Social", fecha: "Hace 2 días", tipo: "info" },
-    { accion: "Acceso denegado", detalle: "Intento fallido en: admin@esc.edu.mx (3x)", fecha: "Hace 3 días", tipo: "warning" }
+    { accion: "Usuario creado", detalle: "Nuevo profesor registrado: Prof. Ramírez", fecha: "Hace 2 horas" },
+    { accion: "Contraseña restablecida", detalle: "Usuario: m.lopez@esc.edu.mx", fecha: "Hace 4 horas" },
+    { accion: "Usuario desactivado", detalle: "Cuenta suspendida: jgomez", fecha: "Ayer" },
+    { accion: "Rol modificado", detalle: "Personal Administrativo → Trabajador Social", fecha: "Hace 2 días" },
+    { accion: "Acceso denegado", detalle: "Intento fallido en: admin@esc.edu.mx (3x)", fecha: "Hace 3 días" }
   ];
 
   const tareasAdmin = [
@@ -100,76 +109,74 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
 
       {/* KPIs del sistema */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card 
-          className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100 hover:shadow-lg transition-all cursor-pointer"
           onClick={() => onNavigate("#/admin/usuarios")}
         >
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-green-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <UserCheck className="h-6 w-6 text-[#059669]" />
               </div>
-              <TrendingUp className="h-5 w-5 text-[#059669]" />
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Usuarios Activos</p>
-              <p className="text-3xl font-bold text-[#059669] mt-1">{usuariosActivos}</p>
-              <p className="text-xs text-[#6B7280] mt-2">De {totalUsuarios} registrados</p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Usuarios Activos</p>
+                <p className="text-2xl font-bold text-[#059669]">{usuariosActivos}</p>
+                <p className="text-xs text-[#6B7280] mt-1">De {totalUsuarios} registrados</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card 
-          className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-red-50 to-red-100 hover:shadow-lg transition-all cursor-pointer"
           onClick={() => onNavigate("#/admin/usuarios")}
         >
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-red-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <UserX className="h-6 w-6 text-[#E11D48]" />
               </div>
-              <AlertTriangle className="h-5 w-5 text-[#E11D48]" />
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Usuarios Inactivos</p>
-              <p className="text-3xl font-bold text-[#E11D48] mt-1">{usuariosInactivos}</p>
-              <p className="text-xs text-[#6B7280] mt-2">Cuentas desactivadas</p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Usuarios Inactivos</p>
+                <p className="text-2xl font-bold text-[#E11D48]">{usuariosInactivos}</p>
+                <p className="text-xs text-[#6B7280] mt-1">Cuentas desactivadas</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card 
-          className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-all cursor-pointer"
           onClick={() => onNavigate("#/admin/roles")}
         >
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-purple-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <Shield className="h-6 w-6 text-[#7C3AED]" />
               </div>
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Roles del Sistema</p>
-              <p className="text-3xl font-bold text-[#7C3AED] mt-1">{rolesUnicos}</p>
-              <p className="text-xs text-[#6B7280] mt-2">Perfiles configurados</p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Roles del Sistema</p>
+                <p className="text-2xl font-bold text-[#7C3AED]">{rolesUnicos}</p>
+                <p className="text-xs text-[#6B7280] mt-1">Perfiles configurados</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card 
-          className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" 
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all cursor-pointer"
           onClick={() => onNavigate("#/admin/usuarios")}
         >
           <CardContent className="pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-blue-100 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
                 <Activity className="h-6 w-6 text-[#1D4ED8]" />
               </div>
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Total Usuarios</p>
-              <p className="text-3xl font-bold text-[#1D4ED8] mt-1">{totalUsuarios}</p>
-              <p className="text-xs text-[#6B7280] mt-2">En el sistema</p>
+              <div>
+                <p className="text-sm text-[#6B7280]">Total Usuarios</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">{totalUsuarios}</p>
+                <p className="text-xs text-[#6B7280] mt-1">En el sistema</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -221,34 +228,23 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {actividadesRecientes.map((actividad, idx) => {
-                const tipoColor = 
-                  actividad.tipo === "success" ? "bg-green-100 border-green-200" :
-                  actividad.tipo === "warning" ? "bg-amber-100 border-amber-200" :
-                  "bg-blue-100 border-blue-200";
-                const tipoIcon = 
-                  actividad.tipo === "success" ? <CheckCircle2 className="h-3.5 w-3.5 text-[#059669] shrink-0 mt-0.5" /> :
-                  actividad.tipo === "warning" ? <AlertTriangle className="h-3.5 w-3.5 text-[#D97706] shrink-0 mt-0.5" /> :
-                  <Activity className="h-3.5 w-3.5 text-[#1D4ED8] shrink-0 mt-0.5" />;
-
-                return (
-                  <div key={idx} className={`p-3 rounded-lg border ${tipoColor}`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-2 flex-1 min-w-0">
-                        {tipoIcon}
-                        <div>
-                          <p className="font-semibold text-[#111827] text-xs">{actividad.accion}</p>
-                          <p className="text-xs text-[#6B7280] mt-0.5">{actividad.detalle}</p>
-                        </div>
+              {actividadesRecientes.map((actividad, idx) => (
+                <div key={idx} className="p-3 rounded-lg border border-[#E5E7EB] bg-gray-50">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                      <Activity className="h-3.5 w-3.5 text-[#6B7280] shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-[#111827] text-xs">{actividad.accion}</p>
+                        <p className="text-xs text-[#6B7280] mt-0.5">{actividad.detalle}</p>
                       </div>
-                      <span className="text-xs text-[#6B7280] whitespace-nowrap flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {actividad.fecha}
-                      </span>
                     </div>
+                    <span className="text-xs text-[#6B7280] whitespace-nowrap flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {actividad.fecha}
+                    </span>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

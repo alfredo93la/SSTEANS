@@ -1,55 +1,37 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
-import { Badge } from "../../Components/ui/badge";
-import { Clock, MapPin, BookOpen, CalendarDays } from "lucide-react";
-import { horarios, getMateriaById } from "../../data/mockData";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { Card, CardContent, CardHeader, CardTitle } from "../../Components/ui/card";
+import { CalendarDays, Loader2 } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
+
+interface ClaseData { id: number; materiaId: number; materia: string | null; clave: string; diaSemana: string; horaInicio: string; horaFin: string; salon: string; profesor: string; }
 
 interface HorarioTutorProps {
   alumnoId: number;
 }
 
+const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"] as const;
+
 export function HorarioTutor({ alumnoId }: HorarioTutorProps) {
-  // Obtener horarios del alumno
-  const horariosAlumno = horarios.filter((h) => h.alumnoId === alumnoId);
+  const [horario, setHorario] = useState<ClaseData[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Días de la semana
-  const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+  useEffect(() => {
+    if (!alumnoId) return;
+    setLoading(true);
+    axios.get(`/api/tutor/horario/${alumnoId}`)
+      .then(({ data }) => setHorario(data.horario ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [alumnoId]);
 
-  // Horas del día (generales)
-  const horasDelDia = [
-    "08:00 - 09:00",
-    "09:00 - 10:00",
-    "10:00 - 11:00",
-    "11:00 - 12:00",
-    "12:00 - 13:00",
-    "13:00 - 14:00",
-  ];
+  const clasesPorDia = (dia: string) =>
+    horario
+      .filter((h) => h.diaSemana === dia)
+      .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
 
-  // Organizar horarios por día y hora
-  const getClasePorDiaHora = (dia: string, hora: string) => {
-    return horariosAlumno.find(
-      (h) => h.diaSemana === dia && `${h.horaInicio} - ${h.horaFin}` === hora
-    );
-  };
-
-  // Colores por materia
-  const coloresMaterias: Record<number, string> = {
-    1: "bg-blue-100 text-[#1D4ED8] border-blue-300",      // Matemáticas
-    2: "bg-purple-100 text-[#7C3AED] border-purple-300",  // Español
-    3: "bg-amber-100 text-[#D97706] border-amber-300",    // Historia
-    4: "bg-green-100 text-[#059669] border-green-300",    // Ciencias
-    5: "bg-pink-100 text-[#E11D48] border-pink-300",      // Inglés
-    6: "bg-teal-100 text-[#0891B2] border-teal-300",      // Educación Física
-  };
-
-  const getColorMateria = (materiaId: number) => {
-    return coloresMaterias[materiaId] || "bg-gray-100 text-[#6B7280] border-gray-300";
-  };
-
-  // Vista responsiva: Desktop muestra tabla, móvil muestra lista
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <PageTitle
         icon={CalendarDays}
         title="Horario de Clases"
@@ -57,182 +39,43 @@ export function HorarioTutor({ alumnoId }: HorarioTutorProps) {
         color="bg-[#7C3AED]"
       />
 
-      {/* Información general */}
-      <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-purple-50">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-sm text-[#6B7280]">Días de clase</p>
-              <p className="text-2xl font-bold text-[#1D4ED8]">{diasSemana.length}</p>
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Clases por semana</p>
-              <p className="text-2xl font-bold text-[#7C3AED]">{horariosAlumno.length}</p>
-            </div>
-            <div>
-              <p className="text-sm text-[#6B7280]">Horario</p>
-              <p className="text-lg font-bold text-[#111827]">08:00 - 14:00</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Vista Desktop: Tabla de horarios */}
-      <Card className="border-[#E5E7EB] hidden lg:block">
-        <CardHeader>
-          <CardTitle>Horario Semanal</CardTitle>
-          <CardDescription>Distribución de clases por día y hora</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="border border-[#E5E7EB] bg-gray-50 p-3 text-left text-sm font-semibold text-[#6B7280] w-32">
-                    Hora
-                  </th>
-                  {diasSemana.map((dia) => (
-                    <th
-                      key={dia}
-                      className="border border-[#E5E7EB] bg-linear-to-br from-blue-50 to-purple-50 p-3 text-center text-sm font-semibold text-[#111827]"
-                    >
-                      {dia}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {horasDelDia.map((hora) => (
-                  <tr key={hora}>
-                    <td className="border border-[#E5E7EB] bg-gray-50 p-3 text-sm font-medium text-[#6B7280]">
-                      {hora}
-                    </td>
-                    {diasSemana.map((dia) => {
-                      const clase = getClasePorDiaHora(dia, hora);
-                      if (!clase) {
-                        return (
-                          <td
-                            key={`${dia}-${hora}`}
-                            className="border border-[#E5E7EB] p-3 bg-white"
-                          >
-                            <div className="text-center text-xs text-[#9CA3AF]">-</div>
-                          </td>
-                        );
-                      }
-
-                      const materia = getMateriaById(clase.materiaId);
-                      return (
-                        <td
-                          key={`${dia}-${hora}`}
-                          className="border border-[#E5E7EB] p-2"
-                        >
-                          <div
-                            className={`rounded-lg border-2 p-3 ${getColorMateria(
-                              clase.materiaId
-                            )}`}
-                          >
-                            <div className="font-semibold text-sm mb-1">
-                              {materia?.nombre}
-                            </div>
-                            <div className="flex items-center gap-1 text-xs opacity-80">
-                              <MapPin className="h-3 w-3" />
-                              <span>{clase.salon}</span>
-                            </div>
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Vista Móvil/Tablet: Lista por día */}
-      <div className="space-y-4 lg:hidden">
-        {diasSemana.map((dia) => {
-          const clasesDelDia = horariosAlumno.filter((h) => h.diaSemana === dia);
-
-          return (
-            <Card key={dia} className="border-[#E5E7EB]">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-[#1D4ED8]" />
-                  {dia}
-                </CardTitle>
-                <CardDescription>{clasesDelDia.length} clases programadas</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {clasesDelDia.length === 0 ? (
-                  <p className="text-center text-sm text-[#6B7280] py-4">
-                    No hay clases programadas
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {clasesDelDia.map((clase) => {
-                      const materia = getMateriaById(clase.materiaId);
-                      return (
-                        <div
-                          key={clase.id}
-                          className={`rounded-lg border-2 p-4 ${getColorMateria(
-                            clase.materiaId
-                          )}`}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-semibold">{materia?.nombre}</h4>
-                            <Badge variant="secondary" className="bg-white/50">
-                              {materia?.clave}
-                            </Badge>
-                          </div>
-                          <div className="space-y-1 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4" />
-                              <span>
-                                {clase.horaInicio} - {clase.horaFin}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4" />
-                              <span>Salón {clase.salon}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Leyenda de materias */}
-      <Card className="border-[#E5E7EB]">
-        <CardHeader>
-          <CardTitle>Leyenda de Materias</CardTitle>
-          <CardDescription>Colores asignados a cada materia</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[1, 2, 3, 4, 5, 6].map((materiaId) => {
-              const materia = getMateriaById(materiaId);
-              return (
-                <div
-                  key={materiaId}
-                  className={`rounded-lg border-2 p-3 ${getColorMateria(materiaId)}`}
-                >
-                  <div className="font-semibold text-sm text-center">
-                    {materia?.nombre}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {loading ? (
+        <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#7C3AED]" /></div>
+      ) : horario.length === 0 ? (
+        <Card className="border-[#E5E7EB]">
+          <CardContent className="py-12 text-center">
+            <CalendarDays className="h-10 w-10 text-[#D1D5DB] mx-auto mb-3" />
+            <p className="text-[#6B7280]">No hay clases asignadas para este alumno.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {DIAS.map((dia) => {
+            const clases = clasesPorDia(dia);
+            return (
+              <Card key={dia} className="border-[#E5E7EB]">
+                <CardHeader className="pb-2 pt-3 px-3">
+                  <CardTitle className="text-sm font-semibold text-[#374151]">{dia}</CardTitle>
+                </CardHeader>
+                <CardContent className="px-3 pb-3 space-y-2">
+                  {clases.length === 0 ? (
+                    <p className="text-xs text-[#9CA3AF] text-center py-2">—</p>
+                  ) : (
+                    clases.map((clase) => (
+                      <div key={clase.id} className="p-2 bg-blue-50 rounded-lg border border-blue-100">
+                        <p className="text-xs font-semibold text-[#1D4ED8] leading-tight">{clase.materia}</p>
+                        <p className="text-xs text-[#6B7280] mt-0.5">{clase.horaInicio}–{clase.horaFin}</p>
+                        {clase.profesor && <p className="text-xs text-[#6B7280] truncate">{clase.profesor}</p>}
+                        {clase.salon && <p className="text-xs text-[#9CA3AF]">{clase.salon}</p>}
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

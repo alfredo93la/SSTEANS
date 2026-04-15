@@ -3,8 +3,14 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AgendaEventoController;
 use App\Http\Controllers\CircularController;
+use App\Http\Controllers\CalificacionController;
+use App\Http\Controllers\AsistenciaController;
+use App\Http\Controllers\TareaController;
+use App\Http\Controllers\ReporteConductaController;
+use App\Http\Controllers\HorarioController;
 
 use App\Http\Controllers\Admin\CicloEscolarController;
+use App\Http\Controllers\Admin\PeriodoEvaluacionController;
 use App\Http\Controllers\Admin\ConfiguracionEscuelaController;
 use App\Http\Controllers\Admin\MateriaController;
 use App\Http\Controllers\Admin\RolePermissionManagementController;
@@ -18,7 +24,12 @@ use App\Http\Controllers\Administrativo\GrupoController;
 use App\Http\Controllers\Administrativo\SalonController;
 use App\Http\Controllers\Administrativo\TutorAdminController;
 use App\Http\Controllers\Tutor\AssignedStudentsController;
+use App\Http\Controllers\Profesor\ProfesorController;
+use App\Http\Controllers\Profesor\RubroEvaluacionController;
+use App\Http\Controllers\TrabajadorSocial\WorkerSocialController;
+use App\Http\Controllers\NotificacionController;
 use App\Models\Grado;
+use App\Models\Materia;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -159,3 +170,141 @@ Route::middleware(['auth', 'verified', 'permission:tutores.manage'])
         Route::post('/tutores/{tutor}/vincular',         [TutorAdminController::class, 'vincular']);
         Route::delete('/tutores/{tutor}/desvincular',    [TutorAdminController::class, 'desvincular']);
     });
+
+// ─── Materias: lectura para cualquier rol autenticado ─────────────────────────
+Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
+    Route::get('/materias', fn () => response()->json([
+        'materias' => Materia::orderBy('nombre')
+            ->get(['id', 'nombre', 'grado_id'])
+            ->map(fn ($m) => [
+                'id'    => $m->id,
+                'nombre' => $m->nombre,
+                'clave' => strtoupper(mb_substr($m->nombre, 0, 3)),
+            ]),
+    ]));
+});
+
+// ─── Ciclos: lectura para Personal Administrativo (grupos.manage) ─────────────
+Route::middleware(['auth', 'verified', 'permission:grupos.manage'])->prefix('api')->group(function () {
+    Route::get('/ciclos', [CicloEscolarController::class, 'index']);
+});
+
+// ─── Periodos de Evaluación ────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
+    // Profesores y tutores: todos los periodos del ciclo activo (debe ir antes de {periodo})
+    Route::get('/periodos/ciclo-activo',             [PeriodoEvaluacionController::class, 'cicloActivo'])
+        ->middleware('permission:calificaciones.manage|calificaciones.view');
+    // Admin: CRUD completo
+    Route::get('/periodos',                          [PeriodoEvaluacionController::class, 'index'])
+        ->middleware('permission:periodos.manage');
+    Route::post('/periodos',                         [PeriodoEvaluacionController::class, 'store'])
+        ->middleware('permission:periodos.manage');
+    Route::put('/periodos/{periodo}',                [PeriodoEvaluacionController::class, 'update'])
+        ->middleware('permission:periodos.manage');
+    Route::patch('/periodos/{periodo}/captura',      [PeriodoEvaluacionController::class, 'toggleCaptura'])
+        ->middleware('permission:periodos.manage');
+    Route::delete('/periodos/{periodo}',             [PeriodoEvaluacionController::class, 'destroy'])
+        ->middleware('permission:periodos.manage');
+});
+
+// ─── Profesor ─────────────────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->prefix('api/profesor')->group(function () {
+    Route::get('/grupos',   [ProfesorController::class, 'grupos'])
+        ->middleware('permission:calificaciones.manage');
+    Route::get('/materias', [ProfesorController::class, 'materias'])
+        ->middleware('permission:calificaciones.manage');
+    Route::get('/horario',  [ProfesorController::class, 'horario'])
+        ->middleware('permission:horario.view');
+    Route::get('/alumnos',  [ProfesorController::class, 'alumnos'])
+        ->middleware('permission:calificaciones.manage');
+
+    // Rubros de evaluación (definidos por el profesor por clase)
+    Route::get('/rubros',  [RubroEvaluacionController::class, 'index'])
+        ->middleware('permission:calificaciones.manage');
+    Route::post('/rubros', [RubroEvaluacionController::class, 'sync'])
+        ->middleware('permission:calificaciones.manage');
+});
+
+// ─── Calificaciones ───────────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
+    Route::get('/calificaciones',  [CalificacionController::class, 'index'])
+        ->middleware('permission:calificaciones.manage');
+    Route::post('/calificaciones', [CalificacionController::class, 'upsert'])
+        ->middleware('permission:calificaciones.manage');
+});
+
+// ─── Asistencias ──────────────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
+    Route::get('/asistencias',       [AsistenciaController::class, 'index'])
+        ->middleware('permission:asistencia.manage');
+    Route::post('/asistencias/bulk', [AsistenciaController::class, 'bulk'])
+        ->middleware('permission:asistencia.manage');
+});
+
+// ─── Tareas ───────────────────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
+    Route::get('/tareas',            [TareaController::class, 'index'])
+        ->middleware('permission:tareas.manage');
+    Route::post('/tareas',           [TareaController::class, 'store'])
+        ->middleware('permission:tareas.manage');
+    Route::put('/tareas/{tarea}',                        [TareaController::class, 'update'])
+        ->middleware('permission:tareas.manage');
+    Route::delete('/tareas/{tarea}',                     [TareaController::class, 'destroy'])
+        ->middleware('permission:tareas.manage');
+    Route::get('/tareas/{tarea}/entregas',               [TareaController::class, 'entregas'])
+        ->middleware('permission:tareas.manage');
+    Route::patch('/tareas/{tarea}/entregas/{alumno}',    [TareaController::class, 'updateEntrega'])
+        ->middleware('permission:tareas.manage');
+});
+
+// ─── Reportes de Conducta ─────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
+    Route::get('/reportes-conducta',              [ReporteConductaController::class, 'index'])
+        ->middleware('permission:reportes.manage');
+    Route::post('/reportes-conducta',             [ReporteConductaController::class, 'store'])
+        ->middleware('permission:reportes.manage');
+    Route::put('/reportes-conducta/{reporte}',    [ReporteConductaController::class, 'update'])
+        ->middleware('permission:reportes.manage');
+});
+
+// ─── Tutor: data de sus alumnos ───────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->prefix('api/tutor')->group(function () {
+    Route::get('/horario/{alumno}',          [HorarioController::class, 'forAlumno'])
+        ->middleware('permission:horario.view');
+    Route::get('/calificaciones/{alumno}',   [CalificacionController::class, 'forAlumno'])
+        ->middleware('permission:calificaciones.view');
+    Route::get('/asistencias/{alumno}',      [AsistenciaController::class, 'forAlumno'])
+        ->middleware('permission:asistencia.view');
+    Route::get('/tareas/{alumno}',           [TareaController::class, 'forAlumno'])
+        ->middleware('permission:tareas.view');
+    Route::get('/reportes-conducta/{alumno}', [ReporteConductaController::class, 'forAlumno'])
+        ->middleware('permission:reportes.view');
+});
+
+// ─── Trabajador Social ────────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified', 'permission:alumnos.view'])->prefix('api/trabajador-social')->group(function () {
+    Route::get('/alumnos', [WorkerSocialController::class, 'alumnos']);
+});
+
+// ─── Notificaciones ───────────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
+    // Tutor: recibir y marcar como leídas
+    Route::get('/notificaciones',                              [NotificacionController::class, 'index'])
+        ->middleware('permission:notificaciones.view|notificaciones.manage');
+    Route::patch('/notificaciones/leer-todas',                 [NotificacionController::class, 'marcarTodasLeidas'])
+        ->middleware('permission:notificaciones.view');
+    Route::patch('/notificaciones/{notificacion}/leer',        [NotificacionController::class, 'marcarLeida'])
+        ->middleware('permission:notificaciones.view');
+
+    // Profesor / Trabajador Social: enviar y ver enviadas
+    Route::get('/notificaciones/enviadas',                     [NotificacionController::class, 'enviadas'])
+        ->middleware('permission:notificaciones.manage');
+    Route::post('/notificaciones',                             [NotificacionController::class, 'store'])
+        ->middleware('permission:notificaciones.manage');
+
+    // Común: lista de tutores para el selector
+    Route::get('/notificaciones/tutores',                      [NotificacionController::class, 'tutores'])
+        ->middleware('permission:notificaciones.manage');
+    Route::get('/notificaciones/destinatarios',                [NotificacionController::class, 'destinatarios'])
+        ->middleware('permission:notificaciones.manage');
+});
