@@ -1,8 +1,8 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import { usePage } from "@inertiajs/react";
+import { useEcho } from "@laravel/echo-react";
 import { Menu, X, Bell, User, ChevronDown, Users, IdCard, LogOut, ArrowLeft, Mail, MailOpen, ChevronRight } from "lucide-react";
 import { Sidebar } from "./Sidebar";
-import { BottomNav } from "./BottomNav";
 import { Button } from "../Components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../Components/ui/popover";
@@ -22,39 +22,6 @@ interface ResponsiveLayoutProps {
   onHijoChange?: (hijoId: number | null) => void;
 }
 
-const routeLabels: Record<string, string> = {
-  "#/dashboard": "Inicio",
-  "#/dashboard/calificaciones": "Calificaciones",
-  "#/dashboard/tareas": "Tareas",
-  "#/dashboard/asistencia": "Asistencia",
-  "#/dashboard/reportes": "Reportes",
-  "#/dashboard/notificaciones": "Notificaciones",
-  "#/dashboard/horario": "Horario",
-  "#/dashboard/asignar-tarea": "Asignar tarea",
-  "#/dashboard/gestionar-tareas": "Gestionar tareas",
-  "#/dashboard/mensajeria": "Mensajeria",
-  "#/agenda": "Agenda",
-  "#/agenda/eventos": "Eventos",
-  "#/agenda/examenes": "Examenes",
-  "#/agenda/entregas": "Entregas",
-  "#/circulares": "Circulares",
-  "#/perfil": "Mi perfil",
-  "#/trabajador-social/notificaciones": "Notificaciones TS",
-  "#/trabajador-social/reportes": "Reportes TS",
-  "#/trabajador-social/alumnos": "Alumnos",
-  "#/admin/usuarios": "Usuarios",
-  "#/admin/roles": "Roles y permisos",
-  "#/administrativo/grupos": "Grupos",
-  "#/administrativo/materias": "Materias",
-  "#/administrativo/horarios": "Horarios",
-  "#/administrativo/alumnos": "Alumnos",
-  "#/administrativo/tutores": "Tutores",
-  "#/admin/ciclos": "Ciclos escolares",
-  "#/admin/periodos": "Periodos de evaluacion",
-  "#/admin/configuracion": "Configuracion general",
-  "#/admin/validar-usuarios": "Validar usuarios",
-};
-
 export function ResponsiveLayout({
   children,
   currentRoute,
@@ -65,15 +32,178 @@ export function ResponsiveLayout({
   hijoSeleccionado,
   onHijoChange,
 }: ResponsiveLayoutProps) {
-  const { escuela } = usePage().props as { escuela: { nombre: string; servicio_educativo: string; numero: string } };
+  const { escuela, auth } = usePage().props as {
+    escuela: { nombre: string; servicio_educativo: string; numero: string };
+    auth: { user?: { id?: number; permissions?: string[] } };
+  };
+  const permissions = auth?.user?.permissions ?? [];
+  const userId = auth?.user?.id ?? 0;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [hijosDelTutor, setHijosDelTutor] = useState<Hijo[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
+  const [circularesSinLeer, setCircularesSinLeer] = useState(0);
+  const [notifsSinLeer, setNotifsSinLeer] = useState(0);
+  const [agendaSinLeer, setAgendaSinLeer] = useState(0);
+  const [tareasSinLeer, setTareasSinLeer] = useState(0);
+  const [reportesSinLeer, setReportesSinLeer] = useState(0);
+  const [examenesSinLeer, setExamenesSinLeer] = useState(0);
   const [notifs, setNotifs] = useState<{
     id: number; titulo: string; mensaje: string;
     fecha: string; leida: boolean; categoria: string; alumno: string | null;
   }[]>([]);
+
+  // Helpers para persistir conteos vistos
+  const getSeenCount = (key: string) => parseInt(localStorage.getItem(key) ?? "0");
+  const markAsSeen  = (key: string, count: number) => localStorage.setItem(key, String(count));
+
+  const TIPOS_EXAMEN = ["Parcial", "Final", "Extraordinario", "Examen"];
+
+  // ── Fetch callbacks (llamados por useEffect y por WebSocket) ──────────────
+
+  const fetchCirculares = useCallback(() => {
+    if (userRole === "Administrador") return;
+    axios.get<{ circulares: { leida: boolean }[] }>("/api/circulares")
+      .then(({ data }) => setCircularesSinLeer((data.circulares ?? []).filter(c => !c.leida).length))
+      .catch(() => {});
+  }, [userRole]);
+
+  const fetchNotificaciones = useCallback(() => {
+    if (userRole !== "Tutor") return;
+    axios.get<{ notificaciones: { leida: boolean }[] }>("/api/notificaciones")
+      .then(({ data }) => setNotifsSinLeer((data.notificaciones ?? []).filter(n => !n.leida).length))
+      .catch(() => {});
+  }, [userRole]);
+
+  const fetchAgenda = useCallback(() => {
+    if (currentRoute === "#/agenda") return;
+    const hasAgenda = permissions.includes("agenda.view") || permissions.includes("agenda.manage");
+    if (!hasAgenda) return;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const next7 = new Date(today); next7.setDate(today.getDate() + 7);
+    axios.get<{ eventos: { fecha: string; tipo: string }[] }>("/api/agenda/eventos")
+      .then(({ data }) => {
+        const eventos = data.eventos ?? [];
+        const agendaCount = eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7; }).length;
+        const examenCount = eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7 && TIPOS_EXAMEN.includes(e.tipo); }).length;
+        setAgendaSinLeer(agendaCount > getSeenCount("badge_agenda_seen") ? agendaCount : 0);
+        setExamenesSinLeer(examenCount > getSeenCount("badge_examenes_seen") ? examenCount : 0);
+      })
+      .catch(() => {});
+  }, [currentRoute, permissions]);
+
+  const fetchTareas = useCallback(() => {
+    if (currentRoute === "#/tareas") return;
+    if (userRole === "Tutor") {
+      if (!hijoSeleccionado) return;
+      axios.get<{ tareas: { estadoEntrega: string }[] }>(`/api/tutor/tareas/${hijoSeleccionado}`)
+        .then(({ data }) => {
+          const count = (data.tareas ?? []).filter(t => t.estadoEntrega === "Pendiente").length;
+          setTareasSinLeer(count > getSeenCount("badge_tareas_seen") ? count : 0);
+        })
+        .catch(() => {});
+    } else if (permissions.includes("tareas.manage")) {
+      axios.get<{ tareas: { entregadasCount: number; totalAlumnos: number }[] }>("/api/tareas")
+        .then(({ data }) => {
+          const count = (data.tareas ?? []).filter(t => t.entregadasCount < t.totalAlumnos).length;
+          setTareasSinLeer(count > getSeenCount("badge_tareas_seen") ? count : 0);
+        })
+        .catch(() => {});
+    }
+  }, [currentRoute, userRole, hijoSeleccionado, permissions]);
+
+  const fetchReportes = useCallback(() => {
+    const onPage = currentRoute === "#/reportes";
+    if (userRole === "Tutor") {
+      if (!hijoSeleccionado) return;
+      axios.get<{ reportes: { estatus: string }[] }>(`/api/tutor/reportes-conducta/${hijoSeleccionado}`)
+        .then(({ data }) => {
+          const count = (data.reportes ?? []).filter(r => r.estatus === "Abierto").length;
+          if (onPage) {
+            markAsSeen("badge_reportes_seen", count);
+          } else {
+            const seen = getSeenCount("badge_reportes_seen");
+            setReportesSinLeer(count > seen ? count - seen : 0);
+          }
+        })
+        .catch(() => {});
+    } else if (permissions.includes("reportes.manage")) {
+      axios.get<{ reportes: { estatus: string }[] }>("/api/reportes-conducta")
+        .then(({ data }) => {
+          const count = (data.reportes ?? []).filter(r => r.estatus === "Abierto").length;
+          if (onPage) {
+            markAsSeen("badge_reportes_seen", count);
+          } else {
+            const seen = getSeenCount("badge_reportes_seen");
+            setReportesSinLeer(count > seen ? count - seen : 0);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentRoute, userRole, hijoSeleccionado, permissions]);
+
+  // ── useEffect: fetch en cada cambio de ruta ───────────────────────────────
+  useEffect(() => { fetchCirculares(); },    [currentRoute, fetchCirculares]);
+  useEffect(() => { fetchNotificaciones(); }, [currentRoute, fetchNotificaciones]);
+  useEffect(() => { fetchAgenda(); },        [currentRoute, fetchAgenda]);
+  useEffect(() => { fetchTareas(); },        [currentRoute, fetchTareas]);
+  useEffect(() => { fetchReportes(); },      [currentRoute, fetchReportes]);
+
+  // Al visitar una sección: hacer fetch real para guardar el conteo exacto y limpiar badge
+  useEffect(() => {
+    if (currentRoute === "#/agenda") {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const next7 = new Date(today); next7.setDate(today.getDate() + 7);
+      axios.get<{ eventos: { fecha: string; tipo: string }[] }>("/api/agenda/eventos")
+        .then(({ data }) => {
+          const eventos = data.eventos ?? [];
+          markAsSeen("badge_agenda_seen", eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7; }).length);
+          markAsSeen("badge_examenes_seen", eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7 && TIPOS_EXAMEN.includes(e.tipo); }).length);
+        }).catch(() => {});
+      setAgendaSinLeer(0);
+      setExamenesSinLeer(0);
+    }
+    if (currentRoute === "#/examenes") {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const next7 = new Date(today); next7.setDate(today.getDate() + 7);
+      axios.get<{ eventos: { fecha: string; tipo: string }[] }>("/api/agenda/eventos")
+        .then(({ data }) => {
+          const count = (data.eventos ?? []).filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7 && TIPOS_EXAMEN.includes(e.tipo); }).length;
+          markAsSeen("badge_examenes_seen", count);
+        }).catch(() => {});
+      setExamenesSinLeer(0);
+    }
+    if (currentRoute === "#/tareas") {
+      if (userRole === "Tutor" && hijoSeleccionado) {
+        axios.get<{ tareas: { estadoEntrega: string }[] }>(`/api/tutor/tareas/${hijoSeleccionado}`)
+          .then(({ data }) => markAsSeen("badge_tareas_seen", (data.tareas ?? []).filter(t => t.estadoEntrega === "Pendiente").length))
+          .catch(() => {});
+      } else if (permissions.includes("tareas.manage")) {
+        axios.get<{ tareas: { entregadasCount: number; totalAlumnos: number }[] }>("/api/tareas")
+          .then(({ data }) => markAsSeen("badge_tareas_seen", (data.tareas ?? []).filter(t => t.entregadasCount < t.totalAlumnos).length))
+          .catch(() => {});
+      }
+      setTareasSinLeer(0);
+    }
+    if (currentRoute === "#/reportes") {
+      setReportesSinLeer(0);
+      // markAsSeen es manejado por fetchReportes (llamado por el efecto [currentRoute, fetchReportes])
+    }
+  }, [currentRoute]);
+
+  // ── WebSocket: actualizar badges al recibir evento ────────────────────────
+  useEcho(
+    `usuario.${userId}`,
+    ".badge.actualizado",
+    (data: { seccion: string }) => {
+      if (data.seccion === "circulares")     fetchCirculares();
+      if (data.seccion === "notificaciones") fetchNotificaciones();
+      if (data.seccion === "agenda")         fetchAgenda();
+      if (data.seccion === "tareas")         fetchTareas();
+      if (data.seccion === "reportes")       fetchReportes();
+    },
+    [fetchCirculares, fetchNotificaciones, fetchAgenda, fetchTareas, fetchReportes],
+  );
 
   useEffect(() => {
     if (userRole !== "Tutor") return;
@@ -103,7 +233,6 @@ export function ResponsiveLayout({
   };
 
   const showPageNavigation = currentRoute !== "#/dashboard";
-  const currentPageLabel = routeLabels[currentRoute] ?? "Modulo";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -141,7 +270,7 @@ export function ResponsiveLayout({
               </div>
             </div>
 
-            {userRole === "Tutor" && onHijoChange && hijosDelTutor.length > 0 && (
+            {userRole === "Tutor" && onHijoChange && hijosDelTutor.length > 0 && currentRoute !== "#/agenda" && currentRoute !== "#/circulares" && currentRoute !== "#/dashboard" && (
               <div className="ml-2 md:hidden">
                 <Select
                   value={hijoSeleccionado?.toString() || hijosDelTutor[0].id.toString()}
@@ -178,7 +307,7 @@ export function ResponsiveLayout({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            {userRole === "Tutor" && onHijoChange && hijosDelTutor.length > 0 && (
+            {userRole === "Tutor" && onHijoChange && hijosDelTutor.length > 0 && currentRoute !== "#/agenda" && currentRoute !== "#/circulares" && currentRoute !== "#/dashboard" && (
               <div className="mr-2 hidden min-w-45 md:flex lg:min-w-55">
                 <Select
                   value={hijoSeleccionado?.toString() || hijosDelTutor[0].id.toString()}
@@ -226,20 +355,22 @@ export function ResponsiveLayout({
               <Popover open={bellOpen} onOpenChange={(open) => {
                 setBellOpen(open);
                 if (open) {
-                  axios.get("/api/notificaciones")
-                    .then(({ data }) => setNotifs((data.notificaciones ?? []).slice(0, 7)))
+                  axios.get<{ notificaciones: { leida: boolean }[] }>("/api/notificaciones")
+                    .then(({ data }) => {
+                      const lista = data.notificaciones ?? [];
+                      setNotifs(lista.slice(0, 7) as any);
+                      setNotifsSinLeer(lista.filter(n => !n.leida).length);
+                    })
                     .catch(() => {});
                 }
               }}>
                 <PopoverTrigger asChild>
                   <button className="relative rounded-lg p-2 transition-colors hover:bg-gray-100" aria-label="Notificaciones">
                     <Bell className="h-5 w-5 text-gray-600" />
-                    {notifs.some(n => !n.leida) ? (
+                    {notifsSinLeer > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
-                        {notifs.filter(n => !n.leida).length > 9 ? "9+" : notifs.filter(n => !n.leida).length}
+                        {notifsSinLeer > 9 ? "9+" : notifsSinLeer}
                       </span>
-                    ) : (
-                      <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#E11D48]" />
                     )}
                   </button>
                 </PopoverTrigger>
@@ -273,6 +404,7 @@ export function ResponsiveLayout({
                           if (!notif.leida) {
                             axios.patch(`/api/notificaciones/${notif.id}/leer`).catch(() => {});
                             setNotifs(prev => prev.map(n => n.id === notif.id ? { ...n, leida: true } : n));
+                            setNotifsSinLeer(prev => Math.max(0, prev - 1));
                           }
                         }}
                         className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3 items-start ${!notif.leida ? "bg-blue-50/60" : ""}`}
@@ -367,20 +499,26 @@ export function ResponsiveLayout({
 
       <div className="flex">
         <div className="hidden lg:block">
-          <Sidebar currentRoute={currentRoute} onNavigate={onNavigate} userRole={userRole} />
+          <Sidebar currentRoute={currentRoute} onNavigate={onNavigate} permissions={permissions} circularesSinLeer={circularesSinLeer} notifsSinLeer={notifsSinLeer} agendaSinLeer={agendaSinLeer} tareasSinLeer={tareasSinLeer} reportesSinLeer={reportesSinLeer} examenesSinLeer={examenesSinLeer} />
         </div>
 
         {isMobileMenuOpen && (
           <>
             <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
-            <div className="fixed bottom-0 left-0 top-16 z-40 w-64 animate-slide-in-left bg-white shadow-xl lg:hidden">
+            <div className="fixed bottom-0 left-0 top-16 z-40 w-72 animate-slide-in-left bg-white shadow-xl lg:hidden">
               <Sidebar
                 currentRoute={currentRoute}
                 onNavigate={(route) => {
                   onNavigate(route);
                   setIsMobileMenuOpen(false);
                 }}
-                userRole={userRole}
+                permissions={permissions}
+                circularesSinLeer={circularesSinLeer}
+                notifsSinLeer={notifsSinLeer}
+                agendaSinLeer={agendaSinLeer}
+                tareasSinLeer={tareasSinLeer}
+                reportesSinLeer={reportesSinLeer}
+                examenesSinLeer={examenesSinLeer}
               />
             </div>
           </>

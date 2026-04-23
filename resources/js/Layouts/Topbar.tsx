@@ -49,7 +49,18 @@ export function Topbar({ userName, userRole, hijoSeleccionado, onHijoChange, onN
       .catch(() => {});
   }, [userRole]);
 
-  // Cargar notificaciones recientes al abrir el popover
+  // Cargar contador de no leídas al montar
+  useEffect(() => {
+    if (userRole !== "Tutor") return;
+    axios.get("/api/notificaciones")
+      .then(({ data }) => {
+        console.log("[Topbar] notifs cargadas:", data);
+        setNotifs((data.notificaciones ?? []).slice(0, 7));
+      })
+      .catch((err) => console.error("[Topbar] error al cargar notifs:", err));
+  }, [userRole]);
+
+  // Recargar al abrir el popover para tener la lista actualizada
   const handleBellOpen = (open: boolean) => {
     setPopoverOpen(open);
     if (open && userRole === "Tutor") {
@@ -125,8 +136,8 @@ export function Topbar({ userName, userRole, hijoSeleccionado, onHijoChange, onN
           </div>
         )}
 
-        {/* Campana de notificaciones */}
-        <Popover open={popoverOpen} onOpenChange={handleBellOpen}>
+        {/* Campana de notificaciones — solo para Tutor */}
+        {userRole === "Tutor" && <Popover open={popoverOpen} onOpenChange={handleBellOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="ghost"
@@ -134,16 +145,9 @@ export function Topbar({ userName, userRole, hijoSeleccionado, onHijoChange, onN
               className="relative hover:bg-gray-100 rounded-xl transition-all group"
             >
               <Bell className="h-5 w-5 text-[#6B7280] group-hover:text-[#1D4ED8] transition-colors" />
-              {/* Badge con contador — siempre visible para Tutor, estático para otros */}
-              {userRole === "Tutor" ? (
-                noLeidas > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-4.5 h-4.5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
-                    {noLeidas > 9 ? "9+" : noLeidas}
-                  </span>
-                )
-              ) : (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-[#E11D48] rounded-full animate-pulse">
-                  <span className="absolute inset-0 bg-[#E11D48] rounded-full animate-ping opacity-75" />
+              {userRole === "Tutor" && noLeidas > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4.5 h-4.5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                  {noLeidas > 9 ? "9+" : noLeidas}
                 </span>
               )}
             </Button>
@@ -232,7 +236,7 @@ export function Topbar({ userName, userRole, hijoSeleccionado, onHijoChange, onN
               </div>
             </PopoverContent>
           )}
-        </Popover>
+        </Popover>}
 
         <div className="flex items-center gap-3 pl-4 border-l border-[#E5E7EB]">
           <div className="text-right">

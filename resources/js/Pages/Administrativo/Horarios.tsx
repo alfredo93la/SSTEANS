@@ -208,8 +208,8 @@ export function Horarios() {
       profesor_user_id: clase.profesor_user_id.toString(),
       salon_id: clase.salon_id?.toString() ?? "",
       dia_semana: clase.dia_semana,
-      hora_inicio: clase.hora_inicio,
-      hora_fin: clase.hora_fin,
+      hora_inicio: clase.hora_inicio.substring(0, 5),
+      hora_fin: clase.hora_fin.substring(0, 5),
     });
     setModalEditar(true);
   };
@@ -293,7 +293,7 @@ export function Horarios() {
                       clasesDelDia.map((clase) => (
                         <div key={clase.id} className="p-2 bg-blue-50 rounded-lg border border-blue-100">
                           <p className="text-xs font-semibold text-[#1D4ED8] leading-tight">{clase.materia?.nombre}</p>
-                          <p className="text-xs text-[#6B7280] mt-0.5">{clase.hora_inicio}–{clase.hora_fin}</p>
+                          <p className="text-xs text-[#6B7280] mt-0.5">{clase.hora_inicio.substring(0, 5)}–{clase.hora_fin.substring(0, 5)}</p>
                           <p className="text-xs text-[#6B7280] truncate">{clase.profesor?.name}</p>
                           {clase.salon && <p className="text-xs text-[#9CA3AF]">{clase.salon.nombre}</p>}
                           <div className="flex gap-1 mt-1">

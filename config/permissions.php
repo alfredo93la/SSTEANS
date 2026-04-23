@@ -12,6 +12,7 @@ return [
             'reportes.view',
             'notificaciones.view',
             'horario.view',
+            'examenes.view',
         ],
         'Profesor' => [
             'dashboard.view',
@@ -22,6 +23,7 @@ return [
             'tareas.manage',
             'notificaciones.manage',
             'horario.view',
+            'examenes.manage',
         ],
         'Trabajador Social' => [
             'dashboard.view',
@@ -39,9 +41,7 @@ return [
             'ciclos.manage',
             'periodos.manage',
             'configuracion.manage',
-            'grupos.manage',
             'materias.manage',
-            'alumnos.manage',
         ],
         'Personal Administrativo' => [
             'dashboard.view',

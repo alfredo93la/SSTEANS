@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EmiteBadge;
 use App\Models\Alumno;
 use App\Models\AsignacionGrupo;
 use App\Models\CicloEscolar;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class TareaController extends Controller
 {
+    use EmiteBadge;
+
     /**
      * GET /api/tareas
      * Profesor: sus tareas. Tutor: tareas del grupo del alumno seleccionado.
@@ -101,6 +104,8 @@ class TareaController extends Controller
             'entregas as entregadas_count' => fn ($q) => $q->whereIn('estado', ['Entregada', 'Tarde', 'No Entregada']),
         ])->load(['materia:id,nombre', 'grupo:id,nombre,grado_id', 'grupo.grado:id,numero']);
 
+        $this->emitirBadge('tareas', 'tareas.view');
+
         return response()->json([
             'message' => 'Tarea asignada correctamente.',
             'tarea'   => $this->formatTarea($tarea),
@@ -120,6 +125,8 @@ class TareaController extends Controller
 
         $tarea->update($validated);
 
+        $this->emitirBadge('tareas', 'tareas.view');
+
         return response()->json([
             'message' => 'Tarea actualizada.',
             'tarea'   => $this->formatTarea($tarea->fresh()->load(['materia:id,nombre', 'grupo:id,nombre'])),
@@ -132,6 +139,8 @@ class TareaController extends Controller
     public function destroy(Tarea $tarea): JsonResponse
     {
         $tarea->delete();
+
+        $this->emitirBadge('tareas', 'tareas.view');
 
         return response()->json(['message' => 'Tarea eliminada.']);
     }

@@ -12,12 +12,23 @@ class CicloEscolarController extends Controller
 {
     public function index(): JsonResponse
     {
-        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+        $ciclos = CicloEscolar::where('archivado', false)->orderByDesc('fecha_inicio')->get();
 
         return response()->json([
             'ciclos'       => $ciclos,
             'ciclo_activo' => $ciclos->firstWhere('activo', true),
         ]);
+    }
+
+    public function archivar(CicloEscolar $ciclo): JsonResponse
+    {
+        if (!$ciclo->cerrado) {
+            return response()->json(['message' => 'Solo se pueden archivar ciclos cerrados.'], 422);
+        }
+
+        $ciclo->update(['archivado' => true]);
+
+        return response()->json(['message' => 'Ciclo escolar archivado.']);
     }
 
     public function store(Request $request): JsonResponse
@@ -88,8 +99,37 @@ class CicloEscolarController extends Controller
         ]);
     }
 
+    public function verificarCierre(CicloEscolar $ciclo): JsonResponse
+    {
+        $periodosAbiertos = $ciclo->periodos()->where('captura_abierta', true)->count();
+        $totalPeriodos    = $ciclo->periodos()->count();
+
+        $checks = [
+            [
+                'label' => 'Períodos de evaluación con captura cerrada',
+                'ok'    => $periodosAbiertos === 0,
+                'detalle' => $periodosAbiertos > 0
+                    ? "{$periodosAbiertos} período(s) aún con captura abierta"
+                    : "{$totalPeriodos} período(s) cerrado(s)",
+            ],
+        ];
+
+        return response()->json([
+            'puede_cerrar' => collect($checks)->every('ok'),
+            'checks'       => $checks,
+        ]);
+    }
+
     public function close(CicloEscolar $ciclo): JsonResponse
     {
+        $periodosAbiertos = $ciclo->periodos()->where('captura_abierta', true)->count();
+
+        if ($periodosAbiertos > 0) {
+            return response()->json([
+                'message' => "No se puede cerrar el ciclo: hay {$periodosAbiertos} período(s) de evaluación con captura abierta.",
+            ], 422);
+        }
+
         $ciclo->update(['activo' => false, 'cerrado' => true]);
 
         return response()->json([

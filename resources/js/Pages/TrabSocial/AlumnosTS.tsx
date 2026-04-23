@@ -78,7 +78,7 @@ export function AlumnosTS({ onNavigate }: AlumnosTSProps) {
   }, [alumnos, grupoSeleccionadoId, filtroGrupoId, busqueda]);
 
   const verPerfilAlumno = (alumnoId: number) => {
-    onNavigate?.(`#/trabajador-social/alumno/${alumnoId}`);
+    onNavigate?.(`#/alumnos/perfil/${alumnoId}`);
   };
 
   const initials = (nombre: string) => {

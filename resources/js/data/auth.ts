@@ -1,43 +1,41 @@
 export const ROUTE_PERMISSIONS: Record<string, string[]> = {
-  "#/dashboard": ["dashboard.view"],
-  "#/dashboard/calificaciones": ["calificaciones.view", "calificaciones.manage"],
-  "#/dashboard/tareas": ["tareas.view"],
-  "#/dashboard/asistencia": ["asistencia.view", "asistencia.manage"],
-  "#/dashboard/reportes": ["reportes.view", "reportes.manage"],
-  "#/dashboard/notificaciones": ["notificaciones.view", "notificaciones.manage"],
-  "#/dashboard/horario": ["horario.view"],
-  "#/dashboard/asignar-tarea": ["tareas.manage"],
-  "#/dashboard/gestionar-tareas": ["tareas.manage"],
-  "#/agenda": ["agenda.view"],
-  "#/agenda/eventos": ["agenda.view"],
-  "#/agenda/examenes": ["agenda.view"],
-  "#/agenda/entregas": ["agenda.view"],
-  "#/circulares": ["circulares.view"],
-  "#/perfil": ["dashboard.view"],
-  "#/notificaciones": ["notificaciones.manage"],
-  "#/trabajador-social/reportes": ["reportes.manage"],
-  "#/trabajador-social/alumnos": ["alumnos.view"],
-  "#/trabajador-social/alumno/": ["alumnos.view"],
-  "#/admin/usuarios": ["usuarios.manage"],
-  "#/admin/roles": ["roles.manage"],
-  "#/administrativo/grupos": ["grupos.manage"],
-  "#/administrativo/materias": ["materias.manage"],
-  "#/administrativo/horarios": ["horarios.manage"],
-  "#/administrativo/alumnos": ["alumnos.manage"],
-  "#/administrativo/tutores": ["tutores.manage"],
-  "#/admin/ciclos": ["ciclos.manage"],
-  "#/admin/periodos": ["periodos.manage"],
-  "#/admin/configuracion": ["configuracion.manage"],
-  "#/admin/validar-usuarios": ["usuarios.validate"],
+  // ── Compartido ───────────────────────────────────────────────────────────────
+  "#/dashboard":        ["dashboard.view"],
+  "#/perfil":           ["dashboard.view"],
+  "#/agenda":           ["agenda.view", "agenda.manage"],
+  "#/circulares":       ["circulares.view", "circulares.manage"],
+
+  // ── Módulos académicos (view = tutor, manage = profesor u otro rol con gestión) ─
+  "#/calificaciones":   ["calificaciones.view", "calificaciones.manage"],
+  "#/tareas":           ["tareas.view", "tareas.manage"],
+  "#/asistencia":       ["asistencia.view", "asistencia.manage"],
+  "#/examenes":         ["examenes.view", "examenes.manage"],
+  "#/reportes":         ["reportes.view", "reportes.manage"],
+  "#/notificaciones":   ["notificaciones.view", "notificaciones.manage"],
+  "#/horario":          ["horario.view"],
+
+  // ── Gestión escolar ───────────────────────────────────────────────────────────
+  "#/alumnos":          ["alumnos.view", "alumnos.manage"],
+  "#/alumnos/perfil/":  ["alumnos.view"],
+  "#/tutores":          ["tutores.manage"],
+  "#/grupos":           ["grupos.manage"],
+  "#/materias":         ["materias.manage"],
+  "#/horarios":         ["horarios.manage"],
+
+  // ── Administración ────────────────────────────────────────────────────────────
+  "#/usuarios":         ["usuarios.manage"],
+  "#/roles":            ["roles.manage"],
+  "#/ciclos":           ["ciclos.manage"],
+  "#/periodos":         ["periodos.manage"],
+  "#/configuracion":    ["configuracion.manage"],
 };
 
 export function canAccessRoute(route: string, permissions: string[]): boolean {
-  // Exact match
   if (ROUTE_PERMISSIONS[route]) {
     return ROUTE_PERMISSIONS[route].some((p) => permissions.includes(p));
   }
 
-  // Prefix match for dynamic routes (e.g. "#/trabajador-social/alumno/5")
+  // Prefix match para rutas dinámicas (ej. "#/alumnos/perfil/5")
   const prefixEntry = Object.entries(ROUTE_PERMISSIONS).find(
     ([key]) => key.endsWith("/") && route.startsWith(key),
   );

@@ -8,10 +8,15 @@ import { DashboardProfesor } from "./Dashboards/DashboardProfesor";
 import { DashboardTrabajadorSocial } from "./Dashboards/DashboardTrabajadorSocial";
 import { DashboardAdmin } from "./Dashboards/DashboardAdmin";
 import { DashboardPersonalAdministrativo } from "./Dashboards/DashboardPersonalAdministrativo";
+import { DashboardCustomRole } from "./Dashboards/DashboardCustomRole";
+
+const SYSTEM_ROLES = ["Tutor", "Profesor", "Trabajador Social", "Administrador", "Personal Administrativo"];
 
 interface DashboardProps {
   onNavigate: (route: string) => void;
   userRole: string;
+  userName?: string;
+  permissions?: string[];
   hijoSeleccionado?: number | null;
   onHijoChange?: (hijoId: number | null) => void;
 }
@@ -28,7 +33,11 @@ const modulosCards = [
   }
 ];
 
-export function Dashboard({ onNavigate, userRole, hijoSeleccionado, onHijoChange }: DashboardProps) {
+export function Dashboard({ onNavigate, userRole, userName = "", permissions = [], hijoSeleccionado, onHijoChange }: DashboardProps) {
+  if (!SYSTEM_ROLES.includes(userRole)) {
+    return <DashboardCustomRole onNavigate={onNavigate} userRole={userRole} userName={userName} permissions={permissions} />;
+  }
+
   // Si es Tutor, mostrar dashboard específico
   if (userRole === "Tutor") {
     return <DashboardTutor onNavigate={onNavigate} hijoSeleccionado={hijoSeleccionado} onHijoChange={onHijoChange} />;

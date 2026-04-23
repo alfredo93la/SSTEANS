@@ -76,4 +76,41 @@ class WorkerSocialController extends Controller
 
         return response()->json(['alumnos' => $alumnos, 'grupos' => $grupos]);
     }
+
+    /**
+     * GET /api/trabajador-social/alumnos/{alumno}
+     * Detalle de un alumno con su grupo para el ciclo indicado (o el activo).
+     */
+    public function alumno(Request $request, Alumno $alumno): JsonResponse
+    {
+        $cicloId = $request->filled('ciclo_id')
+            ? $request->integer('ciclo_id')
+            : CicloEscolar::where('activo', true)->value('id');
+
+        $alumno->load([
+            'persona:id,nombre,apellidos,telefono',
+            'tutores' => fn ($q) => $q->with('persona:id,nombre,apellidos,telefono')->withPivot('parentesco')->limit(1),
+            'asignaciones' => fn ($q) => $q
+                ->where('ciclo_escolar_id', $cicloId)
+                ->with('grupo:id,nombre,grado_id', 'grupo.grado:id,numero'),
+        ]);
+
+        $asignacion  = $alumno->asignaciones->first();
+        $grupo       = $asignacion?->grupo;
+        $tutor       = $alumno->tutores->first();
+
+        return response()->json([
+            'alumno' => [
+                'id'               => $alumno->id,
+                'nombre'           => trim("{$alumno->persona?->nombre} {$alumno->persona?->apellidos}"),
+                'grupo_id'         => $grupo?->id,
+                'grupo_nombre'     => $grupo ? "{$grupo->grado?->numero}°{$grupo->nombre}" : null,
+                'estado_asignacion' => $asignacion?->estado ?? null,
+                'estado'           => $alumno->estado,
+                'tutor'            => $tutor ? trim("{$tutor->persona?->nombre} {$tutor->persona?->apellidos}") : null,
+                'tutor_parentesco' => $tutor?->pivot?->parentesco,
+                'tutor_telefono'   => $tutor?->persona?->telefono,
+            ],
+        ]);
+    }
 }

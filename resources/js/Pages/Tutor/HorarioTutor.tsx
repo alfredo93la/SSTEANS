@@ -3,6 +3,7 @@ import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "../../Components/ui/card";
 import { CalendarDays, Loader2 } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
+import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 
 interface ClaseData { id: number; materiaId: number; materia: string | null; clave: string; diaSemana: string; horaInicio: string; horaFin: string; salon: string; profesor: string; }
 
@@ -32,6 +33,7 @@ export function HorarioTutor({ alumnoId }: HorarioTutorProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <AlumnoInfoCard alumnoId={alumnoId} />
       <PageTitle
         icon={CalendarDays}
         title="Horario de Clases"

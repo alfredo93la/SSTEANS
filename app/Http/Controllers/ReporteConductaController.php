@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EmiteBadge;
 use App\Models\Alumno;
+use App\Models\CicloEscolar;
 use App\Models\ReporteConducta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ReporteConductaController extends Controller
 {
+    use EmiteBadge;
     /**
      * GET /api/reportes-conducta
      * Trabajador Social: todos los reportes (con filtros).
@@ -63,6 +66,8 @@ class ReporteConductaController extends Controller
             'archivo_adjunto' => $archivoPath,
         ]);
 
+        $this->emitirBadge('reportes', 'reportes.view');
+
         return response()->json([
             'message' => 'Reporte registrado correctamente.',
             'reporte' => $this->formatReporte($reporte->load(['alumno.persona:id,nombre,apellidos', 'reportadoPor:id,name'])),
@@ -89,6 +94,8 @@ class ReporteConductaController extends Controller
 
         $reporte->update($validated);
 
+        $this->emitirBadge('reportes', 'reportes.view');
+
         return response()->json([
             'message' => 'Reporte actualizado.',
             'reporte' => $this->formatReporte($reporte->fresh()->load(['alumno.persona:id,nombre,apellidos', 'reportadoPor:id,name'])),
@@ -97,15 +104,27 @@ class ReporteConductaController extends Controller
 
     /**
      * GET /api/tutor/reportes-conducta/{alumno}
-     * Reportes de conducta de un alumno (para tutor).
+     * GET /api/trabajador-social/reportes-conducta/{alumno}
+     * Reportes de conducta de un alumno.
+     * Acepta ciclo_id opcional; si se pasa, filtra por el rango de fechas del ciclo.
      */
     public function forAlumno(Request $request, Alumno $alumno): JsonResponse
     {
-        $reportes = ReporteConducta::where('alumno_id', $alumno->id)
+        $query = ReporteConducta::where('alumno_id', $alumno->id)
             ->with('reportadoPor:id,name')
-            ->latest('fecha')
-            ->get()
-            ->map(fn ($r) => $this->formatReporte($r));
+            ->latest('fecha');
+
+        if ($request->filled('ciclo_id')) {
+            $ciclo = CicloEscolar::find($request->integer('ciclo_id'));
+            if ($ciclo) {
+                $query->whereBetween('fecha', [
+                    $ciclo->fecha_inicio->toDateString(),
+                    $ciclo->fecha_fin->toDateString(),
+                ]);
+            }
+        }
+
+        $reportes = $query->get()->map(fn ($r) => $this->formatReporte($r));
 
         return response()->json(['reportes' => $reportes]);
     }

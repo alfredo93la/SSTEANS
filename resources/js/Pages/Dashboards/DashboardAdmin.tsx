@@ -86,23 +86,6 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                className="rounded-lg border-red-200 text-[#E11D48] hover:bg-red-50"
-                onClick={() => onNavigate("#/admin/roles")}
-              >
-                <Key className="h-4 w-4 mr-2" />
-                Roles y Permisos
-              </Button>
-              <Button 
-                className="bg-[#1D4ED8] hover:bg-[#1E40AF] rounded-lg"
-                onClick={() => onNavigate("#/admin/usuarios")}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Gestionar Usuarios
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -332,58 +315,6 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
           </CardContent>
         </Card>
       </div>
-
-      {/* Acciones rápidas del administrador */}
-      <Card className="border-[#E5E7EB]">
-        <CardHeader>
-          <CardTitle>Acciones Rápidas</CardTitle>
-          <CardDescription>Tareas frecuentes de administración del sistema</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Button
-              variant="outline"
-              className="h-auto flex-col gap-2 py-4 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-all"
-              onClick={() => onNavigate("#/admin/usuarios")}
-            >
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="h-5 w-5 text-[#1D4ED8]" />
-              </div>
-              <span className="text-xs font-medium">Gestionar Usuarios</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto flex-col gap-2 py-4 rounded-xl hover:bg-purple-50 hover:border-purple-200 transition-all"
-              onClick={() => onNavigate("#/admin/roles")}
-            >
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Shield className="h-5 w-5 text-[#7C3AED]" />
-              </div>
-              <span className="text-xs font-medium">Roles y Permisos</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto flex-col gap-2 py-4 rounded-xl hover:bg-amber-50 hover:border-amber-200 transition-all"
-              onClick={() => onNavigate("#/admin/usuarios")}
-            >
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <Key className="h-5 w-5 text-[#D97706]" />
-              </div>
-              <span className="text-xs font-medium">Restablecer Acceso</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto flex-col gap-2 py-4 rounded-xl hover:bg-red-50 hover:border-red-200 transition-all"
-              onClick={() => onNavigate("#/admin/usuarios")}
-            >
-              <div className="p-2 bg-red-100 rounded-lg">
-                <Lock className="h-5 w-5 text-[#E11D48]" />
-              </div>
-              <span className="text-xs font-medium">Suspender Cuenta</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -190,7 +190,7 @@ export function PeriodosEvaluacion() {
                 </DialogTrigger>
                 <DialogContent className="rounded-3xl max-w-md">
                   <DialogHeader>
-                    <DialogTitle>{editandoId ? "Editar Período" : "Nuevo Período de Evaluación"}</DialogTitle>
+                    <DialogTitle>{editandoId ? "Editar Periodo" : "Nuevo Periodo de Evaluación"}</DialogTitle>
                     <DialogDescription>Define el nombre y fechas del periodo.</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">

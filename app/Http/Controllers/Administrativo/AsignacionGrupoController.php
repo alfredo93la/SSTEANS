@@ -39,13 +39,12 @@ class AsignacionGrupoController extends Controller
             return response()->json(['message' => 'No se puede asignar alumnos a grupos de un ciclo cerrado.'], 422);
         }
 
-        // Verificar que el alumno no tenga ya grupo en este ciclo
-        $yaAsignado = AsignacionGrupo::where('alumno_id', $validated['alumno_id'])
+        // Verificar que el alumno no tenga ya un grupo activo en este ciclo
+        $existente = AsignacionGrupo::where('alumno_id', $validated['alumno_id'])
             ->where('ciclo_escolar_id', $cicloId)
-            ->where('estado', 'activo')
-            ->exists();
+            ->first();
 
-        if ($yaAsignado) {
+        if ($existente && $existente->estado === 'activo') {
             return response()->json(['message' => 'El alumno ya tiene un grupo asignado en este ciclo escolar.'], 422);
         }
 
@@ -58,13 +57,23 @@ class AsignacionGrupoController extends Controller
             return response()->json(['message' => "El grupo ha alcanzado su capacidad máxima ({$grupo->capacidad_maxima} alumnos)."], 422);
         }
 
-        $asignacion = AsignacionGrupo::create([
-            'alumno_id'        => $validated['alumno_id'],
-            'grupo_id'         => $validated['grupo_id'],
-            'ciclo_escolar_id' => $cicloId,
-            'fecha_asignacion' => now()->toDateString(),
-            'estado'           => 'activo',
-        ]);
+        // Reutilizar registro previo en baja si existe (evita violación de unique key)
+        if ($existente) {
+            $existente->update([
+                'grupo_id'         => $validated['grupo_id'],
+                'fecha_asignacion' => now()->toDateString(),
+                'estado'           => 'activo',
+            ]);
+            $asignacion = $existente;
+        } else {
+            $asignacion = AsignacionGrupo::create([
+                'alumno_id'        => $validated['alumno_id'],
+                'grupo_id'         => $validated['grupo_id'],
+                'ciclo_escolar_id' => $cicloId,
+                'fecha_asignacion' => now()->toDateString(),
+                'estado'           => 'activo',
+            ]);
+        }
 
         return response()->json([
             'message'    => 'Alumno asignado al grupo correctamente.',

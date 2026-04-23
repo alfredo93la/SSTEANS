@@ -34,10 +34,15 @@ class PeriodoEvaluacionController extends Controller
         return response()->json(['periodos' => $query->get()->map(fn ($p) => $this->format($p))]);
     }
 
-    /** GET /api/periodos/ciclo-activo — todos los periodos del ciclo activo (profesores y tutores) */
-    public function cicloActivo(): JsonResponse
+    /**
+     * GET /api/periodos/ciclo-activo — periodos del ciclo activo (o del ciclo indicado).
+     * Acepta ciclo_id opcional para consultar periodos de un ciclo anterior.
+     */
+    public function cicloActivo(Request $request): JsonResponse
     {
-        $cicloId = CicloEscolar::where('activo', true)->value('id');
+        $cicloId = $request->filled('ciclo_id')
+            ? $request->integer('ciclo_id')
+            : CicloEscolar::where('activo', true)->value('id');
 
         $periodos = PeriodoEvaluacion::where('ciclo_escolar_id', $cicloId)
             ->orderBy('fecha_inicio')

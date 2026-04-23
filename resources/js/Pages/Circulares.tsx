@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../Components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../Components/ui/card";
 import { Button } from "../Components/ui/button";
 import { Badge } from "../Components/ui/badge";
 import { Input } from "../Components/ui/input";
 import { Label } from "../Components/ui/label";
 import { Textarea } from "../Components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../Components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../Components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
 import { Checkbox } from "../Components/ui/checkbox";
-import { FileText, Download, AlertCircle, Info, CheckCircle, Filter, Calendar, Tag, Plus, Edit, Trash2, Send, Eye } from "lucide-react";
+import { Switch } from "../Components/ui/switch";
+import { FileText, Download, AlertCircle, Info, CheckCircle, Filter, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, X, CalendarDays } from "lucide-react";
 import { PageTitle } from "../Layouts/PageTitle";
 import { ScrollText } from "lucide-react";
 import { toast } from "sonner";
@@ -20,11 +20,19 @@ interface CircularesProps {
   permissions: string[];
 }
 
+interface EventoVinculado {
+  id: number;
+  fecha: string;
+  fechaFin?: string;
+  horaInicio?: string;
+  horaFin?: string;
+  tipo: string;
+}
+
 interface CircularItem {
   id: number;
   titulo: string;
   descripcion: string;
-  contenido: string;
   fechaPublicacion: string;
   prioridad: string;
   categoria: string;
@@ -33,6 +41,7 @@ interface CircularItem {
   publicadoPor: number | null;
   publicadoPorNombre: string;
   leida: boolean;
+  evento: EventoVinculado | null;
 }
 
 const prioridadColors: Record<string, { bg: string; text: string; icon: any }> = {
@@ -42,23 +51,39 @@ const prioridadColors: Record<string, { bg: string; text: string; icon: any }> =
 };
 
 const categoriaColors: Record<string, string> = {
-  "Académico": "bg-[#DBEAFE] text-[#1D4ED8]",
-  "Administrativo": "bg-[#F3E8FF] text-[#7C3AED]",
-  "Cultural": "bg-[#ECFDF5] text-[#059669]",
-  "Seguridad": "bg-[#FEE2E2] text-[#E11D48]",
-  "General": "bg-[#F3F4F6] text-[#6B7280]",
+  "Académico":          "bg-[#DBEAFE] text-[#1D4ED8]",
+  "Administrativo":     "bg-[#F3E8FF] text-[#7C3AED]",
+  "Becas y Apoyos":     "bg-yellow-100 text-yellow-700",
+  "Eventos y Actividades": "bg-[#ECFDF5] text-[#059669]",
+  "Salud y Bienestar":  "bg-pink-100 text-pink-700",
+  "Seguridad y Convivencia": "bg-[#FEE2E2] text-[#E11D48]",
+  "General":            "bg-[#F3F4F6] text-[#6B7280]",
 };
 
 const ROLES_DESTINATARIOS = ["Tutor", "Profesor", "Trabajador Social"];
 
+const TIPOS_EVENTO = ["Junta", "Suspensión", "Día Cívico / Festivo", "Actividad Cultural", "Actividad Deportiva", "Campaña", "Concurso", "Convocatoria"];
+
 const circularVacia = {
   titulo: "",
   descripcion: "",
-  contenido: "",
   categoria: "",
   prioridad: "",
   destinatarios: [] as string[],
 };
+
+const eventoVacio = {
+  fecha: "",
+  fechaFin: "",
+  horaInicio: "",
+  horaFin: "",
+  tipo: "",
+};
+
+/** Extrae solo el nombre de archivo de una ruta tipo "circulares/abc123.pdf" */
+function nombreArchivo(path: string): string {
+  return path.split("/").pop() ?? path;
+}
 
 export function Circulares({ permissions }: CircularesProps) {
   const esPublicador = permissions.includes("circulares.manage");
@@ -75,6 +100,13 @@ export function Circulares({ permissions }: CircularesProps) {
   const [modoEdicion, setModoEdicion] = useState(false);
   const [circularEditandoId, setCircularEditandoId] = useState<number | null>(null);
   const [forma, setForma] = useState(circularVacia);
+  const [archivos, setArchivos] = useState<File[]>([]);
+  const [adjuntosExistentes, setAdjuntosExistentes] = useState<string[]>([]);
+  const archivoInputRef = useRef<HTMLInputElement>(null);
+
+  // Estado del evento vinculado
+  const [agregarAgenda, setAgregarAgenda] = useState(false);
+  const [formaEvento, setFormaEvento] = useState(eventoVacio);
 
   // Estado de eliminar
   const [eliminarId, setEliminarId] = useState<number | null>(null);
@@ -94,7 +126,7 @@ export function Circulares({ permissions }: CircularesProps) {
     void cargarCirculares();
   }, []);
 
-  // Filtrar circulares según rol
+  // Filtrar circulares
   const circularesFiltradas = circulares
     .filter(c => filtroCategoria === "todas" || c.categoria === filtroCategoria)
     .filter(c => filtroPrioridad === "todas" || c.prioridad === filtroPrioridad)
@@ -106,13 +138,27 @@ export function Circulares({ permissions }: CircularesProps) {
 
   const circularesNoLeidas = circularesFiltradas.filter(c => !c.leida).length;
 
-  const marcarComoLeida = (id: number) => {
-    setCirculares(circulares.map(c => c.id === id ? { ...c, leida: true } : c));
+  const marcarComoLeida = async (id: number) => {
+    setCirculares(prev => prev.map(c => c.id === id ? { ...c, leida: true } : c));
+    try {
+      await axios.patch(`/api/circulares/${id}/leer`);
+    } catch {
+      // No revertimos — no es crítico si falla
+    }
   };
 
   // --- CRUD (solo PA) ---
-  const abrirNueva = () => {
+  const resetDialog = () => {
     setForma(circularVacia);
+    setArchivos([]);
+    setAdjuntosExistentes([]);
+    setAgregarAgenda(false);
+    setFormaEvento(eventoVacio);
+    if (archivoInputRef.current) archivoInputRef.current.value = "";
+  };
+
+  const abrirNueva = () => {
+    resetDialog();
     setModoEdicion(false);
     setCircularEditandoId(null);
     setDialogOpen(true);
@@ -123,11 +169,27 @@ export function Circulares({ permissions }: CircularesProps) {
     setForma({
       titulo: circular.titulo,
       descripcion: circular.descripcion,
-      contenido: circular.contenido,
       categoria: circular.categoria,
       prioridad: circular.prioridad,
       destinatarios: [...circular.destinatarios],
     });
+    setAdjuntosExistentes(circular.adjuntos ?? []);
+    setArchivos([]);
+
+    if (circular.evento) {
+      setAgregarAgenda(true);
+      setFormaEvento({
+        fecha: circular.evento.fecha,
+        fechaFin: circular.evento.fechaFin ?? "",
+        horaInicio: circular.evento.horaInicio ?? "",
+        horaFin: circular.evento.horaFin ?? "",
+        tipo: circular.evento.tipo,
+      });
+    } else {
+      setAgregarAgenda(false);
+      setFormaEvento(eventoVacio);
+    }
+
     setCircularEditandoId(circular.id);
     setModoEdicion(true);
     setDialogOpen(true);
@@ -143,7 +205,7 @@ export function Circulares({ permissions }: CircularesProps) {
   };
 
   const handleGuardar = async () => {
-    if (!forma.titulo || !forma.descripcion || !forma.contenido || !forma.categoria || !forma.prioridad) {
+    if (!forma.titulo || !forma.descripcion || !forma.categoria || !forma.prioridad) {
       toast.error("Por favor completa todos los campos obligatorios");
       return;
     }
@@ -151,19 +213,45 @@ export function Circulares({ permissions }: CircularesProps) {
       toast.error("Selecciona al menos un destinatario");
       return;
     }
+    if (agregarAgenda && (!formaEvento.fecha || !formaEvento.tipo)) {
+      toast.error("Completa la fecha y el tipo de evento para agregarlo a la agenda");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("titulo", forma.titulo);
+    fd.append("descripcion", forma.descripcion);
+    fd.append("categoria", forma.categoria);
+    fd.append("prioridad", forma.prioridad);
+    forma.destinatarios.forEach(d => fd.append("destinatarios[]", d));
+    archivos.forEach(file => fd.append("archivos[]", file));
+
+    if (agregarAgenda) {
+      fd.append("eventoFecha", formaEvento.fecha);
+      fd.append("eventoTipo", formaEvento.tipo);
+      if (formaEvento.fechaFin) fd.append("eventoFechaFin", formaEvento.fechaFin);
+      if (formaEvento.horaInicio) fd.append("eventoHoraInicio", formaEvento.horaInicio);
+      if (formaEvento.horaFin) fd.append("eventoHoraFin", formaEvento.horaFin);
+    }
 
     try {
       if (modoEdicion && circularEditandoId !== null) {
-        await axios.put(`/api/circulares/${circularEditandoId}`, forma);
+        adjuntosExistentes.forEach(adj => fd.append("adjuntosExistentes[]", adj));
+        fd.append("_method", "PUT");
+        await axios.post(`/api/circulares/${circularEditandoId}`, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
         toast.success("Circular actualizada exitosamente");
       } else {
-        await axios.post("/api/circulares", forma);
+        await axios.post("/api/circulares", fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
         toast.success("Circular publicada exitosamente");
       }
 
       await cargarCirculares();
       setDialogOpen(false);
-      setForma(circularVacia);
+      resetDialog();
     } catch (error) {
       toast.error("No se pudo guardar la circular");
     }
@@ -182,7 +270,7 @@ export function Circulares({ permissions }: CircularesProps) {
     }
   };
 
-  const categorias = ["Académico", "Administrativo", "Cultural", "Seguridad", "General"];
+  const categorias = ["Académico", "Administrativo", "Becas y Apoyos", "Eventos y Actividades", "Salud y Bienestar", "Seguridad y Convivencia", "General"];
   const prioridades = ["Alta", "Media", "Baja"];
 
   if (loading) {
@@ -210,7 +298,6 @@ export function Circulares({ permissions }: CircularesProps) {
         }
         color="bg-[#1D4ED8]"
       >
-        {/* Botón publicar solo para PA */}
         {esPublicador && (
           <Button
             className="bg-[#1D4ED8] hover:bg-[#1E40AF] rounded-lg"
@@ -354,7 +441,7 @@ export function Circulares({ permissions }: CircularesProps) {
                 }`}
                 onClick={() => {
                   setCircularSeleccionada(circular);
-                  if (!esPublicador) marcarComoLeida(circular.id);
+                  if (!esPublicador && !circular.leida) void marcarComoLeida(circular.id);
                 }}
               >
                 <CardContent className="p-4 sm:p-6">
@@ -432,6 +519,12 @@ export function Circulares({ permissions }: CircularesProps) {
                             {circular.adjuntos.length} adjunto{circular.adjuntos.length > 1 ? "s" : ""}
                           </Badge>
                         )}
+                        {circular.evento && (
+                          <Badge className="bg-[#ECFDF5] text-[#059669] text-xs">
+                            <CalendarDays className="h-3 w-3 mr-1" />
+                            En agenda · {circular.evento.fecha}
+                          </Badge>
+                        )}
                       </div>
 
                       <div className="flex items-center justify-between mt-2">
@@ -457,102 +550,133 @@ export function Circulares({ permissions }: CircularesProps) {
         )}
       </div>
 
-      {/* Sheet detalle */}
-      {circularSeleccionada && (
-        <Sheet open={!!circularSeleccionada} onOpenChange={() => setCircularSeleccionada(null)}>
-          <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-            <SheetHeader>
-              <div className="flex items-start gap-3">
-                <div className={`p-2 rounded-lg ${prioridadColors[circularSeleccionada.prioridad].bg}`}>
-                  <FileText className={`h-5 w-5 ${prioridadColors[circularSeleccionada.prioridad].text}`} />
-                </div>
-                <div className="flex-1">
-                  <SheetTitle className="text-left">{circularSeleccionada.titulo}</SheetTitle>
-                  <SheetDescription className="text-left mt-2">
-                    Publicado el {circularSeleccionada.fechaPublicacion} por{" "}
-                    {circularSeleccionada.publicadoPorNombre || "Personal Administrativo"}
-                  </SheetDescription>
-                </div>
-              </div>
-            </SheetHeader>
+      {/* Dialog detalle */}
+      <Dialog open={!!circularSeleccionada} onOpenChange={() => setCircularSeleccionada(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-[#1D4ED8]" />
+              {circularSeleccionada?.titulo}
+            </DialogTitle>
+            <DialogDescription>Detalles completos de la circular</DialogDescription>
+          </DialogHeader>
 
-            <div className="mt-6 space-y-6">
-              {/* Metadatos */}
+          {circularSeleccionada && (
+            <div className="space-y-4 mt-4">
+              {/* Badges */}
               <div className="flex flex-wrap gap-2">
                 <Badge className={categoriaColors[circularSeleccionada.categoria]}>
                   <Tag className="h-3 w-3 mr-1" />
                   {circularSeleccionada.categoria}
                 </Badge>
                 <Badge className={`${prioridadColors[circularSeleccionada.prioridad].bg} ${prioridadColors[circularSeleccionada.prioridad].text}`}>
-                  Prioridad {circularSeleccionada.prioridad}
+                  Prioridad: {circularSeleccionada.prioridad}
                 </Badge>
+                {circularSeleccionada.leida && (
+                  <Badge className="bg-[#059669] text-white">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Leída
+                  </Badge>
+                )}
               </div>
 
-              {/* Descripción */}
-              <div>
-                <h4 className="text-sm font-semibold text-[#111827] mb-2">Descripción</h4>
-                <p className="text-sm text-[#6B7280] p-4 bg-gray-50 rounded-lg">{circularSeleccionada.descripcion}</p>
-              </div>
-
-              {/* Contenido completo */}
-              <div>
-                <h4 className="text-sm font-semibold text-[#111827] mb-2">Contenido completo</h4>
-                <div className="text-sm text-[#111827] p-4 bg-gray-50 rounded-lg whitespace-pre-line">
-                  {circularSeleccionada.contenido}
-                </div>
-              </div>
-
-              {/* Adjuntos */}
-              {circularSeleccionada.adjuntos.length > 0 && (
+              <div className="space-y-3">
+                {/* Publicado por */}
                 <div>
-                  <h4 className="text-sm font-semibold text-[#111827] mb-3">
-                    Documentos adjuntos ({circularSeleccionada.adjuntos.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {circularSeleccionada.adjuntos.map((adjunto, index) => (
-                      <Card key={index} className="border-[#E5E7EB] hover:border-[#1D4ED8] transition-colors">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-red-50 rounded-lg">
-                                <FileText className="h-5 w-5 text-[#E11D48]" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-[#111827]">{adjunto}</p>
-                                <p className="text-xs text-[#6B7280]">Documento PDF</p>
-                              </div>
-                            </div>
-                            <Button size="sm" variant="outline" className="gap-2">
-                              <Download className="h-4 w-4" />
-                              Descargar
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
+                  <h4 className="font-semibold text-[#111827] mb-1">Publicado por</h4>
+                  <p className="text-sm text-[#6B7280]">
+                    {circularSeleccionada.publicadoPorNombre || "Personal Administrativo"}
+                  </p>
+                </div>
+
+                {/* Fecha */}
+                <div>
+                  <h4 className="font-semibold text-[#111827] mb-1">Fecha de publicación</h4>
+                  <p className="text-sm text-[#6B7280]">{circularSeleccionada.fechaPublicacion}</p>
+                </div>
+
+                {/* Descripción */}
+                <div>
+                  <h4 className="font-semibold text-[#111827] mb-1">Descripción</h4>
+                  <div className="p-4 bg-gray-50 rounded-lg border border-[#E5E7EB]">
+                    <p className="text-sm text-[#374151] leading-relaxed whitespace-pre-line">{circularSeleccionada.descripcion}</p>
+                  </div>
+                </div>
+
+                {/* Evento vinculado */}
+                {circularSeleccionada.evento && (
+                  <div>
+                    <h4 className="font-semibold text-[#111827] mb-1">Evento en agenda</h4>
+                    <div className="p-3 bg-[#ECFDF5] rounded-lg border border-[#6EE7B7] flex flex-wrap gap-4">
+                      <div className="flex items-center gap-2 text-sm text-[#059669]">
+                        <CalendarDays className="h-4 w-4 shrink-0" />
+                        <span>{circularSeleccionada.evento.fecha}</span>
+                      </div>
+                      {circularSeleccionada.evento.horaInicio && (
+                        <div className="text-sm text-[#059669]">
+                          {circularSeleccionada.evento.horaInicio}
+                          {circularSeleccionada.evento.horaFin && ` – ${circularSeleccionada.evento.horaFin}`}
+                        </div>
+                      )}
+                      <Badge className="bg-white text-[#059669] border border-[#6EE7B7]">
+                        {circularSeleccionada.evento.tipo}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dirigido a */}
+                <div>
+                  <h4 className="font-semibold text-[#111827] mb-1">Dirigido a</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {circularSeleccionada.destinatarios.map((dest, index) => (
+                      <Badge key={index} variant="outline">{dest}</Badge>
                     ))}
                   </div>
                 </div>
-              )}
 
-              {/* Destinatarios */}
-              <div>
-                <h4 className="text-sm font-semibold text-[#111827] mb-2">Dirigido a</h4>
-                <div className="flex flex-wrap gap-2">
-                  {circularSeleccionada.destinatarios.map((dest, index) => (
-                    <Badge key={index} variant="outline">{dest}</Badge>
-                  ))}
-                </div>
+                {/* Adjuntos */}
+                {circularSeleccionada.adjuntos.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-[#111827] mb-2">
+                      Documentos adjuntos ({circularSeleccionada.adjuntos.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {circularSeleccionada.adjuntos.map((adjunto, index) => {
+                        const nombre = nombreArchivo(adjunto);
+                        const url = `/api/circulares/${circularSeleccionada.id}/adjuntos/${nombre}`;
+                        return (
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-[#E5E7EB]">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-red-50 rounded-lg">
+                                <FileText className="h-4 w-4 text-[#E11D48]" />
+                              </div>
+                              <p className="text-sm font-medium text-[#111827] break-all">{nombre}</p>
+                            </div>
+                            <a href={url} download>
+                              <Button size="sm" variant="outline" className="gap-2 shrink-0">
+                                <Download className="h-4 w-4" />
+                                Descargar
+                              </Button>
+                            </a>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Botones de edición para PA desde el sheet */}
+              {/* Acciones PA */}
               {esPublicador && (
                 <div className="flex gap-2 pt-2 border-t border-[#E5E7EB]">
                   <Button
                     variant="outline"
                     className="flex-1 rounded-lg"
                     onClick={(e) => {
+                      const c = circularSeleccionada;
                       setCircularSeleccionada(null);
-                      abrirEditar(circularSeleccionada, e as any);
+                      abrirEditar(c, e as any);
                     }}
                   >
                     <Edit className="h-4 w-4 mr-2" />
@@ -561,7 +685,7 @@ export function Circulares({ permissions }: CircularesProps) {
                   <Button
                     variant="outline"
                     className="text-[#E11D48] border-red-200 hover:bg-red-50 rounded-lg"
-                    onClick={() => { setCircularSeleccionada(null); setEliminarId(circularSeleccionada.id); }}
+                    onClick={() => { const id = circularSeleccionada.id; setCircularSeleccionada(null); setEliminarId(id); }}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Eliminar
@@ -569,12 +693,12 @@ export function Circulares({ permissions }: CircularesProps) {
                 </div>
               )}
             </div>
-          </SheetContent>
-        </Sheet>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog crear / editar circular (solo PA) */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setForma(circularVacia); }}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetDialog(); }}>
         <DialogContent className="rounded-3xl max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -601,26 +725,14 @@ export function Circulares({ permissions }: CircularesProps) {
               />
             </div>
 
-            {/* Descripción corta */}
+            {/* Descripción */}
             <div className="space-y-2">
-              <Label htmlFor="descripcion">Descripción breve *</Label>
-              <Input
+              <Label htmlFor="descripcion">Descripción *</Label>
+              <Textarea
                 id="descripcion"
                 value={forma.descripcion}
                 onChange={(e) => setForma({ ...forma, descripcion: e.target.value })}
-                placeholder="Resumen en una línea para la lista de circulares"
-                className="rounded-lg"
-              />
-            </div>
-
-            {/* Contenido completo */}
-            <div className="space-y-2">
-              <Label htmlFor="contenido">Contenido completo *</Label>
-              <Textarea
-                id="contenido"
-                value={forma.contenido}
-                onChange={(e) => setForma({ ...forma, contenido: e.target.value })}
-                placeholder="Escribe el contenido completo de la circular..."
+                placeholder="Escribe el contenido de la circular..."
                 className="rounded-lg min-h-30"
               />
             </div>
@@ -632,7 +744,7 @@ export function Circulares({ permissions }: CircularesProps) {
                 <Select value={forma.categoria} onValueChange={(v) => setForma({ ...forma, categoria: v })}>
                   <SelectTrigger className="rounded-lg"><SelectValue placeholder="Selecciona categoría" /></SelectTrigger>
                   <SelectContent>
-                    {["Académico", "Administrativo", "Cultural", "Seguridad", "General"].map(cat => (
+                    {["Académico", "Administrativo", "Becas y Apoyos", "Eventos y Actividades", "Salud y Bienestar", "Seguridad y Convivencia", "General"].map(cat => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
                   </SelectContent>
@@ -651,11 +763,135 @@ export function Circulares({ permissions }: CircularesProps) {
                 </Select>
               </div>
             </div>
-            
-            {/* Archivo adjunto */}
+
+            {/* Toggle: agregar a agenda */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-[#E5E7EB]">
+              <div className="flex items-center gap-3">
+                <CalendarDays className="h-5 w-5 text-[#059669]" />
+                <div>
+                  <p className="text-sm font-medium text-[#111827]">Agregar a la agenda escolar</p>
+                  <p className="text-xs text-[#6B7280]">Crea un evento en el calendario con los mismos destinatarios</p>
+                </div>
+              </div>
+              <Switch
+                checked={agregarAgenda}
+                onCheckedChange={(v) => {
+                  setAgregarAgenda(v);
+                  if (!v) setFormaEvento(eventoVacio);
+                }}
+              />
+            </div>
+
+            {/* Campos del evento (solo si toggle activo) */}
+            {agregarAgenda && (
+              <div className="space-y-3 p-4 bg-[#ECFDF5] rounded-lg border border-[#6EE7B7]">
+                <p className="text-xs font-medium text-[#059669]">Detalles del evento en agenda</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="eventoFecha">Fecha inicio *</Label>
+                    <Input
+                      id="eventoFecha"
+                      type="date"
+                      value={formaEvento.fecha}
+                      onChange={(e) => setFormaEvento({ ...formaEvento, fecha: e.target.value })}
+                      className="rounded-lg bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="eventoFechaFin">Fecha fin <span className="text-xs text-[#6B7280] font-normal">(opcional)</span></Label>
+                    <Input
+                      id="eventoFechaFin"
+                      type="date"
+                      value={formaEvento.fechaFin}
+                      min={formaEvento.fecha}
+                      onChange={(e) => setFormaEvento({ ...formaEvento, fechaFin: e.target.value })}
+                      className="rounded-lg bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label>Tipo de evento *</Label>
+                    <Select value={formaEvento.tipo} onValueChange={(v) => setFormaEvento({ ...formaEvento, tipo: v })}>
+                      <SelectTrigger className="rounded-lg bg-white"><SelectValue placeholder="Selecciona tipo" /></SelectTrigger>
+                      <SelectContent>
+                        {TIPOS_EVENTO.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="eventoHoraInicio">Hora inicio</Label>
+                    <Input
+                      id="eventoHoraInicio"
+                      type="time"
+                      value={formaEvento.horaInicio}
+                      onChange={(e) => setFormaEvento({ ...formaEvento, horaInicio: e.target.value })}
+                      className="rounded-lg bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="eventoHoraFin">Hora fin</Label>
+                    <Input
+                      id="eventoHoraFin"
+                      type="time"
+                      value={formaEvento.horaFin}
+                      onChange={(e) => setFormaEvento({ ...formaEvento, horaFin: e.target.value })}
+                      className="rounded-lg bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Adjuntos existentes (solo en edición) */}
+            {modoEdicion && adjuntosExistentes.length > 0 && (
+              <div className="space-y-2">
+                <Label>Archivos actuales</Label>
+                <div className="space-y-1">
+                  {adjuntosExistentes.map((adj) => (
+                    <div key={adj} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-[#E5E7EB]">
+                      <div className="flex items-center gap-2 text-sm text-[#111827] min-w-0">
+                        <FileText className="h-4 w-4 text-[#E11D48] shrink-0" />
+                        <span className="truncate">{nombreArchivo(adj)}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-[#6B7280] hover:text-[#E11D48] shrink-0"
+                        onClick={() => setAdjuntosExistentes(prev => prev.filter(a => a !== adj))}
+                        title="Quitar adjunto"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Archivo adjunto — nuevo(s) */}
             <div className="space-y-2">
-              <Label htmlFor="archivo">Archivo adjunto (.pdf, .doc, .docx)</Label>
-              <Input id="archivo" type="file" accept=".pdf,.doc,.docx" />
+              <Label htmlFor="archivo">
+                {modoEdicion ? "Agregar archivos (.pdf, .doc, .docx)" : "Archivo adjunto (.pdf, .doc, .docx)"}
+              </Label>
+              <Input
+                id="archivo"
+                type="file"
+                accept=".pdf,.doc,.docx"
+                multiple
+                ref={archivoInputRef}
+                onChange={(e) => setArchivos(Array.from(e.target.files ?? []))}
+                className="rounded-lg"
+              />
+              {archivos.length > 0 && (
+                <p className="text-xs text-[#059669]">
+                  {archivos.length} archivo{archivos.length > 1 ? "s" : ""} seleccionado{archivos.length > 1 ? "s" : ""}
+                </p>
+              )}
             </div>
 
             {/* Destinatarios */}
@@ -687,7 +923,7 @@ export function Circulares({ permissions }: CircularesProps) {
           <DialogFooter className="gap-2">
             <Button
               variant="outline"
-              onClick={() => { setDialogOpen(false); setForma(circularVacia); }}
+              onClick={() => { setDialogOpen(false); resetDialog(); }}
               className="rounded-lg"
             >
               Cancelar

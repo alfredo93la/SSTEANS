@@ -6,6 +6,7 @@ import { Badge } from "../../Components/ui/badge";
 import { Button } from "../../Components/ui/button";
 import { CheckCircle2, Clock, AlertCircle, Calendar, FileText, ClipboardList } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
+import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 
 interface TareaData { id: number; titulo: string; descripcion: string; materiaId: number; materia: string | null; fechaEntrega: string; estadoEntrega: string; fechaEntregaAlumno: string | null; }
 
@@ -60,6 +61,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <AlumnoInfoCard alumnoId={alumnoId} />
       {/* Header */}
       <PageTitle
         icon={ClipboardList}

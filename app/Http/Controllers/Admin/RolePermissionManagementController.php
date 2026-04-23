@@ -11,6 +11,13 @@ use Illuminate\Validation\Rule;
 
 class RolePermissionManagementController extends Controller
 {
+    private function allowedPermissionIds(): array
+    {
+        $names = config('permissions.roles.Personal Administrativo', []);
+
+        return Permiso::whereIn('nombre', $names)->pluck('id')->toArray();
+    }
+
     public function index(): JsonResponse
     {
         $roles = Role::query()
@@ -24,46 +31,94 @@ class RolePermissionManagementController extends Controller
             ->get(['id', 'nombre', 'descripcion']);
 
         return response()->json([
-            'roles' => $roles,
-            'permisos' => $permisos,
+            'roles'              => $roles,
+            'permisos'           => $permisos,
+            'permisos_custom_ids' => $this->allowedPermissionIds(),
         ]);
+    }
+
+    private function validateCustomPermisos(array $permisoIds): bool
+    {
+        $allowed = $this->allowedPermissionIds();
+        return empty(array_diff($permisoIds, $allowed));
     }
 
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'nombre' => ['required', 'string', 'max:255', 'unique:roles,nombre'],
+            'nombre'      => ['required', 'string', 'max:255', 'unique:roles,nombre'],
             'descripcion' => ['nullable', 'string', 'max:500'],
-            'permisos' => ['nullable', 'array'],
-            'permisos.*' => ['integer', Rule::exists('permisos', 'id')],
+            'permisos'    => ['nullable', 'array'],
+            'permisos.*'  => ['integer', Rule::exists('permisos', 'id')],
         ]);
 
+        $permisos = $validated['permisos'] ?? [];
+
+        if (! empty($permisos) && ! $this->validateCustomPermisos($permisos)) {
+            return response()->json([
+                'message' => 'Solo se pueden asignar permisos del Personal Administrativo.',
+            ], 403);
+        }
+
+        $dashboardId = Permiso::where('nombre', 'dashboard.view')->value('id');
+        if ($dashboardId && ! \in_array($dashboardId, $permisos)) {
+            $permisos[] = $dashboardId;
+        }
+
         $role = Role::query()->create([
-            'nombre' => $validated['nombre'],
+            'nombre'      => $validated['nombre'],
             'descripcion' => $validated['descripcion'] ?? null,
         ]);
 
-        if (! empty($validated['permisos'])) {
-            $role->permisos()->sync($validated['permisos']);
-        }
+        $role->permisos()->sync($permisos);
 
         return response()->json([
             'message' => 'Rol creado correctamente.',
-            'role' => $role->load('permisos:id,nombre')->loadCount('users'),
+            'role'    => $role->load('permisos:id,nombre')->loadCount('users'),
         ], 201);
+    }
+
+    public function destroy(Role $role): JsonResponse
+    {
+        $sistemRoles = array_keys(config('permissions.roles', []));
+        if (\in_array($role->nombre, $sistemRoles)) {
+            return response()->json(['message' => 'Los roles del sistema no pueden eliminarse.'], 403);
+        }
+
+        $usersCount = $role->users()->count();
+
+        $role->users()->detach();
+        $role->permisos()->detach();
+        $role->delete();
+
+        return response()->json([
+            'message'      => 'Rol eliminado correctamente.',
+            'users_affected' => $usersCount,
+        ]);
     }
 
     public function update(Request $request, Role $role): JsonResponse
     {
+        $sistemRoles = array_keys(config('permissions.roles', []));
+        if (\in_array($role->nombre, $sistemRoles)) {
+            return response()->json(['message' => 'Los roles del sistema no pueden editarse.'], 403);
+        }
+
         $validated = $request->validate([
-            'nombre' => ['required', 'string', 'max:255', Rule::unique('roles', 'nombre')->ignore($role->id)],
+            'nombre'      => ['required', 'string', 'max:255', Rule::unique('roles', 'nombre')->ignore($role->id)],
             'descripcion' => ['nullable', 'string', 'max:500'],
-            'permisos' => ['required', 'array', 'min:1'],
-            'permisos.*' => ['integer', Rule::exists('permisos', 'id')],
+            'permisos'    => ['required', 'array', 'min:1'],
+            'permisos.*'  => ['integer', Rule::exists('permisos', 'id')],
         ]);
 
+        if (! $this->validateCustomPermisos($validated['permisos'])) {
+            return response()->json([
+                'message' => 'Solo se pueden asignar permisos del Personal Administrativo.',
+            ], 403);
+        }
+
         $role->update([
-            'nombre' => $validated['nombre'],
+            'nombre'      => $validated['nombre'],
             'descripcion' => $validated['descripcion'] ?? null,
         ]);
 
@@ -71,7 +126,7 @@ class RolePermissionManagementController extends Controller
 
         return response()->json([
             'message' => 'Rol actualizado correctamente.',
-            'role' => $role->load('permisos:id,nombre')->loadCount('users'),
+            'role'    => $role->load('permisos:id,nombre')->loadCount('users'),
         ]);
     }
 }

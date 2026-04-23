@@ -3,8 +3,7 @@ import axios from "axios";
 import { Button } from "../Components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../Components/ui/card";
 import { Badge } from "../Components/ui/badge";
-import { ResponsiveTable } from "../Layouts/ResponsiveTable";
-import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Users, Edit2, Trash2, X } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, CalendarDays, Clock, Edit2, Trash2, ChevronDown, Sun } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../Components/ui/dialog";
 import { Input } from "../Components/ui/input";
 import { Label } from "../Components/ui/label";
@@ -12,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Textarea } from "../Components/ui/textarea";
 import { Checkbox } from "../Components/ui/checkbox";
 import { toast } from "sonner";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../Components/ui/sheet";
+
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
 import { PageTitle } from "../Layouts/PageTitle";
 
@@ -23,27 +22,94 @@ interface AgendaProps {
 interface Evento {
   id: number;
   fecha: string;
+  fechaFin?: string;
   titulo: string;
   descripcion?: string;
   horaInicio?: string;
   horaFin?: string;
   tipo: string;
+  grupo?: string;
+  materia?: string;
   destinatarios: string[];
 }
 
 
 const tipoColors: Record<string, string> = {
+  // Exámenes — gestionados desde página de profesor, solo se muestran
   Examen: "bg-[#FEE2E2] text-[#E11D48] border-[#FCA5A5]",
+  Parcial: "bg-[#FEE2E2] text-[#E11D48] border-[#FCA5A5]",
+  Final: "bg-orange-100 text-orange-700 border-orange-300",
+  Extraordinario: "bg-yellow-100 text-yellow-700 border-yellow-300",
   Entrega: "bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD]",
+  // Tipos gestionables desde agenda
   Junta: "bg-[#F3E8FF] text-[#7C3AED] border-[#C4B5FD]",
   Suspensión: "bg-[#FEF3C7] text-[#D97706] border-[#FCD34D]",
-  "Día Cívico": "bg-[#ECFDF5] text-[#059669] border-[#6EE7B7]"
+  "Día Cívico / Festivo": "bg-[#ECFDF5] text-[#059669] border-[#6EE7B7]",
+  "Actividad Cultural": "bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD]",
+  "Actividad Deportiva": "bg-orange-100 text-orange-700 border-orange-300",
+  Campaña: "bg-[#F3E8FF] text-[#7C3AED] border-[#C4B5FD]",
+  Concurso: "bg-yellow-100 text-yellow-700 border-yellow-300",
+  Convocatoria: "bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD]",
 };
 
 const meses = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
+
+interface EventoItemProps {
+  evento: Evento;
+  formatearRango: (evento: Evento) => string;
+  tipoColors: Record<string, string>;
+  pasado?: boolean;
+  onClick: () => void;
+}
+
+function EventoItem({ evento, formatearRango, tipoColors, pasado = false, onClick }: EventoItemProps) {
+  const esMultiDia = evento.fechaFin && evento.fechaFin !== evento.fecha;
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left p-3 rounded-xl border transition-all hover:shadow-sm ${
+        pasado ? "opacity-60 bg-gray-50 border-gray-200" : "bg-white border-[#E5E7EB] hover:border-blue-200 hover:bg-blue-50/30"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className={`font-medium text-sm truncate ${pasado ? "text-[#6B7280]" : "text-[#111827]"}`}>
+            {evento.titulo}
+          </p>
+          <div className="flex items-center gap-2 mt-1 text-xs text-[#6B7280]">
+            <span>
+              <CalendarIcon className="h-3 w-3 inline mr-0.5" />
+              {formatearRango(evento)}
+              {esMultiDia && <span className="ml-1 text-[#7C3AED] font-medium">(varios días)</span>}
+            </span>
+            {!esMultiDia && evento.horaInicio && (
+              <span>
+                <Clock className="h-3 w-3 inline mr-0.5" />
+                {evento.horaInicio}{evento.horaFin && ` - ${evento.horaFin}`}
+              </span>
+            )}
+          </div>
+          {(evento.grupo && evento.grupo !== "General") || (evento.materia && evento.materia !== "-") ? (
+            <div className="flex items-center gap-2 mt-1 text-xs text-[#6B7280]">
+              {evento.grupo && evento.grupo !== "General" && (
+                <span className="rounded bg-purple-50 px-1.5 py-0.5 font-medium text-[#7C3AED]">{evento.grupo}</span>
+              )}
+              {evento.materia && evento.materia !== "-" && (
+                <span>{evento.materia}</span>
+              )}
+            </div>
+          ) : null}
+        </div>
+        <Badge className={`${tipoColors[evento.tipo] ?? ""} text-xs shrink-0`}>
+          {evento.tipo}
+        </Badge>
+      </div>
+    </button>
+  );
+}
 
 const diasSemana = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const ROLES_DESTINATARIOS = ["Tutor", "Profesor", "Trabajador Social"];
@@ -53,6 +119,7 @@ export function Agenda({ permissions }: AgendaProps) {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filterTipo, setFilterTipo] = useState<string>("todos");
+  const [filterDestinatario, setFilterDestinatario] = useState<string>("todos");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [eventoDetalleOpen, setEventoDetalleOpen] = useState(false);
   const [eventoSeleccionado, setEventoSeleccionado] = useState<Evento | null>(null);
@@ -60,11 +127,13 @@ export function Agenda({ permissions }: AgendaProps) {
   const [editMode, setEditMode] = useState(false);
   const [viewMode, setViewMode] = useState<"calendario" | "lista">("lista");
   const [fechaFiltro, setFechaFiltro] = useState<string | null>(null);
+  const [mostrarPasados, setMostrarPasados] = useState(false);
   
   const [nuevoEvento, setNuevoEvento] = useState({
     titulo: "",
     descripcion: "",
     fecha: "",
+    fechaFin: "",
     horaInicio: "",
     horaFin: "",
     tipo: "",
@@ -102,7 +171,7 @@ export function Agenda({ permissions }: AgendaProps) {
 
   const getEventosDelDia = (dia: number) => {
     const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
-    return eventos.filter(e => e.fecha === dateStr);
+    return eventos.filter(e => e.fecha <= dateStr && (e.fechaFin ? e.fechaFin >= dateStr : e.fecha === dateStr));
   };
 
   const seleccionarDia = (dia: number) => {
@@ -127,6 +196,7 @@ export function Agenda({ permissions }: AgendaProps) {
 
     const payload = {
       fecha: nuevoEvento.fecha,
+      fechaFin: nuevoEvento.fechaFin || undefined,
       titulo: nuevoEvento.titulo,
       descripcion: nuevoEvento.descripcion,
       horaInicio: nuevoEvento.horaInicio || undefined,
@@ -151,13 +221,24 @@ export function Agenda({ permissions }: AgendaProps) {
         titulo: "",
         descripcion: "",
         fecha: "",
+        fechaFin: "",
         horaInicio: "",
         horaFin: "",
         tipo: "",
         destinatarios: [],
       });
-    } catch (error) {
-      toast.error("No se pudo guardar el evento");
+    } catch (error: any) {
+      if (error?.response?.status === 422) {
+        const errors = error.response.data?.errors;
+        if (errors) {
+          const primer = Object.values(errors)[0] as string[];
+          toast.error(primer[0]);
+        } else {
+          toast.error("Datos inválidos, revisa el formulario");
+        }
+      } else {
+        toast.error("No se pudo guardar el evento");
+      }
     }
   };
 
@@ -166,6 +247,7 @@ export function Agenda({ permissions }: AgendaProps) {
       titulo: evento.titulo,
       descripcion: evento.descripcion || "",
       fecha: evento.fecha,
+      fechaFin: evento.fechaFin || "",
       horaInicio: evento.horaInicio || "",
       horaFin: evento.horaFin || "",
       tipo: evento.tipo,
@@ -202,26 +284,38 @@ export function Agenda({ permissions }: AgendaProps) {
     );
   }
 
-  const eventosFiltrados = filterTipo === "todos" 
-    ? eventos 
-    : eventos.filter(e => e.tipo === filterTipo);
+  const eventosFiltrados = eventos
+    .filter(e => filterTipo === "todos" || e.tipo === filterTipo)
+    .filter(e => filterDestinatario === "todos" || e.destinatarios.includes(filterDestinatario))
+    .filter(e => !fechaFiltro || (e.fecha <= fechaFiltro && (e.fechaFin ? e.fechaFin >= fechaFiltro : e.fecha === fechaFiltro)));
 
-  const eventosFiltradosPorFecha = fechaFiltro
-    ? eventosFiltrados.filter((e) => e.fecha === fechaFiltro)
-    : eventosFiltrados;
+  const ordenar = (lista: Evento[]) =>
+    [...lista].sort((a, b) => {
+      const d = new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
+      if (d !== 0) return d;
+      return (a.horaInicio ?? "").localeCompare(b.horaInicio ?? "");
+    });
 
-  const eventosOrdenados = [...eventosFiltradosPorFecha].sort((a, b) => {
-    const dateCompare = new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
-    if (dateCompare !== 0) return dateCompare;
-    if (a.horaInicio && b.horaInicio) {
-      return a.horaInicio.localeCompare(b.horaInicio);
-    }
-    return 0;
-  });
+  const hoyStr = new Date().toISOString().split("T")[0]!;
+
+  // Un evento es "hoy" si está activo hoy (fecha <= hoy <= fechaFin)
+  const eventosHoy      = ordenar(eventosFiltrados.filter(e => e.fecha <= hoyStr && (e.fechaFin ? e.fechaFin >= hoyStr : e.fecha === hoyStr)));
+  // Próximo: aún no ha comenzado
+  const eventosProximos = ordenar(eventosFiltrados.filter(e => e.fecha >  hoyStr));
+  // Pasado: terminó antes de hoy
+  const eventosPasados  = ordenar(eventosFiltrados.filter(e => (e.fechaFin ?? e.fecha) < hoyStr)).reverse();
+
+  // Para el calendario y la vista móvil seguimos usando una lista plana
+  const eventosOrdenados = ordenar(eventosFiltrados);
 
   const formatearFecha = (fecha: string) => {
     const [year, month, day] = fecha.split("-");
     return `${day}/${month}/${year}`;
+  };
+
+  const formatearRango = (evento: Evento) => {
+    if (!evento.fechaFin || evento.fechaFin === evento.fecha) return formatearFecha(evento.fecha);
+    return `${formatearFecha(evento.fecha)} – ${formatearFecha(evento.fechaFin)}`;
   };
 
   const { daysInMonth, startingDayOfWeek } = getDaysInMonth(selectedDate);
@@ -233,7 +327,7 @@ export function Agenda({ permissions }: AgendaProps) {
         title="Agenda Escolar"
         description="Calendario de eventos"
         color="bg-[#1D4ED8]"
-      ></PageTitle>
+      />
 
       {/* Controles superiores */}
       <Card className="border-[#E5E7EB]">
@@ -248,11 +342,31 @@ export function Agenda({ permissions }: AgendaProps) {
                 <SelectContent>
                   <SelectItem value="todos">Todos los tipos</SelectItem>
                   <SelectItem value="Examen">Exámenes</SelectItem>
-                  <SelectItem value="Entrega">Entregas</SelectItem>
                   <SelectItem value="Junta">Juntas</SelectItem>
                   <SelectItem value="Suspensión">Suspensiones</SelectItem>
+                  <SelectItem value="Día Cívico / Festivo">Días Cívicos / Festivos</SelectItem>
+                  <SelectItem value="Actividad Cultural">Actividad Cultural</SelectItem>
+                  <SelectItem value="Actividad Deportiva">Actividad Deportiva</SelectItem>
+                  <SelectItem value="Campaña">Campaña</SelectItem>
+                  <SelectItem value="Concurso">Concurso</SelectItem>
+                  <SelectItem value="Convocatoria">Convocatoria</SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Filtro destinatario — solo para quien gestiona */}
+              {puedeCrearEventos && (
+                <Select value={filterDestinatario} onValueChange={setFilterDestinatario}>
+                  <SelectTrigger className="w-full sm:w-48 rounded-lg">
+                    <SelectValue placeholder="Todos los destinatarios" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los destinatarios</SelectItem>
+                    {ROLES_DESTINATARIOS.map(r => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
               {/* Toggle vista - Solo en móvil */}
               <div className="flex gap-2 sm:hidden">
@@ -314,23 +428,39 @@ export function Agenda({ permissions }: AgendaProps) {
                           <SelectValue placeholder="Seleccionar tipo" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Examen">Examen</SelectItem>
-                          <SelectItem value="Entrega">Entrega</SelectItem>
                           <SelectItem value="Junta">Junta</SelectItem>
                           <SelectItem value="Suspensión">Suspensión</SelectItem>
-                          <SelectItem value="Día Cívico">Día Cívico</SelectItem>
+                          <SelectItem value="Día Cívico / Festivo">Día Cívico / Festivo</SelectItem>
+                          <SelectItem value="Actividad Cultural">Actividad Cultural</SelectItem>
+                          <SelectItem value="Actividad Deportiva">Actividad Deportiva</SelectItem>
+                          <SelectItem value="Campaña">Campaña</SelectItem>
+                          <SelectItem value="Concurso">Concurso</SelectItem>
+                          <SelectItem value="Convocatoria">Convocatoria</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="fecha">Fecha *</Label>
-                      <Input
-                        id="fecha"
-                        type="date"
-                        value={nuevoEvento.fecha}
-                        onChange={(e) => setNuevoEvento({ ...nuevoEvento, fecha: e.target.value })}
-                        className="rounded-lg"
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="fecha">Fecha inicio *</Label>
+                        <Input
+                          id="fecha"
+                          type="date"
+                          value={nuevoEvento.fecha}
+                          onChange={(e) => setNuevoEvento({ ...nuevoEvento, fecha: e.target.value })}
+                          className="rounded-lg"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="fechaFin">Fecha fin</Label>
+                        <Input
+                          id="fechaFin"
+                          type="date"
+                          min={nuevoEvento.fecha || undefined}
+                          value={nuevoEvento.fechaFin}
+                          onChange={(e) => setNuevoEvento({ ...nuevoEvento, fechaFin: e.target.value })}
+                          className="rounded-lg"
+                        />
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
@@ -396,6 +526,7 @@ export function Agenda({ permissions }: AgendaProps) {
                           titulo: "",
                           descripcion: "",
                           fecha: "",
+                          fechaFin: "",
                           horaInicio: "",
                           horaFin: "",
                           tipo: "",
@@ -510,10 +641,11 @@ export function Agenda({ permissions }: AgendaProps) {
                               key={idx}
                               className="w-1.5 h-1.5 rounded-full"
                               style={{
-                                backgroundColor: evento.tipo === "Examen" ? "#E11D48" :
-                                  evento.tipo === "Entrega" ? "#1D4ED8" :
-                                  evento.tipo === "Junta" ? "#7C3AED" :
-                                  evento.tipo === "Suspensión" ? "#D97706" : "#059669"
+                                backgroundColor: evento.tipo === "Examen" || evento.tipo === "Parcial" || evento.tipo === "Final" || evento.tipo === "Extraordinario" ? "#E11D48" :
+                                  evento.tipo === "Junta" || evento.tipo === "Campaña" ? "#7C3AED" :
+                                  evento.tipo === "Suspensión" ? "#D97706" :
+                                  evento.tipo === "Actividad Deportiva" || evento.tipo === "Concurso" ? "#D97706" :
+                                  evento.tipo === "Día Cívico / Festivo" || evento.tipo === "Actividad Cultural" ? "#059669" : "#6B7280"
                               }}
                             />
                           ))}
@@ -527,59 +659,78 @@ export function Agenda({ permissions }: AgendaProps) {
           </CardContent>
         </Card>
 
-        {/* Lista de próximos eventos - Desktop/Tablet */}
-        <Card className="border-[#E5E7EB]">
-          <CardHeader>
-            <CardTitle>Próximos Eventos</CardTitle>
+        {/* Panel derecho — hoy + próximos + pasados */}
+        <Card className="border-[#E5E7EB] flex flex-col">
+          <CardHeader className="shrink-0">
+            <CardTitle>Eventos</CardTitle>
             <CardDescription>
-              {fechaFiltro ? `Eventos del ${formatearFecha(fechaFiltro)}` : `${eventosOrdenados.length} eventos`}
+              {fechaFiltro ? `Mostrando: ${formatearFecha(fechaFiltro)}` : `${eventosOrdenados.length} en total`}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-150 overflow-y-auto pr-2">
-              {eventosOrdenados.slice(0, 10).map((evento) => (
-                <button
-                  key={evento.id}
-                  onClick={() => {
-                    setEventoSeleccionado(evento);
-                    setEventoDetalleOpen(true);
-                  }}
-                  className="w-full text-left p-3 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all bg-white"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="shrink-0 w-12 h-12 rounded-lg bg-linear-to-br from-blue-100 to-purple-100 flex flex-col items-center justify-center">
-                      <span className="text-xs text-[#6B7280]">
-                        {formatearFecha(evento.fecha).split('/')[1]}
-                      </span>
-                      <span className="text-lg font-bold text-[#1D4ED8]">
-                        {formatearFecha(evento.fecha).split('/')[0]}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-[#111827] truncate">{evento.titulo}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge className={tipoColors[evento.tipo] + " text-xs"}>
-                          {evento.tipo}
-                        </Badge>
-                      </div>
-                      {evento.horaInicio && (
-                        <p className="text-xs text-[#6B7280] mt-1">
-                          <Clock className="h-3 w-3 inline mr-1" />
-                          {evento.horaInicio}
-                          {evento.horaFin && ` - ${evento.horaFin}`}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))}
-              {eventosOrdenados.length === 0 && (
+          <CardContent className="flex-1 overflow-y-auto max-h-144 pr-2 space-y-4">
+
+            {/* Banner — Hoy */}
+            {eventosHoy.length > 0 && (
+              <div className="rounded-xl bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] p-3 text-white space-y-2">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Sun className="h-4 w-4" />
+                  Hoy · {eventosHoy.length} evento{eventosHoy.length > 1 ? "s" : ""}
+                </div>
+                {eventosHoy.map(evento => (
+                  <button
+                    key={evento.id}
+                    onClick={() => { setEventoSeleccionado(evento); setEventoDetalleOpen(true); }}
+                    className="w-full text-left bg-white/20 hover:bg-white/30 rounded-lg p-2 transition-all"
+                  >
+                    <p className="font-medium text-sm truncate">{evento.titulo}</p>
+                    {evento.horaInicio && (
+                      <p className="text-xs text-white/80">
+                        <Clock className="h-3 w-3 inline mr-1" />{evento.horaInicio}{evento.horaFin && ` - ${evento.horaFin}`}
+                      </p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Próximos */}
+            {eventosProximos.length > 0 ? (
+              <div className="space-y-2">
+                {!fechaFiltro && (
+                  <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">
+                    Próximos
+                  </p>
+                )}
+                {eventosProximos.map(evento => (
+                  <EventoItem key={evento.id} evento={evento} formatearRango={formatearRango} tipoColors={tipoColors}
+                    onClick={() => { setEventoSeleccionado(evento); setEventoDetalleOpen(true); }} />
+                ))}
+              </div>
+            ) : (
+              eventosHoy.length === 0 && (
                 <div className="text-center py-8 text-[#6B7280]">
                   <CalendarDays className="h-12 w-12 mx-auto mb-3 opacity-50" />
                   <p>No hay eventos próximos</p>
                 </div>
-              )}
-            </div>
+              )
+            )}
+
+            {/* Pasados — colapsables */}
+            {eventosPasados.length > 0 && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => setMostrarPasados(p => !p)}
+                  className="flex items-center gap-2 text-xs font-semibold text-[#6B7280] uppercase tracking-wide hover:text-[#111827] transition-colors"
+                >
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${mostrarPasados ? "rotate-180" : ""}`} />
+                  Pasados ({eventosPasados.length})
+                </button>
+                {mostrarPasados && eventosPasados.map(evento => (
+                  <EventoItem key={evento.id} evento={evento} formatearRango={formatearRango} tipoColors={tipoColors}
+                    pasado onClick={() => { setEventoSeleccionado(evento); setEventoDetalleOpen(true); }} />
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -590,52 +741,72 @@ export function Agenda({ permissions }: AgendaProps) {
           /* Lista de eventos - Móvil */
           <Card className="border-[#E5E7EB]">
             <CardHeader>
-              <CardTitle>Próximos Eventos</CardTitle>
+              <CardTitle>Eventos</CardTitle>
               <CardDescription>
-                {fechaFiltro ? `Eventos del ${formatearFecha(fechaFiltro)}` : `${eventosOrdenados.length} eventos programados`}
+                {fechaFiltro ? `Mostrando: ${formatearFecha(fechaFiltro)}` : `${eventosOrdenados.length} en total`}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <ResponsiveTable
-                columns={[
-                  { key: "titulo", label: "Evento" },
-                  { key: "fecha", label: "Fecha" },
-                  { key: "tipo", label: "Tipo" }
-                ]}
-                data={eventosOrdenados}
-                renderRow={() => <></>}
-                renderMobileCard={(evento) => (
-                  <button
-                    onClick={() => {
-                      setEventoSeleccionado(evento);
-                      setEventoDetalleOpen(true);
-                    }}
-                    className="w-full text-left space-y-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-[#111827]">{evento.titulo}</h4>
-                      </div>
-                      <Badge className={tipoColors[evento.tipo]}>
-                        {evento.tipo}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-[#6B7280] pt-2 border-t border-gray-100">
-                      <span>
-                        <CalendarIcon className="h-3 w-3 inline mr-1" />
-                        {formatearFecha(evento.fecha)}
-                      </span>
+            <CardContent className="space-y-4">
+              {/* Banner hoy - móvil */}
+              {eventosHoy.length > 0 && (
+                <div className="rounded-xl bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] p-3 text-white space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Sun className="h-4 w-4" />
+                    Hoy · {eventosHoy.length} evento{eventosHoy.length > 1 ? "s" : ""}
+                  </div>
+                  {eventosHoy.map(evento => (
+                    <button
+                      key={evento.id}
+                      onClick={() => { setEventoSeleccionado(evento); setEventoDetalleOpen(true); }}
+                      className="w-full text-left bg-white/20 hover:bg-white/30 rounded-lg p-2 transition-all"
+                    >
+                      <p className="font-medium text-sm truncate">{evento.titulo}</p>
                       {evento.horaInicio && (
-                        <span>
-                          <Clock className="h-3 w-3 inline mr-1" />
-                          {evento.horaInicio}
-                        </span>
+                        <p className="text-xs text-white/80">
+                          <Clock className="h-3 w-3 inline mr-1" />{evento.horaInicio}{evento.horaFin && ` - ${evento.horaFin}`}
+                        </p>
                       )}
-                    </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Próximos - móvil */}
+              {eventosProximos.length > 0 ? (
+                <div className="space-y-2">
+                  {!fechaFiltro && (
+                    <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">Próximos</p>
+                  )}
+                  {eventosProximos.map(evento => (
+                    <EventoItem key={evento.id} evento={evento} formatearRango={formatearRango} tipoColors={tipoColors}
+                      onClick={() => { setEventoSeleccionado(evento); setEventoDetalleOpen(true); }} />
+                  ))}
+                </div>
+              ) : (
+                eventosHoy.length === 0 && (
+                  <div className="text-center py-8 text-[#6B7280]">
+                    <CalendarDays className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No hay eventos próximos</p>
+                  </div>
+                )
+              )}
+
+              {/* Pasados - móvil */}
+              {eventosPasados.length > 0 && (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setMostrarPasados(p => !p)}
+                    className="flex items-center gap-2 text-xs font-semibold text-[#6B7280] uppercase tracking-wide hover:text-[#111827] transition-colors"
+                  >
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${mostrarPasados ? "rotate-180" : ""}`} />
+                    Pasados ({eventosPasados.length})
                   </button>
-                )}
-                emptyMessage="No hay eventos programados"
-              />
+                  {mostrarPasados && eventosPasados.map(evento => (
+                    <EventoItem key={evento.id} evento={evento} formatearRango={formatearRango} tipoColors={tipoColors}
+                      pasado onClick={() => { setEventoSeleccionado(evento); setEventoDetalleOpen(true); }} />
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -754,71 +925,98 @@ export function Agenda({ permissions }: AgendaProps) {
         )}
       </div>
 
-      {/* Sheet de detalle de evento */}
+      {/* Dialog de detalle de evento */}
       {eventoSeleccionado && (
-        <Sheet open={eventoDetalleOpen} onOpenChange={setEventoDetalleOpen}>
-          <SheetContent className="w-full sm:max-w-xl">
-            <SheetHeader>
-              <SheetTitle>{eventoSeleccionado.titulo}</SheetTitle>
-              <SheetDescription>
-                Tipo: {eventoSeleccionado.tipo}
-              </SheetDescription>
-            </SheetHeader>
-            
-            <div className="mt-6 space-y-4">
-              <Badge className={tipoColors[eventoSeleccionado.tipo]}>
-                {eventoSeleccionado.tipo}
-              </Badge>
-              
-              <div className="p-4 bg-linear-to-br from-blue-50 to-purple-50 rounded-xl space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <CalendarIcon className="h-4 w-4 text-[#1D4ED8]" />
-                  <span className="font-medium text-[#111827]">{formatearFecha(eventoSeleccionado.fecha)}</span>
+        <Dialog open={eventoDetalleOpen} onOpenChange={setEventoDetalleOpen}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5 text-[#1D4ED8]" />
+                {eventoSeleccionado.titulo}
+              </DialogTitle>
+              <DialogDescription>Detalles del evento</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 mt-4">
+              {/* Badges */}
+              <div className="flex flex-wrap gap-2">
+                <Badge className={tipoColors[eventoSeleccionado.tipo] ?? ""}>
+                  {eventoSeleccionado.tipo}
+                </Badge>
+                {eventoSeleccionado.fechaFin && eventoSeleccionado.fechaFin !== eventoSeleccionado.fecha && (
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-200">Varios días</Badge>
+                )}
+              </div>
+
+              {/* Fecha */}
+              <div>
+                <h4 className="font-semibold text-[#111827] mb-1">Fecha</h4>
+                <div className="p-3 bg-gray-50 rounded-lg border border-[#E5E7EB] flex items-center gap-2 text-sm text-[#374151]">
+                  <CalendarIcon className="h-4 w-4 text-[#1D4ED8] shrink-0" />
+                  <span>{formatearRango(eventoSeleccionado)}</span>
                 </div>
-                {eventoSeleccionado.horaInicio && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-[#7C3AED]" />
-                    <span className="text-[#6B7280]">
+              </div>
+
+              {/* Horario */}
+              {(!eventoSeleccionado.fechaFin || eventoSeleccionado.fechaFin === eventoSeleccionado.fecha) && eventoSeleccionado.horaInicio && (
+                <div>
+                  <h4 className="font-semibold text-[#111827] mb-1">Horario</h4>
+                  <div className="p-3 bg-gray-50 rounded-lg border border-[#E5E7EB] flex items-center gap-2 text-sm text-[#374151]">
+                    <Clock className="h-4 w-4 text-[#7C3AED] shrink-0" />
+                    <span>
                       {eventoSeleccionado.horaInicio}
                       {eventoSeleccionado.horaFin && ` - ${eventoSeleccionado.horaFin}`}
                     </span>
                   </div>
-                )}
-              </div>
-
-              {eventoSeleccionado.descripcion && (
-                <div>
-                  <Label className="text-sm text-[#6B7280]">Descripción</Label>
-                  <p className="mt-2 p-3 bg-gray-50 rounded-lg text-[#111827]">
-                    {eventoSeleccionado.descripcion}
-                  </p>
                 </div>
               )}
 
+              {/* Descripción */}
+              {eventoSeleccionado.descripcion && (
+                <div>
+                  <h4 className="font-semibold text-[#111827] mb-1">Descripción</h4>
+                  <div className="p-4 bg-gray-50 rounded-lg border border-[#E5E7EB]">
+                    <p className="text-sm text-[#374151] leading-relaxed">{eventoSeleccionado.descripcion}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Grupo y materia */}
+              {(eventoSeleccionado.grupo && eventoSeleccionado.grupo !== "General") || (eventoSeleccionado.materia && eventoSeleccionado.materia !== "-") ? (
+                <div className="flex flex-wrap gap-2">
+                  {eventoSeleccionado.grupo && eventoSeleccionado.grupo !== "General" && (
+                    <Badge className="bg-purple-50 text-[#7C3AED] border-purple-200">{eventoSeleccionado.grupo}</Badge>
+                  )}
+                  {eventoSeleccionado.materia && eventoSeleccionado.materia !== "-" && (
+                    <Badge variant="outline">{eventoSeleccionado.materia}</Badge>
+                  )}
+                </div>
+              ) : null}
+
+              {/* Dirigido a */}
               <div>
-                <Label className="text-sm text-[#6B7280]">Dirigido a</Label>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <h4 className="font-semibold text-[#111827] mb-1">Dirigido a</h4>
+                <div className="flex flex-wrap gap-2">
                   {(eventoSeleccionado.destinatarios ?? []).map((rol, index) => (
-                    <Badge key={`${rol}-${index}`} className="bg-gray-100 text-[#6B7280] border-0">
-                      {rol}
-                    </Badge>
+                    <Badge key={`${rol}-${index}`} variant="outline">{rol}</Badge>
                   ))}
                 </div>
               </div>
 
+              {/* Acciones */}
               {puedeCrearEventos && (
-                <div className="flex gap-2 pt-4 border-t border-gray-200">
+                <div className="flex gap-2 pt-2 border-t border-[#E5E7EB]">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 rounded-lg"
                     onClick={() => handleEditarEvento(eventoSeleccionado)}
                   >
                     <Edit2 className="h-4 w-4 mr-2" />
-                    Editar
+                    Editar evento
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 text-[#E11D48] hover:bg-red-50 hover:text-[#E11D48] border-red-200"
+                    className="text-[#E11D48] border-red-200 hover:bg-red-50 rounded-lg"
                     onClick={() => setEventoEliminar(eventoSeleccionado.id)}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
@@ -827,8 +1025,8 @@ export function Agenda({ permissions }: AgendaProps) {
                 </div>
               )}
             </div>
-          </SheetContent>
-        </Sheet>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Dialog de confirmación para eliminar */}

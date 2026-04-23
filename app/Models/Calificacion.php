@@ -15,10 +15,12 @@ class Calificacion extends Model
         'ciclo_escolar_id',
         'periodo_evaluacion_id',
         'promedio',
+        'publicada',
     ];
 
     protected $casts = [
-        'promedio' => 'float',
+        'promedio'  => 'float',
+        'publicada' => 'boolean',
     ];
 
     public function alumno(): BelongsTo

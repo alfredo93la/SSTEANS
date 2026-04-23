@@ -135,10 +135,13 @@ function CamposEspecificosRol({ rolNombre, form, setForm }: {
     );
   }
 
-  if (rolNombre === "Personal Administrativo") {
+  const SYSTEM_ROLES = ["Tutor", "Profesor", "Trabajador Social", "Administrador", "Personal Administrativo"];
+  const isCustomRole = rolNombre !== "" && !SYSTEM_ROLES.includes(rolNombre);
+
+  if (rolNombre === "Personal Administrativo" || isCustomRole) {
     return (
       <>
-        {header("Personal Administrativo")}
+        {header(isCustomRole ? rolNombre : "Personal Administrativo")}
         <div className="space-y-1.5">
           <Label>Cargo</Label>
           <Input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })} placeholder="Ej. Secretaria, Prefecto" />

@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\EmiteBadge;
 use App\Models\AgendaEvento;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AgendaEventoController extends Controller
 {
+    use EmiteBadge;
     public function index(): JsonResponse
     {
         $user = request()->user();
@@ -20,6 +22,16 @@ class AgendaEventoController extends Controller
 
         if (! $canManage && $user) {
             $query->whereHas('destinatarios', fn ($q) => $q->where('rol', $user->role));
+
+            if ($user->role === 'Tutor') {
+                /** @var \App\Models\User $user */
+                $gruposHijos = $this->getGruposDelTutor($user);
+                $query->where(function ($q) use ($gruposHijos) {
+                    $q->whereNull('grupo')
+                        ->orWhere('grupo', 'General')
+                        ->orWhereIn('grupo', $gruposHijos);
+                });
+            }
         }
 
         $eventos = $query->get();
@@ -28,10 +40,11 @@ class AgendaEventoController extends Controller
             'eventos' => $eventos->map(fn (AgendaEvento $evento) => [
                 'id' => $evento->id,
                 'fecha' => $evento->fecha,
+                'fechaFin' => $evento->fecha_fin,
                 'titulo' => $evento->titulo,
                 'descripcion' => $evento->descripcion,
-                'horaInicio' => $evento->hora_inicio,
-                'horaFin' => $evento->hora_fin,
+                'horaInicio' => $evento->hora_inicio ? substr($evento->hora_inicio, 0, 5) : null,
+                'horaFin'   => $evento->hora_fin   ? substr($evento->hora_fin,   0, 5) : null,
                 'grupo' => $evento->grupo,
                 'materia' => $evento->materia,
                 'tipo' => $evento->tipo,
@@ -44,6 +57,7 @@ class AgendaEventoController extends Controller
     {
         $validated = $request->validate([
             'fecha' => ['required', 'date'],
+            'fechaFin' => ['nullable', 'date', 'after_or_equal:fecha'],
             'titulo' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
             'horaInicio' => ['nullable', 'date_format:H:i'],
@@ -57,6 +71,7 @@ class AgendaEventoController extends Controller
 
         $evento = AgendaEvento::query()->create([
             'fecha' => $validated['fecha'],
+            'fecha_fin' => $validated['fechaFin'] ?? null,
             'titulo' => $validated['titulo'],
             'descripcion' => $validated['descripcion'] ?? null,
             'hora_inicio' => $validated['horaInicio'] ?? null,
@@ -73,15 +88,18 @@ class AgendaEventoController extends Controller
                 ->all()
         );
 
+        $this->emitirBadge('agenda', 'agenda.view');
+
         return response()->json([
             'message' => 'Evento creado correctamente.',
             'evento' => [
                 'id' => $evento->id,
                 'fecha' => $evento->fecha,
+                'fechaFin' => $evento->fecha_fin,
                 'titulo' => $evento->titulo,
                 'descripcion' => $evento->descripcion,
-                'horaInicio' => $evento->hora_inicio,
-                'horaFin' => $evento->hora_fin,
+                'horaInicio' => $evento->hora_inicio ? substr($evento->hora_inicio, 0, 5) : null,
+                'horaFin'   => $evento->hora_fin   ? substr($evento->hora_fin,   0, 5) : null,
                 'grupo' => $evento->grupo,
                 'materia' => $evento->materia,
                 'tipo' => $evento->tipo,
@@ -94,6 +112,7 @@ class AgendaEventoController extends Controller
     {
         $validated = $request->validate([
             'fecha' => ['required', 'date'],
+            'fechaFin' => ['nullable', 'date', 'after_or_equal:fecha'],
             'titulo' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
             'horaInicio' => ['nullable', 'date_format:H:i'],
@@ -107,6 +126,7 @@ class AgendaEventoController extends Controller
 
         $evento->update([
             'fecha' => $validated['fecha'],
+            'fecha_fin' => $validated['fechaFin'] ?? null,
             'titulo' => $validated['titulo'],
             'descripcion' => $validated['descripcion'] ?? null,
             'hora_inicio' => $validated['horaInicio'] ?? null,
@@ -124,6 +144,8 @@ class AgendaEventoController extends Controller
                 ->all()
         );
 
+        $this->emitirBadge('agenda', 'agenda.view');
+
         return response()->json([
             'message' => 'Evento actualizado correctamente.',
         ]);
@@ -133,8 +155,37 @@ class AgendaEventoController extends Controller
     {
         $evento->delete();
 
+        $this->emitirBadge('agenda', 'agenda.view');
+
         return response()->json([
             'message' => 'Evento eliminado correctamente.',
         ]);
+    }
+
+    private function getGruposDelTutor(\App\Models\User $user): array
+    {
+        $cicloId = \App\Models\CicloEscolar::where('activo', true)->value('id');
+        if (! $cicloId) {
+            return [];
+        }
+
+        $tutor = \App\Models\Tutor::whereHas('persona.user', fn ($q) => $q->where('id', $user->id))
+            ->with(['alumnos.asignaciones' => fn ($q) => $q->where('ciclo_escolar_id', $cicloId)->where('estado', 'activo'),
+                    'alumnos.asignaciones.grupo.grado'])
+            ->first();
+
+        if (! $tutor) {
+            return [];
+        }
+
+        $grupos = [];
+        foreach ($tutor->alumnos as $alumno) {
+            $asignacion = $alumno->asignaciones->first();
+            if ($asignacion?->grupo && $asignacion->grupo->grado) {
+                $grupos[] = $asignacion->grupo->grado->numero.'°'.$asignacion->grupo->nombre;
+            }
+        }
+
+        return array_unique($grupos);
     }
 }

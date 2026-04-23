@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\PeriodoEvaluacion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -15,6 +16,7 @@ class CicloEscolar extends Model
         'fecha_fin',
         'activo',
         'cerrado',
+        'archivado',
     ];
 
     protected function casts(): array
@@ -24,6 +26,7 @@ class CicloEscolar extends Model
             'fecha_fin'    => 'date',
             'activo'       => 'boolean',
             'cerrado'      => 'boolean',
+            'archivado'    => 'boolean',
         ];
     }
 
@@ -40,5 +43,10 @@ class CicloEscolar extends Model
     public function asignaciones(): HasMany
     {
         return $this->hasMany(AsignacionGrupo::class, 'ciclo_escolar_id');
+    }
+
+    public function periodos(): HasMany
+    {
+        return $this->hasMany(PeriodoEvaluacion::class, 'ciclo_escolar_id');
     }
 }

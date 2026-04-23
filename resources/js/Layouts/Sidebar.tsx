@@ -1,11 +1,17 @@
-import { Home, Calendar, BookOpen, MessageSquare, Settings, ChevronRight, ChevronDown, CalendarDays, FileText, ClipboardList, CalendarCheck, GraduationCap, CheckCircle2, AlertTriangle, Bell, Users, UserCog, Building2, BookMarked, Clock, CalendarRange, BookKey, Settings2, UserCheck } from "lucide-react";
+import { Home, FileText, ClipboardList, CalendarCheck, GraduationCap, CheckCircle2, AlertTriangle, Bell, Users, BookMarked, Clock, CalendarRange, BookKey, Settings2, ClipboardCheck, Settings, CalendarDays, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "../Components/ui/utils";
 import { useState } from "react";
 
 interface SidebarProps {
   currentRoute: string;
   onNavigate: (route: string) => void;
-  userRole: string;
+  permissions: string[];
+  circularesSinLeer?: number;
+  notifsSinLeer?: number;
+  agendaSinLeer?: number;
+  tareasSinLeer?: number;
+  reportesSinLeer?: number;
+  examenesSinLeer?: number;
 }
 
 interface SubMenuItem {
@@ -20,118 +26,74 @@ interface MenuItem {
   label: string;
   icon: any;
   route?: string;
-  roles: string[];
+  permission: string | string[];
   subItems?: SubMenuItem[];
 }
 
-const getMenuItems = (userRole: string): MenuItem[] => {
-  const baseItems: MenuItem[] = [
-    // Menú para Tutor
-    ...(userRole === "Tutor" ? [
-      { id: "general", label: "Inicio", icon: Home, route: "#/dashboard", roles: ["Tutor"] },
-      { id: "calificaciones", label: "Calificaciones", icon: GraduationCap, route: "#/dashboard/calificaciones", roles: ["Tutor"] },
-      { id: "tareas", label: "Tareas", icon: ClipboardList, route: "#/dashboard/tareas", roles: ["Tutor"] },
-      { id: "asistencia", label: "Asistencia", icon: CheckCircle2, route: "#/dashboard/asistencia", roles: ["Tutor"] },
-      { id: "notificaciones", label: "Notificaciones", icon: Bell, route: "#/dashboard/notificaciones", roles: ["Tutor"] },
-      { id: "reportes", label: "Reportes", icon: AlertTriangle, route: "#/dashboard/reportes", roles: ["Tutor"] },
-      { id: "horario", label: "Horario", icon: CalendarDays, route: "#/dashboard/horario", roles: ["Tutor"] },
-      { id: "agenda", label: "Agenda Escolar", icon: CalendarCheck, route: "#/agenda", roles: ["Tutor"] },
-      { id: "circulares", label: "Circulares", icon: FileText, route: "#/circulares", roles: ["Tutor"] }
-    ] : []),
+const hasAny = (userPermissions: string[], required: string | string[]): boolean =>
+  Array.isArray(required)
+    ? required.some(p => userPermissions.includes(p))
+    : userPermissions.includes(required);
 
-    // Menú para Profesor
-    ...(userRole === "Profesor" ? [
-      { id: "general", label: "Inicio", icon: Home, route: "#/dashboard", roles: ["Profesor"] },
-      { id: "calificaciones", label: "Calificaciones", icon: GraduationCap, route: "#/dashboard/calificaciones", roles: ["Profesor"] },
-      { id: "asistencia", label: "Asistencia", icon: CheckCircle2, route: "#/dashboard/asistencia", roles: ["Profesor"] },
-      { id: "gestionar-tareas", label: "Gestionar Tareas", icon: FileText, route: "#/dashboard/gestionar-tareas", roles: ["Profesor"] },
-      { id: "notificaciones", label: "Notificaciones", icon: Bell, route: "#/notificaciones", roles: ["Profesor"] },
-      { id: "horario", label: "Horario", icon: CalendarDays, route: "#/dashboard/horario", roles: ["Profesor"] },
-      { id: "agenda", label: "Agenda Escolar", icon: CalendarCheck, route: "#/agenda", roles: ["Profesor"] },
-      { id: "circulares", label: "Circulares", icon: FileText, route: "#/circulares", roles: ["Profesor"] }
-    ] : []),
+const allMenuItems: MenuItem[] = [
+  // ── Compartido ────────────────────────────────────────────────────────────────
+  { id: "general",        label: "Inicio",                icon: Home,           route: "#/dashboard",    permission: "dashboard.view" },
+  { id: "agenda",         label: "Agenda Escolar",        icon: CalendarCheck,  route: "#/agenda",       permission: ["agenda.view", "agenda.manage"] },
+  { id: "circulares",     label: "Circulares",            icon: FileText,       route: "#/circulares",   permission: ["circulares.view", "circulares.manage"] },
 
-    // Menú para Trabajador Social
-    ...(userRole === "Trabajador Social" ? [
-      { id: "general", label: "Inicio", icon: Home, route: "#/dashboard", roles: ["Trabajador Social"] },
-      { id: "notificaciones", label: "Notificaciones", icon: Bell, route: "#/notificaciones", roles: ["Trabajador Social"] },
-      { id: "reportes", label: "Reportes", icon: AlertTriangle, route: "#/trabajador-social/reportes", roles: ["Trabajador Social"] },
-      { id: "alumnos", label: "Alumnos", icon: Users, route: "#/trabajador-social/alumnos", roles: ["Trabajador Social"] },
-      { id: "agenda", label: "Agenda Escolar", icon: CalendarCheck, route: "#/agenda", roles: ["Trabajador Social"] },
-      { id: "circulares", label: "Circulares", icon: FileText, route: "#/circulares", roles: ["Trabajador Social"] }
-    ] : []),
+  // ── Módulos académicos ────────────────────────────────────────────────────────
+  { id: "calificaciones", label: "Calificaciones",        icon: GraduationCap,  route: "#/calificaciones", permission: ["calificaciones.view", "calificaciones.manage"] },
+  { id: "tareas",         label: "Tareas",                icon: ClipboardList,  route: "#/tareas",         permission: ["tareas.view", "tareas.manage"] },
+  { id: "asistencia",     label: "Asistencia",            icon: CheckCircle2,   route: "#/asistencia",     permission: ["asistencia.view", "asistencia.manage"] },
+  { id: "examenes",       label: "Exámenes",              icon: ClipboardCheck, route: "#/examenes",       permission: ["examenes.view", "examenes.manage"] },
+  { id: "horario",        label: "Horario de Clases",     icon: CalendarDays,   route: "#/horario",        permission: "horario.view" },
+  { id: "reportes",       label: "Reportes de Conducta",  icon: AlertTriangle,  route: "#/reportes",       permission: ["reportes.view", "reportes.manage"] },
+  { id: "notificaciones", label: "Notificaciones",        icon: Bell,           route: "#/notificaciones", permission: ["notificaciones.view", "notificaciones.manage"] },
 
-    // Menú para Personal Administrativo
-    ...(userRole === "Personal Administrativo" ? [
-      { id: "general", label: "Inicio", icon: Home, route: "#/dashboard", roles: ["Personal Administrativo"] },
-      { id: "alumnos", label: "Alumnos", icon: GraduationCap, route: "#/administrativo/alumnos", roles: ["Personal Administrativo"] },
-      { id: "tutores", label: "Tutores", icon: Users, route: "#/administrativo/tutores", roles: ["Personal Administrativo"] },
-      { id: "grupos", label: "Grupos", icon: Users, route: "#/administrativo/grupos", roles: ["Personal Administrativo"] },
-      { id: "horarios", label: "Horarios", icon: Clock, route: "#/administrativo/horarios", roles: ["Personal Administrativo"] },
-      { id: "agenda", label: "Agenda Escolar", icon: CalendarCheck, route: "#/agenda", roles: ["Personal Administrativo"] },
-      { id: "circulares", label: "Circulares", icon: FileText, route: "#/circulares", roles: ["Personal Administrativo"] }
-    ] : []),
+  // ── Gestión escolar ───────────────────────────────────────────────────────────
+  { id: "alumnos",        label: "Gestión de Alumnos",    icon: GraduationCap,  route: "#/alumnos",    permission: ["alumnos.view", "alumnos.manage"] },
+  { id: "tutores",        label: "Gestión de Tutores",    icon: Users,          route: "#/tutores",    permission: "tutores.manage" },
+  { id: "grupos",         label: "Gestión de Grupos",     icon: Users,          route: "#/grupos",     permission: "grupos.manage" },
+  { id: "materias",       label: "Gestión de Materias",   icon: BookMarked,     route: "#/materias",   permission: "materias.manage" },
+  { id: "horarios",       label: "Gestión de Horarios",   icon: Clock,          route: "#/horarios",   permission: "horarios.manage" },
 
-    // Menú para Administrador
-    ...(userRole === "Administrador" ? [
-      { id: "general", label: "Inicio", icon: Home, route: "#/dashboard", roles: ["Administrador"] },
-      { id: "usuarios", label: "Usuarios", icon: Users, route: "#/admin/usuarios", roles: ["Administrador"] },
-      { id: "roles", label: "Roles y Permisos", icon: Settings, route: "#/admin/roles", roles: ["Administrador"] },
-      { id: "alumnos", label: "Alumnos", icon: GraduationCap, route: "#/administrativo/alumnos", roles: ["Administrador"] },
-      { id: "materias", label: "Materias", icon: BookMarked, route: "#/administrativo/materias", roles: ["Administrador"] },
-      { id: "grupos", label: "Grupos", icon: Users, route: "#/administrativo/grupos", roles: ["Administrador"] },
-      { id: "ciclos", label: "Ciclos Escolares", icon: CalendarRange, route: "#/admin/ciclos", roles: ["Administrador"] },
-      { id: "periodos", label: "Periodos de Evaluación", icon: BookKey, route: "#/admin/periodos", roles: ["Administrador"] },
-      { id: "configuracion", label: "Configuración General", icon: Settings2, route: "#/admin/configuracion", roles: ["Administrador"] },
-    ] : []),
-  ];
+  // ── Administración ────────────────────────────────────────────────────────────
+  { id: "usuarios",       label: "Gestión de Usuarios",   icon: Users,          route: "#/usuarios",         permission: "usuarios.manage" },
+  { id: "roles",          label: "Roles y Permisos",      icon: Settings,       route: "#/roles",            permission: "roles.manage" },
+  { id: "ciclos",         label: "Ciclos Escolares",      icon: CalendarRange,  route: "#/ciclos",           permission: "ciclos.manage" },
+  { id: "periodos",       label: "Periodos de Evaluación",icon: BookKey,        route: "#/periodos",         permission: "periodos.manage" },
+  { id: "configuracion",  label: "Configuración General", icon: Settings2,      route: "#/configuracion",    permission: "configuracion.manage" },
+];
 
-  return baseItems.filter(item => item.roles.includes(userRole));
-};
-
-export function Sidebar({ currentRoute, onNavigate, userRole }: SidebarProps) {
-  // Obtener items del menú según el rol del usuario
-  const filteredItems = getMenuItems(userRole);
-
-  // Estado para controlar qué menús están expandidos
-  // Para Tutor, expandir "dashboard" por defecto, para otros "agenda"
-  const defaultExpanded = userRole === "Tutor" ? ["dashboard"] : ["agenda"];
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(defaultExpanded);
+export function Sidebar({ currentRoute, onNavigate, permissions, circularesSinLeer = 0, notifsSinLeer = 0, agendaSinLeer = 0, tareasSinLeer = 0, reportesSinLeer = 0, examenesSinLeer = 0 }: SidebarProps) {
+  const filteredItems = allMenuItems.filter(item => hasAny(permissions, item.permission));
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
   const toggleMenu = (itemId: string) => {
     setExpandedMenus(prev =>
-      prev.includes(itemId)
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
+      prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
     );
   };
 
-  // Verificar si algún subitem está activo
-  const isSubItemActive = (item: MenuItem) => {
-    if (!item.subItems) return false;
-    return item.subItems.some(sub => currentRoute === sub.route);
-  };
+  const isSubItemActive = (item: MenuItem) =>
+    item.subItems?.some(sub => currentRoute === sub.route) ?? false;
 
   return (
-    <aside className="w-64 bg-linear-to-b from-white to-gray-50/50 border-r border-[#E5E7EB]/60 h-[calc(100vh-4rem)] sticky top-16 backdrop-blur-sm overflow-y-auto">
-      <nav className="p-4 space-y-2 bg-[rgba(114,174,253,0)]">
+    <aside className="w-72 bg-linear-to-b from-white to-gray-50/50 border-r border-[#E5E7EB]/60 h-[calc(100vh-4rem)] sticky top-16 backdrop-blur-sm overflow-y-auto">
+      <nav className="p-4 space-y-2">
         {filteredItems.map((item, index) => {
           const Icon = item.icon;
           const isExpanded = expandedMenus.includes(item.id);
-          const hasSubItems = item.subItems && item.subItems.length > 0;
+          const hasSubItems = !!(item.subItems?.length);
           const isActive = currentRoute === item.route;
           const hasActiveSubItem = isSubItemActive(item);
 
           return (
             <div key={item.id} className="animate-slide-in" style={{ animationDelay: `${index * 50}ms` }}>
-              {/* Item principal */}
               <button
                 onClick={() => {
-                  if (hasSubItems) {
-                    toggleMenu(item.id);
-                  } else if (item.route) {
-                    onNavigate(item.route);
-                  }
+                  if (hasSubItems) toggleMenu(item.id);
+                  else if (item.route) onNavigate(item.route);
                 }}
                 className={cn(
                   "w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group relative overflow-hidden",
@@ -141,85 +103,82 @@ export function Sidebar({ currentRoute, onNavigate, userRole }: SidebarProps) {
                       ? "text-[#1D4ED8] bg-blue-50/50"
                       : "text-[#6B7280] hover:bg-white/80 hover:text-[#111827] hover:shadow-sm"
                 )}
-                style={{
-                  background: isActive ? "var(--gradient-primary)" : hasActiveSubItem ? "transparent" : "transparent"
-                }}
+                style={{ background: isActive ? "var(--gradient-primary)" : "transparent" }}
               >
-                {/* Indicador activo */}
                 {isActive && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
                 )}
-
                 <div className="flex items-center gap-3 relative z-10">
                   <div className={cn(
                     "p-1.5 rounded-lg transition-all",
-                    isActive
-                      ? "bg-white/20"
-                      : hasActiveSubItem
-                        ? "bg-blue-100"
-                        : "bg-gray-100 group-hover:bg-gray-200"
+                    isActive ? "bg-white/20" : hasActiveSubItem ? "bg-blue-100" : "bg-gray-100 group-hover:bg-gray-200"
                   )}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <span className="font-medium text-sm">{item.label}</span>
+                  <span className="font-medium text-sm whitespace-nowrap">{item.label}</span>
+                  {item.id === "agenda" && agendaSinLeer > 0 && (
+                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                      {agendaSinLeer > 9 ? "9+" : agendaSinLeer}
+                    </span>
+                  )}
+                  {item.id === "circulares" && circularesSinLeer > 0 && (
+                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                      {circularesSinLeer > 9 ? "9+" : circularesSinLeer}
+                    </span>
+                  )}
+                  {item.id === "examenes" && examenesSinLeer > 0 && (
+                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                      {examenesSinLeer > 9 ? "9+" : examenesSinLeer}
+                    </span>
+                  )}
+                  {item.id === "tareas" && tareasSinLeer > 0 && (
+                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                      {tareasSinLeer > 9 ? "9+" : tareasSinLeer}
+                    </span>
+                  )}
+                  {item.id === "reportes" && reportesSinLeer > 0 && (
+                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                      {reportesSinLeer > 9 ? "9+" : reportesSinLeer}
+                    </span>
+                  )}
+                  {item.id === "notificaciones" && notifsSinLeer > 0 && (
+                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                      {notifsSinLeer > 9 ? "9+" : notifsSinLeer}
+                    </span>
+                  )}
                 </div>
-
                 {hasSubItems ? (
-                  <ChevronDown className={cn(
-                    "h-4 w-4 transition-all duration-200",
-                    isExpanded ? "rotate-180" : "rotate-0"
-                  )} />
+                  <ChevronDown className={cn("h-4 w-4 transition-all duration-200", isExpanded && "rotate-180")} />
                 ) : (
                   <ChevronRight className={cn(
                     "h-4 w-4 transition-all duration-200",
-                    isActive
-                      ? "opacity-100 translate-x-0"
-                      : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
+                    isActive ? "opacity-100" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
                   )} />
                 )}
-
-                {/* Efecto hover para items inactivos */}
                 {!isActive && !hasActiveSubItem && (
                   <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/50 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
                 )}
               </button>
 
-              {/* Sub-items */}
               {hasSubItems && isExpanded && (
                 <div className="ml-4 mt-1 space-y-1 animate-fade-in">
                   {item.subItems!.map((subItem) => {
                     const SubIcon = subItem.icon;
                     const isSubActive = currentRoute === subItem.route;
-
                     return (
                       <button
                         key={subItem.id}
                         onClick={() => onNavigate(subItem.route)}
                         className={cn(
                           "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative overflow-hidden text-sm",
-                          isSubActive
-                            ? "text-[#1D4ED8] bg-blue-50 shadow-sm"
-                            : "text-[#6B7280] hover:bg-white/80 hover:text-[#111827]"
+                          isSubActive ? "text-[#1D4ED8] bg-blue-50 shadow-sm" : "text-[#6B7280] hover:bg-white/80 hover:text-[#111827]"
                         )}
                       >
-                        {isSubActive && (
-                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-[#1D4ED8] rounded-r-full" />
-                        )}
-
-                        <div className={cn(
-                          "p-1 rounded-md transition-all",
-                          isSubActive
-                            ? "bg-blue-100"
-                            : "bg-gray-50 group-hover:bg-gray-100"
-                        )}>
+                        {isSubActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-[#1D4ED8] rounded-r-full" />}
+                        <div className={cn("p-1 rounded-md transition-all", isSubActive ? "bg-blue-100" : "bg-gray-50 group-hover:bg-gray-100")}>
                           <SubIcon className="h-3.5 w-3.5" />
                         </div>
-                        <span className={cn(
-                          "font-medium",
-                          isSubActive && "font-semibold"
-                        )}>
-                          {subItem.label}
-                        </span>
+                        <span className={cn("font-medium", isSubActive && "font-semibold")}>{subItem.label}</span>
                       </button>
                     );
                   })}

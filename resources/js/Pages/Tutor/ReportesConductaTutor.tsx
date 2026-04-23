@@ -3,9 +3,13 @@ import axios from "axios";
 import { Card, CardContent } from "../../Components/ui/card";
 import { Badge } from "../../Components/ui/badge";
 import { Button } from "../../Components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../Components/ui/dialog";
-import { AlertTriangle, FileText, User, Calendar, AlertCircle, CheckCircle, Paperclip } from "lucide-react";
+import { AlertTriangle, FileText, User, Calendar, AlertCircle, CheckCircle, Paperclip, History } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
+import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
+
+interface CicloData { id: number; nombre: string; activo: boolean; cerrado: boolean; }
 
 interface ReporteData {
   id: number;
@@ -26,16 +30,37 @@ interface ReportesConductaTutorProps {
 }
 
 export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) {
+  const [ciclos, setCiclos] = useState<CicloData[]>([]);
+  const [cicloSeleccionado, setCicloSeleccionado] = useState("");
   const [reportes, setReportes] = useState<ReporteData[]>([]);
   const [reporteSeleccionado, setReporteSeleccionado] = useState<ReporteData | null>(null);
   const [dialogAbierto, setDialogAbierto] = useState(false);
 
+  // Cargar ciclos y seleccionar el activo
   useEffect(() => {
-    if (!alumnoId) return;
-    axios.get(`/api/tutor/reportes-conducta/${alumnoId}`)
+    axios.get("/api/ciclos-escolares")
+      .then(({ data }) => {
+        const lista: CicloData[] = data.ciclos ?? [];
+        setCiclos(lista);
+        const activo = lista.find((c) => c.activo);
+        if (activo) setCicloSeleccionado(activo.id.toString());
+        else if (lista.length > 0) setCicloSeleccionado(lista[0].id.toString());
+      })
+      .catch(() => {});
+  }, []);
+
+  // Recargar reportes cuando cambia el ciclo
+  useEffect(() => {
+    if (!alumnoId || !cicloSeleccionado) return;
+    axios.get(`/api/tutor/reportes-conducta/${alumnoId}`, {
+      params: { ciclo_id: cicloSeleccionado },
+    })
       .then(({ data }) => setReportes(data.reportes ?? []))
       .catch(() => {});
-  }, [alumnoId]);
+  }, [alumnoId, cicloSeleccionado]);
+
+  const cicloActivo = ciclos.find((c) => c.activo);
+  const esHistorico = cicloSeleccionado && cicloSeleccionado !== cicloActivo?.id.toString();
 
   // Estadísticas
   const totalReportes = reportes.length;
@@ -80,13 +105,54 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <AlumnoInfoCard alumnoId={alumnoId} />
       <PageTitle
         icon={AlertTriangle}
         title="Reportes de Conducta"
         description="Consulta los reportes y observaciones del estudiante"
         color="bg-[#E11D48]"
       >
+        <div className="flex items-center gap-2">
+          {esHistorico ? (
+            <Badge className="bg-amber-100 text-amber-700 border-0 gap-1 shrink-0">
+              <History className="h-3 w-3" />
+              Historial
+            </Badge>
+          ) : (
+            <Badge className="bg-green-100 text-green-700 border-0 shrink-0">Ciclo actual</Badge>
+          )}
+          <div className="w-48">
+          <Select value={cicloSeleccionado} onValueChange={setCicloSeleccionado}>
+            <SelectTrigger className="rounded-lg">
+              <SelectValue placeholder="Ciclo escolar" />
+            </SelectTrigger>
+            <SelectContent>
+              {ciclos.map((c) => (
+                <SelectItem key={c.id} value={c.id.toString()}>
+                  {c.nombre}
+                  {c.activo && " (actual)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          </div>
+        </div>
       </PageTitle>
+
+      {/* Aviso de historial */}
+      {esHistorico && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <History className="h-5 w-5 text-[#D97706] shrink-0" />
+              <p className="text-sm text-[#92400E]">
+                Mostrando historial del ciclo <span className="font-semibold">{ciclos.find(c => c.id.toString() === cicloSeleccionado)?.nombre}</span>.
+                Este ciclo ya está cerrado.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -133,13 +199,16 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
         </Card>
       </div>
 
-      {/* Mensaje si no hay reportes */}
+      {/* Lista de reportes */}
       {reportes.length === 0 ? (
-        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-emerald-50">
+        <Card className="border-[#E5E7EB]">
           <CardContent className="py-12 text-center">
-            <CheckCircle className="h-16 w-16 text-[#059669] mx-auto mb-4" />
-            <h3 className="font-semibold text-[#111827] text-lg mb-2">¡Excelente comportamiento!</h3>
-            <p className="text-[#6B7280]">No hay reportes de conducta registrados</p>
+            <FileText className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />
+            <p className="text-[#6B7280]">
+              {esHistorico
+                ? `No hay reportes registrados en el ciclo ${ciclos.find(c => c.id.toString() === cicloSeleccionado)?.nombre}`
+                : "No hay reportes registrados para este alumno"}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -153,7 +222,6 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
               <Card key={reporte.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
                 <CardContent className="pt-6">
                   <div className="flex flex-col sm:flex-row gap-4">
-                    {/* Indicador visual */}
                     <div className="shrink-0">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                         reporte.estatus === "Cerrado" ? "bg-green-100" : "bg-red-100"
@@ -164,7 +232,6 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                       </div>
                     </div>
 
-                    {/* Información del reporte */}
                     <div className="flex-1 space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                         <div className="flex-1">
@@ -251,22 +318,18 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                   <h4 className="font-semibold text-[#111827] mb-1">Fecha</h4>
                   <p className="text-sm text-[#6B7280]">{reporteSeleccionado.fecha}</p>
                 </div>
-
                 <div>
                   <h4 className="font-semibold text-[#111827] mb-1">Descripción</h4>
                   <p className="text-sm text-[#6B7280]">{reporteSeleccionado.descripcion}</p>
                 </div>
-
                 <div>
                   <h4 className="font-semibold text-[#111827] mb-1">Observaciones</h4>
                   <p className="text-sm text-[#6B7280]">{reporteSeleccionado.observaciones || "Sin observaciones"}</p>
                 </div>
-
                 <div>
                   <h4 className="font-semibold text-[#111827] mb-1">Reportado por</h4>
                   <p className="text-sm text-[#6B7280]">{reporteSeleccionado.reportadoPorNombre}</p>
                 </div>
-
                 {reporteSeleccionado.archivoAdjunto && (
                   <div>
                     <h4 className="font-semibold text-[#111827] mb-1">Archivo adjunto</h4>
@@ -281,7 +344,6 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                     </a>
                   </div>
                 )}
-
                 <div>
                   <h4 className="font-semibold text-[#111827] mb-1">Estatus</h4>
                   <div className="flex items-start gap-2 p-3 rounded-lg border border-[#E5E7EB] bg-gray-50">

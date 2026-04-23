@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Circular extends Model
 {
@@ -16,10 +17,14 @@ class Circular extends Model
     protected $fillable = [
         'titulo',
         'descripcion',
-        'contenido',
         'categoria',
         'prioridad',
         'publicado_por',
+        'adjuntos',
+    ];
+
+    protected $casts = [
+        'adjuntos' => 'array',
     ];
 
     public function autor(): BelongsTo
@@ -30,5 +35,15 @@ class Circular extends Model
     public function destinatarios(): HasMany
     {
         return $this->hasMany(CircularDestinatario::class);
+    }
+
+    public function lecturas(): HasMany
+    {
+        return $this->hasMany(CircularLectura::class);
+    }
+
+    public function evento(): HasOne
+    {
+        return $this->hasOne(AgendaEvento::class);
     }
 }

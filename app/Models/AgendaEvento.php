@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AgendaEvento extends Model
@@ -14,15 +15,24 @@ class AgendaEvento extends Model
 
     protected $fillable = [
         'fecha',
+        'fecha_fin',
         'titulo',
         'descripcion',
         'hora_inicio',
         'hora_fin',
         'tipo',
+        'grupo',
+        'materia',
+        'circular_id',
     ];
 
     public function destinatarios(): HasMany
     {
         return $this->hasMany(AgendaEventoDestinatario::class);
+    }
+
+    public function circular(): BelongsTo
+    {
+        return $this->belongsTo(Circular::class);
     }
 }

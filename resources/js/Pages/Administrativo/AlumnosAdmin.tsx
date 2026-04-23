@@ -36,17 +36,6 @@ interface Alumno {
   tutores?: TutorPivot[];
 }
 
-function rolAlumno(parentesco: string | null, sexo: string | null): string {
-  const f = sexo === "Femenino";
-  switch (parentesco) {
-    case "Padre": case "Madre":       return f ? "Hija"     : "Hijo";
-    case "Abuelo": case "Abuela":     return f ? "Nieta"    : "Nieto";
-    case "Tío": case "Tía":           return f ? "Sobrina"  : "Sobrino";
-    case "Hermano": case "Hermana":   return f ? "Hermana"  : "Hermano";
-    case "Tutor legal":               return f ? "Tutelada" : "Tutelado";
-    default: return parentesco ?? "—";
-  }
-}
 
 const formVacio = { nombre: "", apellidos: "", curp: "", fecha_nacimiento: "", sexo: "Masculino", telefono: "", direccion: "", estado: "Activo" };
 
@@ -107,9 +96,9 @@ function FormAlumno({ form, setForm }: { form: AlumnoForm; setForm: (f: AlumnoFo
   );
 }
 
-interface AlumnosAdminProps { userRole?: string; }
+interface AlumnosAdminProps { userRole?: string; permissions?: string[]; }
 
-export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
+export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -323,7 +312,7 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <div className="p-2 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-lg">
+                          <div className="p-2 bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] rounded-lg">
                             <GraduationCap className="h-4 w-4 text-white" />
                           </div>
                           <div>
@@ -349,7 +338,7 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
                               <Users className="h-3 w-3" />
                               {alumno.tutores[0].persona.nombre} {alumno.tutores[0].persona.apellidos}
                               {alumno.tutores[0].pivot.parentesco && (
-                                <span className="text-[#9CA3AF]">· {rolAlumno(alumno.tutores[0].pivot.parentesco, alumno.sexo)}</span>
+                                <span className="text-[#9CA3AF]">· {alumno.tutores[0].pivot.parentesco}</span>
                               )}
                             </div>
                           )}
@@ -362,7 +351,7 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
                         <Button variant="ghost" size="sm" onClick={() => abrirEditar(alumno)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        {userRole === "Administrador" && (
+                        {permissions.includes("alumnos.manage") && (
                           <Button variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600" onClick={() => handleEliminar(alumno)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -387,7 +376,7 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
           {alumnoSel && (
             <div className="space-y-4">
               <div className="flex items-center gap-4 p-4 bg-linear-to-r from-blue-50 to-purple-50 rounded-lg">
-                <div className="p-3 bg-gradient-to-br from-[#1D4ED8] to-[#7C3AED] rounded-xl">
+                <div className="p-3 bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] rounded-xl">
                   <GraduationCap className="h-8 w-8 text-white" />
                 </div>
                 <div>
@@ -411,7 +400,7 @@ export function AlumnosAdmin({ userRole }: AlumnosAdminProps) {
                       {alumnoSel.tutores[0].persona.nombre} {alumnoSel.tutores[0].persona.apellidos}
                       {alumnoSel.tutores[0].pivot.parentesco && (
                         <span className="ml-2 text-sm text-[#6B7280] font-normal">
-                          ({rolAlumno(alumnoSel.tutores[0].pivot.parentesco, alumnoSel.sexo)})
+                          ({alumnoSel.tutores[0].pivot.parentesco})
                         </span>
                       )}
                     </p>

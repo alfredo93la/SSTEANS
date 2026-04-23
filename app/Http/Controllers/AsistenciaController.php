@@ -162,10 +162,13 @@ class AsistenciaController extends Controller
     /**
      * GET /api/tutor/asistencias/{alumno}
      * Asistencias de un alumno (para tutor).
+     * Acepta ciclo_id opcional; si no se pasa usa el ciclo activo.
      */
     public function forAlumno(Request $request, Alumno $alumno): JsonResponse
     {
-        $cicloId = CicloEscolar::where('activo', true)->value('id');
+        $cicloId = $request->filled('ciclo_id')
+            ? $request->integer('ciclo_id')
+            : CicloEscolar::where('activo', true)->value('id');
 
         $query = Asistencia::where('alumno_id', $alumno->id)
             ->with('materia:id,nombre')

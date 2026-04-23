@@ -5,9 +5,7 @@ import { ResponsiveLayout } from "../Layouts/ResponsiveLayout";
 import { Dashboard } from "./Dashboard";
 import { Agenda } from "./Agenda";
 import { Circulares } from "./Circulares";
-import { EventosAcademicos } from "./Agenda/EventosAcademicos";
-import { ExamenesView } from "./Agenda/ExamenesView";
-import { EntregasView } from "./Agenda/EntregasView";
+import { ExamenesView } from "./ExamenesView";
 import { CalificacionesTutor } from "./Tutor/CalificacionesTutor";
 import { TareasTutor } from "./Tutor/TareasTutor";
 import { AsistenciaTutor } from "./Tutor/AsistenciaTutor";
@@ -32,7 +30,6 @@ import { TutoresAdmin } from "./Administrativo/TutoresAdmin";
 import { CiclosEscolares } from "./Admin/CiclosEscolares";
 import { PeriodosEvaluacion } from "./Admin/PeriodosEvaluacion";
 import { ConfiguracionGeneral } from "./Admin/ConfiguracionGeneral";
-import { ValidarUsuarios } from "./Admin/ValidarUsuarios";
 import { MyProfile } from "./MiPerfil";
 import type { PageProps } from "../types";
 import { canAccessRoute, getDefaultRoute } from "../data/auth";
@@ -70,8 +67,8 @@ export default function App() {
       const routeToNavigate = window.location.hash || "#/dashboard";
 
       if (!canAccessRoute(routeToNavigate, permissions)) {
-        const fallbackRoute = getDefaultRoute(permissions);
         toast.error("No tienes permisos para acceder a ese módulo.");
+        const fallbackRoute = getDefaultRoute(permissions);
         window.location.hash = fallbackRoute;
         setCurrentRoute(fallbackRoute);
         return;
@@ -81,7 +78,6 @@ export default function App() {
     };
 
     window.addEventListener("hashchange", handleHashChange);
-
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, [permissions]);
 
@@ -90,7 +86,6 @@ export default function App() {
       toast.error("Acceso denegado: tu rol no tiene permisos para esta sección.");
       return;
     }
-
     window.location.hash = routeToNavigate;
     setCurrentRoute(routeToNavigate);
   };
@@ -99,42 +94,34 @@ export default function App() {
     router.post(route("logout"));
   };
 
+  const has = (permission: string) => permissions.includes(permission);
+
   const pageTitles: Record<string, string> = {
-    "#/dashboard": "Inicio",
-    "#/dashboard/calificaciones": "Calificaciones",
-    "#/dashboard/tareas": "Tareas",
-    "#/dashboard/asistencia": "Asistencia",
-    "#/dashboard/reportes": "Reportes",
-    "#/dashboard/notificaciones": "Notificaciones",
-    "#/dashboard/horario": "Horario",
-    "#/dashboard/asignar-tarea": "Asignar Tarea",
-    "#/dashboard/gestionar-tareas": "Gestionar Tareas",
-    "#/agenda": "Agenda",
-    "#/agenda/eventos": "Eventos Académicos",
-    "#/agenda/examenes": "Exámenes",
-    "#/agenda/entregas": "Entregas",
-    "#/circulares": "Circulares",
-    "#/perfil": "Mi Perfil",
-    "#/notificaciones": "Notificaciones",
-    "#/trabajador-social/reportes": "Reportes",
-    "#/trabajador-social/alumnos": "Alumnos",
-    "#/trabajador-social/alumno/": "Perfil Alumno",
-    "#/admin/usuarios": "Usuarios",
-    "#/admin/roles": "Roles",
-    "#/administrativo/grupos": "Grupos",
-    "#/administrativo/materias": "Materias",
-    "#/administrativo/horarios": "Horarios",
-    "#/administrativo/alumnos": "Alumnos",
-    "#/administrativo/tutores": "Tutores",
-    "#/admin/ciclos": "Ciclos Escolares",
-    "#/admin/periodos": "Períodos de Evaluación",
-    "#/admin/configuracion": "Configuración",
-    "#/admin/validar-usuarios": "Validar Usuarios",
+    "#/dashboard":        "Inicio",
+    "#/calificaciones":   "Calificaciones",
+    "#/tareas":           "Tareas",
+    "#/asistencia":       "Asistencia",
+    "#/examenes":         "Exámenes",
+    "#/reportes":         "Reportes",
+    "#/notificaciones":   "Notificaciones",
+    "#/horario":          "Horario",
+    "#/agenda":           "Agenda",
+    "#/circulares":       "Circulares",
+    "#/perfil":           "Mi Perfil",
+    "#/alumnos":          "Alumnos",
+    "#/alumnos/perfil/":  "Perfil Alumno",
+    "#/tutores":          "Tutores",
+    "#/grupos":           "Grupos",
+    "#/materias":         "Materias",
+    "#/horarios":         "Horarios",
+    "#/usuarios":         "Usuarios",
+    "#/roles":            "Roles y Permisos",
+    "#/ciclos":           "Ciclos Escolares",
+    "#/periodos":         "Periodos de Evaluación",
+    "#/configuracion":    "Configuración",
   };
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <>
@@ -156,66 +143,87 @@ export default function App() {
           <Dashboard
             onNavigate={handleNavigate}
             userRole={userRole}
+            userName={userName}
+            permissions={permissions}
             hijoSeleccionado={hijoSeleccionado}
             onHijoChange={setHijoSeleccionado}
           />
         )}
 
-        {currentRoute === "#/dashboard/calificaciones" && userRole === "Tutor" && (
-          <CalificacionesTutor alumnoId={hijoSeleccionado || 1} />
-        )}
-        {currentRoute === "#/dashboard/tareas" && userRole === "Tutor" && (
-          <TareasTutor alumnoId={hijoSeleccionado || 1} />
-        )}
-        {currentRoute === "#/dashboard/asistencia" && userRole === "Tutor" && (
-          <AsistenciaTutor alumnoId={hijoSeleccionado || 1} />
-        )}
-        {currentRoute === "#/dashboard/reportes" && <ReportesConductaTutor alumnoId={hijoSeleccionado || 1} />}
-        {currentRoute === "#/dashboard/notificaciones" && userRole === "Tutor" && (
-          <NotificacionesTutor alumnoId={hijoSeleccionado || 1} />
-        )}
-        {currentRoute === "#/dashboard/horario" && userRole === "Tutor" && (
-          <HorarioTutor alumnoId={hijoSeleccionado || 1} />
+        {/* Calificaciones: view → tutor, manage → profesor */}
+        {currentRoute === "#/calificaciones" && (
+          has("calificaciones.view")
+            ? <CalificacionesTutor alumnoId={hijoSeleccionado || 1} />
+            : <RegistrarCalificaciones />
         )}
 
-        {currentRoute === "#/dashboard/calificaciones" && userRole === "Profesor" && <RegistrarCalificaciones />}
-        {currentRoute === "#/dashboard/asistencia" && userRole === "Profesor" && <ControlAsistencia />}
-        {currentRoute === "#/dashboard/gestionar-tareas" && <GestionarTareas />}
-        {currentRoute === "#/dashboard/horario" && userRole === "Profesor" && <HorarioDocente />}
+        {/* Tareas: view → tutor, manage → profesor */}
+        {currentRoute === "#/tareas" && (
+          has("tareas.view")
+            ? <TareasTutor alumnoId={hijoSeleccionado || 1} />
+            : <GestionarTareas />
+        )}
+
+        {/* Asistencia: view → tutor, manage → profesor */}
+        {currentRoute === "#/asistencia" && (
+          has("asistencia.view")
+            ? <AsistenciaTutor alumnoId={hijoSeleccionado || 1} />
+            : <ControlAsistencia />
+        )}
+
+        {/* Exámenes: view → tutor, manage → profesor */}
+        {currentRoute === "#/examenes" && (
+          <ExamenesView permissions={permissions} />
+        )}
+
+        {/* Reportes: view → tutor, manage → trabajador social */}
+        {currentRoute === "#/reportes" && (
+          has("reportes.view")
+            ? <ReportesConductaTutor alumnoId={hijoSeleccionado || 1} />
+            : <ReportesTS />
+        )}
+
+        {/* Notificaciones: view → tutor, manage → profesor / trabajador social */}
+        {currentRoute === "#/notificaciones" && (
+          has("notificaciones.view")
+            ? <NotificacionesTutor alumnoId={hijoSeleccionado || 1} />
+            : <Notificaciones />
+        )}
+
+        {/* Horario: tutor_profile → horario del alumno, sin perfil → horario docente */}
+        {currentRoute === "#/horario" && (
+          user.tutor_profile
+            ? <HorarioTutor alumnoId={hijoSeleccionado || 1} />
+            : <HorarioDocente />
+        )}
 
         {currentRoute === "#/agenda" && <Agenda permissions={permissions} />}
-        {currentRoute === "#/agenda/eventos" && <EventosAcademicos userRole={userRole} onNavigate={handleNavigate} />}
-        {currentRoute === "#/agenda/examenes" && (
-          <ExamenesView userRole={userRole} hijoSeleccionado={hijoSeleccionado} onNavigate={handleNavigate} />
-        )}
-        {currentRoute === "#/agenda/entregas" && (
-          <EntregasView userRole={userRole} hijoSeleccionado={hijoSeleccionado} onNavigate={handleNavigate} />
-        )}
-
         {currentRoute === "#/circulares" && <Circulares permissions={permissions} />}
         {currentRoute === "#/perfil" && <MyProfile user={user} />}
 
-        {currentRoute === "#/notificaciones" && <Notificaciones />}
-        {currentRoute === "#/trabajador-social/reportes" && <ReportesTS />}
-        {currentRoute === "#/trabajador-social/alumnos" && <AlumnosTS onNavigate={handleNavigate} />}
-        {currentRoute.startsWith("#/trabajador-social/alumno/") && (
+        {/* Alumnos: view → trabajador social, manage → personal administrativo */}
+        {currentRoute === "#/alumnos" && (
+          has("alumnos.view") ? <AlumnosTS onNavigate={handleNavigate} /> : <AlumnosAdmin userRole={userRole} permissions={permissions} />
+        )}
+        {currentRoute.startsWith("#/alumnos/perfil/") && (
           <PerfilAlumnoTS
             alumnoId={Number(currentRoute.split("/").at(-1))}
             onNavigate={handleNavigate}
           />
         )}
 
-        {currentRoute === "#/admin/usuarios" && <Usuarios />}
-        {currentRoute === "#/admin/roles" && <Roles />}
-        {currentRoute === "#/administrativo/grupos" && <Grupos />}
-        {currentRoute === "#/administrativo/materias" && <Materias />}
-        {currentRoute === "#/administrativo/horarios" && <Horarios />}
-        {currentRoute === "#/administrativo/alumnos" && <AlumnosAdmin userRole={userRole} />}
-        {currentRoute === "#/administrativo/tutores" && <TutoresAdmin />}
-        {currentRoute === "#/admin/ciclos" && <CiclosEscolares />}
-        {currentRoute === "#/admin/periodos" && <PeriodosEvaluacion />}
-        {currentRoute === "#/admin/configuracion" && <ConfiguracionGeneral />}
-        {currentRoute === "#/admin/validar-usuarios" && <ValidarUsuarios />}
+        {/* Gestión escolar */}
+        {currentRoute === "#/tutores" && <TutoresAdmin />}
+        {currentRoute === "#/grupos" && <Grupos />}
+        {currentRoute === "#/materias" && <Materias />}
+        {currentRoute === "#/horarios" && <Horarios />}
+
+        {/* Administración */}
+        {currentRoute === "#/usuarios" && <Usuarios />}
+        {currentRoute === "#/roles" && <Roles />}
+        {currentRoute === "#/ciclos" && <CiclosEscolares />}
+        {currentRoute === "#/periodos" && <PeriodosEvaluacion />}
+        {currentRoute === "#/configuracion" && <ConfiguracionGeneral />}
       </ResponsiveLayout>
       <Toaster position="top-right" />
     </>

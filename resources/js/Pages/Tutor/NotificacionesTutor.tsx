@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../Components/ui/dialog";
 import { Mail, MailOpen, Bell, Calendar, FileText, CheckCircle, Loader2 } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
+import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 
 interface Notificacion {
   id: number;
@@ -71,15 +72,21 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
     return cumpleEstado && cumpleCategoria && cumpleAlumno;
   });
 
-  const noLeidas = notificaciones.filter((n) => !n.leida).length;
-  const leidas = notificaciones.filter((n) => n.leida).length;
+  const notificacionesPorAlumno = notificaciones.filter(
+    (n) => !alumnoId || n.alumnoId === null || n.alumnoId === alumnoId
+  );
+  const noLeidas = notificacionesPorAlumno.filter((n) => !n.leida).length;
+  const leidas   = notificacionesPorAlumno.filter((n) => n.leida).length;
 
   const getCategoriaColor = (categoria: string) => {
     switch (categoria) {
       case "Académico":      return "bg-blue-100 text-[#1D4ED8]";
+      case "Asistencia":     return "bg-cyan-100 text-[#0891B2]";
+      case "Conducta":       return "bg-orange-100 text-[#EA580C]";
+      case "Citatorio":      return "bg-red-100 text-[#DC2626]";
       case "Administrativo": return "bg-purple-100 text-[#7C3AED]";
-      case "Evento":         return "bg-amber-100 text-[#D97706]";
-      case "Conducta":       return "bg-green-100 text-[#059669]";
+      case "Aviso":          return "bg-amber-100 text-[#D97706]";
+      case "Orientación":    return "bg-green-100 text-[#059669]";
       default:               return "bg-gray-100 text-[#6B7280]";
     }
   };
@@ -95,6 +102,7 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <AlumnoInfoCard alumnoId={alumnoId} />
       <PageTitle
         icon={Bell}
         title="Notificaciones"
@@ -134,9 +142,12 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
                 <SelectContent>
                   <SelectItem value="todas">Todas las categorías</SelectItem>
                   <SelectItem value="Académico">Académico</SelectItem>
-                  <SelectItem value="Administrativo">Administrativo</SelectItem>
-                  <SelectItem value="Evento">Evento</SelectItem>
+                  <SelectItem value="Asistencia">Asistencia</SelectItem>
                   <SelectItem value="Conducta">Conducta</SelectItem>
+                  <SelectItem value="Citatorio">Citatorio</SelectItem>
+                  <SelectItem value="Administrativo">Administrativo</SelectItem>
+                  <SelectItem value="Aviso">Aviso</SelectItem>
+                  <SelectItem value="Orientación">Orientación</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -154,7 +165,7 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Total</p>
-                <p className="text-2xl font-bold text-[#1D4ED8]">{notificaciones.length}</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">{notificacionesPorAlumno.length}</p>
               </div>
             </div>
           </CardContent>

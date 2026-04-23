@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\BadgeActualizado;
 use App\Models\Notificacion;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -52,8 +53,7 @@ class NotificacionController extends Controller
             'destinatarios.*.alumnoId' => ['nullable', 'integer', 'exists:alumnos,id'],
             'titulo'                   => ['required', 'string', 'max:255'],
             'mensaje'                  => ['required', 'string', 'max:2000'],
-            'tipo'                     => ['required', 'string', 'in:Reporte,Alerta,Recordatorio,Información'],
-            'categoria'                => ['required', 'string', 'in:Académico,Administrativo,Evento,Conducta'],
+            'categoria'                => ['required', 'string', 'in:Académico,Asistencia,Conducta,Citatorio,Administrativo,Aviso,Orientación'],
             'prioridad'                => ['required', 'string', 'in:Alta,Media,Baja'],
         ]);
 
@@ -67,10 +67,10 @@ class NotificacionController extends Controller
                 'alumno_id'            => $dest['alumnoId'] ?? null,
                 'titulo'               => $validated['titulo'],
                 'mensaje'              => $validated['mensaje'],
-                'tipo'                 => $validated['tipo'],
                 'categoria'            => $validated['categoria'],
                 'prioridad'            => $validated['prioridad'],
             ]);
+            broadcast(new BadgeActualizado($dest['userId'], 'notificaciones'));
             $creadas++;
         }
 
@@ -263,7 +263,7 @@ class NotificacionController extends Controller
             'id'           => $n->id,
             'titulo'       => $n->titulo,
             'mensaje'      => $n->mensaje,
-            'tipo'         => $n->tipo,
+            'categoria'    => $n->categoria,
             'prioridad'    => $n->prioridad,
             'destinatario' => $n->destinatario?->name ?? '—',
             'alumno'       => $this->alumnoNombre($n),

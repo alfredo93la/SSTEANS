@@ -31,7 +31,7 @@ class GrupoController extends Controller
 
         $grupos = Grupo::with(['grado:id,numero,descripcion', 'cicloEscolar:id,nombre'])
             ->where('ciclo_escolar_id', $cicloId)
-            ->withCount('asignaciones')
+            ->withCount(['asignaciones' => fn ($q) => $q->where('estado', 'activo')])
             ->orderBy('grado_id')
             ->orderBy('nombre')
             ->get();
@@ -122,7 +122,7 @@ class GrupoController extends Controller
             return response()->json(['message' => 'No se puede eliminar grupos de un ciclo cerrado.'], 422);
         }
 
-        if ($grupo->asignaciones()->exists()) {
+        if ($grupo->asignaciones()->where('estado', 'activo')->exists()) {
             return response()->json(['message' => 'No se puede eliminar: el grupo tiene alumnos asignados.'], 422);
         }
 

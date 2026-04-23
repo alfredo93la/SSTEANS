@@ -264,12 +264,27 @@ class UserManagementController extends Controller
     {
         $allModels = [Tutor::class, Profesor::class, TrabSocial::class, PersAdmin::class];
 
+        $sistemRoles = array_keys(config('permissions.roles', []));
+        $isCustomRole = ! \in_array($roleName, $sistemRoles);
+
         $roleMap = [
             'Tutor'                   => [Tutor::class,      ['ocupacion' => $data['ocupacion'] ?? null]],
             'Profesor'                => [Profesor::class,   ['academia' => $data['academia'] ?? null, 'cubiculo' => $data['cubiculo'] ?? null, 'hora_entrada' => $data['hora_entrada'] ?? null, 'hora_salida' => $data['hora_salida'] ?? null]],
             'Trabajador Social'       => [TrabSocial::class, ['horario' => $data['horario'] ?? null, 'extension' => $data['extension'] ?? null]],
             'Personal Administrativo' => [PersAdmin::class,  ['cargo' => $data['cargo'] ?? null, 'departamento' => $data['departamento'] ?? null, 'extension' => $data['extension'] ?? null]],
         ];
+
+        // Rol personalizado: usar los mismos datos que Personal Administrativo
+        if ($isCustomRole) {
+            PersAdmin::updateOrCreate(
+                ['persona_id' => $personaId],
+                ['cargo' => $data['cargo'] ?? null, 'departamento' => $data['departamento'] ?? null, 'extension' => $data['extension'] ?? null]
+            );
+            foreach ([Tutor::class, Profesor::class, TrabSocial::class] as $modelClass) {
+                $modelClass::where('persona_id', $personaId)->delete();
+            }
+            return;
+        }
 
         if (isset($roleMap[$roleName])) {
             [$model, $fields] = $roleMap[$roleName];

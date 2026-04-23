@@ -5,7 +5,7 @@ import { Badge } from "../../Components/ui/badge";
 import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { Textarea } from "../../Components/ui/textarea";
-import { Shield, Edit, Eye, Plus, CheckCircle, Settings, Loader2 } from "lucide-react";
+import { Shield, Edit, Eye, Plus, CheckCircle, Settings, Loader2, Lock, Trash2 } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../../Components/ui/dialog";
 import { Checkbox } from "../../Components/ui/checkbox";
@@ -28,7 +28,10 @@ type Rol = {
 type RoleResponse = {
   roles: Rol[];
   permisos: Permiso[];
+  permisos_custom_ids: number[];
 };
+
+const SYSTEM_ROLES = ["Tutor", "Profesor", "Trabajador Social", "Administrador", "Personal Administrativo"];
 
 export function Roles() {
   const [loading, setLoading] = useState(true);
@@ -37,7 +40,13 @@ export function Roles() {
   const [modalDetalle, setModalDetalle] = useState(false);
   const [roles, setRoles] = useState<Rol[]>([]);
   const [permisosCatalogo, setPermisosCatalogo] = useState<Permiso[]>([]);
+  const [permisosCustomIds, setPermisosCustomIds] = useState<number[]>([]);
   const [rolSeleccionado, setRolSeleccionado] = useState<Rol | null>(null);
+
+  const dashboardPermId = useMemo(
+    () => permisosCatalogo.find((p) => p.nombre === "dashboard.view")?.id ?? null,
+    [permisosCatalogo],
+  );
 
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevaDescripcion, setNuevaDescripcion] = useState("");
@@ -54,6 +63,7 @@ export function Roles() {
       const { data } = await window.axios.get<RoleResponse>("/admin/roles-permisos");
       setRoles(data.roles ?? []);
       setPermisosCatalogo(data.permisos ?? []);
+      setPermisosCustomIds(data.permisos_custom_ids ?? []);
     } catch {
       toast.error("No se pudieron cargar roles y permisos");
     } finally {
@@ -121,7 +131,7 @@ export function Roles() {
       setModalNuevo(false);
       setNuevoNombre("");
       setNuevaDescripcion("");
-      setNuevosPermisos([]);
+      setNuevosPermisos(dashboardPermId ? [dashboardPermId] : []);
       await cargarRoles();
     } catch {
       toast.error("No se pudo crear el rol");
@@ -136,6 +146,21 @@ export function Roles() {
     setEditarDescripcion(rol.descripcion ?? "");
     setEditarPermisos(rol.permisos.map((permiso) => permiso.id));
     setModalDetalle(true);
+  };
+
+  const eliminarRol = async (rol: Rol) => {
+    const msg = rol.users_count > 0
+      ? `¿Eliminar el rol "${rol.nombre}"? ${rol.users_count} usuario(s) perderán este rol.`
+      : `¿Eliminar el rol "${rol.nombre}"?`;
+    if (!confirm(msg)) return;
+
+    try {
+      await window.axios.delete(`/admin/roles/${rol.id}`);
+      toast.success("Rol eliminado correctamente.");
+      await cargarRoles();
+    } catch {
+      toast.error("No se pudo eliminar el rol.");
+    }
   };
 
   const guardarEdicion = async () => {
@@ -163,9 +188,13 @@ export function Roles() {
   return (
     <div className="space-y-6 animate-fade-in">
       <PageTitle icon={Shield} title="Roles y Permisos" description="Configura los roles y sus permisos en el sistema" color="bg-[#7C3AED]">
-        <Dialog open={modalNuevo} onOpenChange={setModalNuevo}>
+        <Dialog open={modalNuevo} onOpenChange={(open) => {
+          setModalNuevo(open);
+          if (open && dashboardPermId) setNuevosPermisos([dashboardPermId]);
+          if (!open) { setNuevoNombre(""); setNuevaDescripcion(""); setNuevosPermisos(dashboardPermId ? [dashboardPermId] : []); }
+        }}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]">
+            <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Rol
             </Button>
@@ -197,28 +226,36 @@ export function Roles() {
 
               <div className="border-t pt-6 space-y-3">
                 <h3 className="font-semibold text-[#111827]">Permisos del Rol</h3>
+                <p className="text-xs text-[#6B7280]">Solo se muestran los permisos del Personal Administrativo. Los permisos exclusivos del Administrador del sistema no están disponibles.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {permisosCatalogo.map((permiso) => (
-                    <div key={permiso.id} className="flex items-start gap-3 p-3 rounded-lg border border-[#E5E7EB] hover:bg-gray-50">
-                      <Checkbox
-                        id={`new-perm-${permiso.id}`}
-                        checked={nuevosPermisos.includes(permiso.id)}
-                        onCheckedChange={(checked) => togglePermiso(setNuevosPermisos, permiso.id, checked === true)}
-                      />
-                      <div className="flex-1">
-                        <label htmlFor={`new-perm-${permiso.id}`} className="text-sm font-medium text-[#111827] cursor-pointer">
-                          {permiso.nombre}
-                        </label>
-                        <p className="text-xs text-[#6B7280] mt-0.5">{permiso.descripcion ?? "Sin descripción"}</p>
+                  {permisosCatalogo.filter((p) => permisosCustomIds.includes(p.id)).map((permiso) => {
+                    const isRequired = permiso.id === dashboardPermId;
+                    return (
+                      <div key={permiso.id} className={`flex items-start gap-3 p-3 rounded-lg border ${isRequired ? "border-[#BFDBFE] bg-blue-50/50" : "border-[#E5E7EB] hover:bg-gray-50"}`}>
+                        <Checkbox
+                          id={`new-perm-${permiso.id}`}
+                          checked={nuevosPermisos.includes(permiso.id)}
+                          onCheckedChange={(checked) => togglePermiso(setNuevosPermisos, permiso.id, checked === true)}
+                          disabled={isRequired}
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <label htmlFor={`new-perm-${permiso.id}`} className={`text-sm font-medium text-[#111827] ${isRequired ? "cursor-default" : "cursor-pointer"}`}>
+                              {permiso.nombre}
+                            </label>
+                            {isRequired && <span className="text-[10px] font-semibold text-[#1D4ED8] bg-[#DBEAFE] px-1.5 py-0.5 rounded">Obligatorio</span>}
+                          </div>
+                          <p className="text-xs text-[#6B7280] mt-0.5">{permiso.descripcion ?? "Sin descripción"}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
               <div className="flex gap-2 justify-end pt-4 border-t">
                 <Button variant="outline" onClick={() => setModalNuevo(false)} disabled={saving}>Cancelar</Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]" onClick={crearRol} disabled={saving}>
+                <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]" onClick={crearRol} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Crear Rol
                 </Button>
@@ -257,9 +294,20 @@ export function Roles() {
                     <Button variant="ghost" size="sm" onClick={() => verDetalle(rol)}>
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => verDetalle(rol)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    {SYSTEM_ROLES.includes(rol.nombre) ? (
+                      <Button variant="ghost" size="sm" disabled title="Rol del sistema — no editable">
+                        <Lock className="h-4 w-4 text-[#9CA3AF]" />
+                      </Button>
+                    ) : (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => verDetalle(rol)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-[#E11D48] hover:bg-red-50" onClick={() => eliminarRol(rol)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
                 <CardDescription className="mt-2">{rol.descripcion || "Sin descripción"}</CardDescription>
@@ -291,16 +339,31 @@ export function Roles() {
       <Dialog open={modalDetalle} onOpenChange={setModalDetalle}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Editar Rol</DialogTitle>
-            <DialogDescription>Actualiza nombre, descripción y permisos del rol.</DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              {rolSeleccionado && SYSTEM_ROLES.includes(rolSeleccionado.nombre) && (
+                <Lock className="h-4 w-4 text-[#9CA3AF]" />
+              )}
+              {rolSeleccionado && SYSTEM_ROLES.includes(rolSeleccionado.nombre) ? "Ver Rol" : "Editar Rol"}
+            </DialogTitle>
+            <DialogDescription>
+              {rolSeleccionado && SYSTEM_ROLES.includes(rolSeleccionado.nombre)
+                ? "Este es un rol del sistema y no puede modificarse."
+                : "Actualiza nombre, descripción y permisos del rol."}
+            </DialogDescription>
           </DialogHeader>
 
           {rolSeleccionado && (
             <div className="space-y-4">
+              {SYSTEM_ROLES.includes(rolSeleccionado.nombre) && (
+                <div className="flex items-center gap-2 text-sm text-[#6B7280] bg-[#F3F4F6] rounded-lg px-3 py-2">
+                  <Lock className="h-4 w-4 shrink-0" />
+                  Los roles del sistema no pueden editarse para garantizar el funcionamiento correcto del sistema.
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-nombre">Nombre</Label>
-                  <Input id="edit-nombre" value={editarNombre} onChange={(e) => setEditarNombre(e.target.value)} />
+                  <Input id="edit-nombre" value={editarNombre} onChange={(e) => setEditarNombre(e.target.value)} disabled={SYSTEM_ROLES.includes(rolSeleccionado.nombre)} />
                 </div>
                 <div>
                   <Label>Usuarios Asignados</Label>
@@ -317,37 +380,54 @@ export function Roles() {
                   rows={3}
                   value={editarDescripcion}
                   onChange={(e) => setEditarDescripcion(e.target.value)}
+                  disabled={SYSTEM_ROLES.includes(rolSeleccionado.nombre)}
                 />
               </div>
 
               <div className="border-t pt-4">
                 <Label className="font-semibold">Permisos</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                  {permisosCatalogo.map((permiso) => (
-                    <div key={permiso.id} className="flex items-start gap-3 p-3 rounded-lg border border-[#E5E7EB]">
-                      <Checkbox
-                        id={`edit-perm-${permiso.id}`}
-                        checked={editarPermisos.includes(permiso.id)}
-                        onCheckedChange={(checked) => togglePermiso(setEditarPermisos, permiso.id, checked === true)}
-                      />
-                      <div>
-                        <label htmlFor={`edit-perm-${permiso.id}`} className="text-sm font-medium text-[#111827] cursor-pointer">
-                          {permiso.nombre}
-                        </label>
-                        <p className="text-xs text-[#6B7280]">{permiso.descripcion ?? "Sin descripción"}</p>
-                      </div>
+                {SYSTEM_ROLES.includes(rolSeleccionado.nombre) ? (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {rolSeleccionado.permisos.map((permiso) => (
+                      <span key={permiso.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F3F4F6] text-xs font-medium text-[#374151]">
+                        <CheckCircle className="h-3 w-3 text-[#059669] shrink-0" />
+                        {permiso.nombre}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-[#6B7280] mt-1">Solo se muestran los permisos del Personal Administrativo. Los permisos exclusivos del Administrador del sistema no están disponibles.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                      {permisosCatalogo.filter((p) => permisosCustomIds.includes(p.id)).map((permiso) => (
+                        <div key={permiso.id} className="flex items-start gap-3 p-3 rounded-lg border border-[#E5E7EB]">
+                          <Checkbox
+                            id={`edit-perm-${permiso.id}`}
+                            checked={editarPermisos.includes(permiso.id)}
+                            onCheckedChange={(checked) => togglePermiso(setEditarPermisos, permiso.id, checked === true)}
+                          />
+                          <div>
+                            <label htmlFor={`edit-perm-${permiso.id}`} className="text-sm font-medium text-[#111827] cursor-pointer">
+                              {permiso.nombre}
+                            </label>
+                            <p className="text-xs text-[#6B7280]">{permiso.descripcion ?? "Sin descripción"}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
               </div>
 
               <div className="flex gap-2 justify-end pt-4 border-t">
                 <Button variant="outline" onClick={() => setModalDetalle(false)} disabled={saving}>Cerrar</Button>
-                <Button className="bg-gradient-to-r from-[#1D4ED8] to-[#7C3AED]" onClick={guardarEdicion} disabled={saving}>
-                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  <Edit className="h-4 w-4 mr-2" />
-                  Guardar Cambios
-                </Button>
+                {!SYSTEM_ROLES.includes(rolSeleccionado.nombre) && (
+                  <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]" onClick={guardarEdicion} disabled={saving}>
+                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    <Edit className="h-4 w-4 mr-2" />
+                    Guardar Cambios
+                  </Button>
+                )}
               </div>
             </div>
           )}

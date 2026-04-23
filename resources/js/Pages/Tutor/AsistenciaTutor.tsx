@@ -6,9 +6,11 @@ import { Badge } from "../../Components/ui/badge";
 import { Input } from "../../Components/ui/input";
 import { Button } from "../../Components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
-import { CheckCircle2, XCircle, Clock, Calendar, BookOpen } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Calendar, BookOpen, History } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
+import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 
+interface CicloData { id: number; nombre: string; activo: boolean; cerrado: boolean; }
 interface AsistData { id: number; materiaId: number; materia: string | null; fecha: string; diaSemana: string; estado: string; }
 
 interface AsistenciaTutorProps {
@@ -16,61 +18,78 @@ interface AsistenciaTutorProps {
 }
 
 export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
+  const [ciclos, setCiclos] = useState<CicloData[]>([]);
+  const [cicloSeleccionado, setCicloSeleccionado] = useState("");
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [materiaSeleccionada, setMateriaSeleccionada] = useState<string>("todas");
   const [asistenciasAlumno, setAsistenciasAlumno] = useState<AsistData[]>([]);
 
+  // Cargar ciclos y seleccionar el activo
   useEffect(() => {
-    if (!alumnoId) return;
-    axios.get(`/api/tutor/asistencias/${alumnoId}`)
+    axios.get("/api/ciclos-escolares")
+      .then(({ data }) => {
+        const lista: CicloData[] = data.ciclos ?? [];
+        setCiclos(lista);
+        const activo = lista.find((c) => c.activo);
+        if (activo) setCicloSeleccionado(activo.id.toString());
+        else if (lista.length > 0) setCicloSeleccionado(lista[0].id.toString());
+      })
+      .catch(() => {});
+  }, []);
+
+  // Recargar asistencias cuando cambia el ciclo; resetear filtros
+  useEffect(() => {
+    if (!alumnoId || !cicloSeleccionado) return;
+    setFechaInicio("");
+    setFechaFin("");
+    setMateriaSeleccionada("todas");
+    axios.get(`/api/tutor/asistencias/${alumnoId}`, { params: { ciclo_id: cicloSeleccionado } })
       .then(({ data }) => setAsistenciasAlumno(data.asistencias ?? []))
       .catch(() => {});
-  }, [alumnoId]);
+  }, [alumnoId, cicloSeleccionado]);
+
+  const cicloActivo = ciclos.find((c) => c.activo);
+  const esHistorico = cicloSeleccionado && cicloSeleccionado !== cicloActivo?.id.toString();
 
   // Materias únicas derivadas de los registros
   const materiasUnicas = Array.from(
     new Map(asistenciasAlumno.map(a => [a.materiaId, { id: a.materiaId, nombre: a.materia ?? "" }])).values()
   );
 
-  // Filtrar por materia si se seleccionó una específica
+  // Filtrar por materia y por rango de fechas (filtro en cliente)
   const asistenciasPorMateria = materiaSeleccionada === "todas"
     ? asistenciasAlumno
     : asistenciasAlumno.filter((a) => a.materiaId === parseInt(materiaSeleccionada));
 
-  // Filtrar por rango de fechas
   const asistenciasFiltradas = asistenciasPorMateria.filter((asistencia) => {
     if (!fechaInicio && !fechaFin) return true;
-
     const [dia, mes, anio] = asistencia.fecha.split("/").map(Number);
     const fechaAsistencia = new Date(anio, mes - 1, dia);
-
     let cumpleFechaInicio = true;
     let cumpleFechaFin = true;
-
     if (fechaInicio) {
       const [anioI, mesI, diaI] = fechaInicio.split("-").map(Number);
-      const fechaInicioDate = new Date(anioI, mesI - 1, diaI);
-      cumpleFechaInicio = fechaAsistencia >= fechaInicioDate;
+      cumpleFechaInicio = fechaAsistencia >= new Date(anioI, mesI - 1, diaI);
     }
-
     if (fechaFin) {
       const [anioF, mesF, diaF] = fechaFin.split("-").map(Number);
-      const fechaFinDate = new Date(anioF, mesF - 1, diaF);
-      cumpleFechaFin = fechaAsistencia <= fechaFinDate;
+      cumpleFechaFin = fechaAsistencia <= new Date(anioF, mesF - 1, diaF);
     }
-
     return cumpleFechaInicio && cumpleFechaFin;
+  }).sort((a, b) => {
+    const [dA, mA, yA] = a.fecha.split("/").map(Number);
+    const [dB, mB, yB] = b.fecha.split("/").map(Number);
+    return new Date(yB, mB - 1, dB).getTime() - new Date(yA, mA - 1, dA).getTime();
   });
 
-  // Calcular estadísticas
+  // Estadísticas
   const totalRegistros = asistenciasFiltradas.length;
   const presentes = asistenciasFiltradas.filter((a) => a.estado === "Presente").length;
   const faltas = asistenciasFiltradas.filter((a) => a.estado === "Falta").length;
   const retardos = asistenciasFiltradas.filter((a) => a.estado === "Retardo").length;
   const porcentajeAsistencia = totalRegistros > 0 ? Math.round((presentes / totalRegistros) * 100) : 0;
 
-  // Calcular estadísticas por materia
   const estadisticasPorMateria = materiasUnicas.map((materia) => {
     const asistenciasMateria = asistenciasFiltradas.filter((a) => a.materiaId === materia.id);
     const totalMateria = asistenciasMateria.length;
@@ -78,27 +97,15 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
     const faltasMateria = asistenciasMateria.filter((a) => a.estado === "Falta").length;
     const retardosMateria = asistenciasMateria.filter((a) => a.estado === "Retardo").length;
     const porcentaje = totalMateria > 0 ? Math.round((presentesMateria / totalMateria) * 100) : 0;
-
-    return {
-      materia: materia.nombre,
-      total: totalMateria,
-      presentes: presentesMateria,
-      faltas: faltasMateria,
-      retardos: retardosMateria,
-      porcentaje
-    };
+    return { materia: materia.nombre, total: totalMateria, presentes: presentesMateria, faltas: faltasMateria, retardos: retardosMateria, porcentaje };
   }).filter((stat) => stat.total > 0);
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
-      case "Presente":
-        return { icon: CheckCircle2, className: "bg-[#059669] text-white", text: "Presente" };
-      case "Falta":
-        return { icon: XCircle, className: "bg-[#E11D48] text-white", text: "Falta" };
-      case "Retardo":
-        return { icon: Clock, className: "bg-[#D97706] text-white", text: "Retardo" };
-      default:
-        return { icon: CheckCircle2, className: "bg-[#6B7280] text-white", text: estado };
+      case "Presente": return { icon: CheckCircle2, className: "bg-[#059669] text-white", text: "Presente" };
+      case "Falta":    return { icon: XCircle,      className: "bg-[#E11D48] text-white", text: "Falta" };
+      case "Retardo":  return { icon: Clock,         className: "bg-[#D97706] text-white", text: "Retardo" };
+      default:         return { icon: CheckCircle2, className: "bg-[#6B7280] text-white", text: estado };
     }
   };
 
@@ -110,13 +117,53 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
+      <AlumnoInfoCard alumnoId={alumnoId} />
       <PageTitle
         icon={CheckCircle2}
         title="Asistencia"
         description="Registro de asistencia por materia, faltas y retardos"
         color="bg-[#059669]"
-      />
+      >
+        <div className="flex items-center gap-2">
+          {esHistorico ? (
+            <Badge className="bg-amber-100 text-amber-700 border-0 gap-1 shrink-0">
+              <History className="h-3 w-3" />
+              Historial
+            </Badge>
+          ) : (
+            <Badge className="bg-green-100 text-green-700 border-0 shrink-0">Ciclo actual</Badge>
+          )}
+          <div className="w-44">
+            <Select value={cicloSeleccionado} onValueChange={setCicloSeleccionado}>
+              <SelectTrigger className="rounded-lg">
+                <SelectValue placeholder="Ciclo escolar" />
+              </SelectTrigger>
+              <SelectContent>
+                {ciclos.map((c) => (
+                  <SelectItem key={c.id} value={c.id.toString()}>
+                    {c.nombre}{c.activo && " (actual)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </PageTitle>
+
+      {/* Aviso de historial */}
+      {esHistorico && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <History className="h-5 w-5 text-[#D97706] shrink-0" />
+              <p className="text-sm text-[#92400E]">
+                Mostrando historial del ciclo <span className="font-semibold">{ciclos.find(c => c.id.toString() === cicloSeleccionado)?.nombre}</span>.
+                Este ciclo ya está cerrado.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filtros */}
       <Card className="border-[#E5E7EB]">
@@ -184,7 +231,6 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
             </div>
           </CardContent>
         </Card>
-
         <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -198,7 +244,6 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
             </div>
           </CardContent>
         </Card>
-
         <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -212,7 +257,6 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
             </div>
           </CardContent>
         </Card>
-
         <Card className="border-[#E5E7EB] bg-linear-to-br from-red-50 to-red-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -228,7 +272,7 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
         </Card>
       </div>
 
-      {/* Resumen de porcentaje */}
+      {/* Porcentaje general */}
       <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-blue-50">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -241,8 +285,13 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
               </div>
             </div>
             <div className="flex-1 text-center sm:text-left">
-              <h3 className="font-semibold text-[#111827] mb-2">Porcentaje de Asistencia</h3>
-              <p className="text-sm text-[#6B7280]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-semibold text-[#111827]">Porcentaje de Asistencia</h3>
+                {!esHistorico && (
+                  <Badge className="bg-green-100 text-green-700 border-0 text-xs">Ciclo actual</Badge>
+                )}
+              </div>
+              <p className="text-sm text-[#6B7280] mt-1">
                 {presentes} presentes · {faltas} faltas · {retardos} retardos de {totalRegistros} registros
               </p>
             </div>
@@ -258,9 +307,7 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
               <BookOpen className="h-5 w-5 text-[#1D4ED8]" />
               Asistencia por Materia
             </CardTitle>
-            <CardDescription>
-              Desglose de asistencia en cada materia
-            </CardDescription>
+            <CardDescription>Desglose de asistencia en cada materia</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -301,7 +348,7 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
         </Card>
       )}
 
-      {/* Tabla de asistencias */}
+      {/* Tabla de registros */}
       <Card className="border-[#E5E7EB]">
         <CardHeader>
           <CardTitle>Registro de Asistencia</CardTitle>
@@ -333,7 +380,6 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
                   asistenciasFiltradas.map((asistencia) => {
                     const badge = getEstadoBadge(asistencia.estado);
                     const IconEstado = badge.icon;
-
                     return (
                       <TableRow key={asistencia.id} className="hover:bg-gray-50">
                         <TableCell className="font-medium">{asistencia.fecha}</TableCell>

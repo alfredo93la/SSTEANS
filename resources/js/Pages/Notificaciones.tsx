@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { usePage } from "@inertiajs/react";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../Components/ui/card";
 import { Button } from "../Components/ui/button";
@@ -17,7 +18,7 @@ import { toast } from "sonner";
 
 interface NotificacionEnviada {
   id: number;
-  tipo: string;
+  categoria: string;
   titulo: string;
   mensaje: string;
   destinatario: string;
@@ -53,7 +54,18 @@ interface GrupoItem {
   tutores: TutorDestinatario[];
 }
 
+const CATEGORIAS_POR_ROL: Record<string, string[]> = {
+  "Profesor": ["Académico", "Asistencia", "Conducta", "Citatorio", "Aviso"],
+  "Trabajador Social": ["Asistencia", "Conducta", "Citatorio", "Administrativo", "Aviso", "Orientación"],
+};
+
+const TODAS_CATEGORIAS = ["Académico", "Asistencia", "Conducta", "Citatorio", "Administrativo", "Aviso", "Orientación"];
+
 export function Notificaciones() {
+  const { auth } = usePage().props as any;
+  const rol: string = auth?.user?.role ?? "";
+  const categoriasDisponibles = CATEGORIAS_POR_ROL[rol] ?? TODAS_CATEGORIAS;
+
   const [notificaciones, setNotificaciones] = useState<NotificacionEnviada[]>([]);
   const [alumnos, setAlumnos] = useState<AlumnoItem[]>([]);
   const [grupos, setGrupos] = useState<GrupoItem[]>([]);
@@ -71,7 +83,6 @@ export function Notificaciones() {
   const [seleccionados, setSeleccionados] = useState<Map<number, DestinatarioSeleccionado>>(new Map());
 
   // Form
-  const [tipo, setTipo] = useState("");
   const [categoria, setCategoria] = useState("");
   const [prioridad, setPrioridad] = useState("");
   const [titulo, setTitulo] = useState("");
@@ -96,7 +107,6 @@ export function Notificaciones() {
   const resetForm = () => {
     setSeleccionados(new Map());
     setBusquedaAlumno("");
-    setTipo("");
     setCategoria("");
     setPrioridad("");
     setTitulo("");
@@ -135,7 +145,7 @@ export function Notificaciones() {
   );
 
   const handleEnviar = () => {
-    if (seleccionados.size === 0 || !tipo || !categoria || !prioridad || !titulo || !mensaje) {
+    if (seleccionados.size === 0 || !categoria || !prioridad || !titulo || !mensaje) {
       toast.error("Completa todos los campos y selecciona al menos un destinatario.");
       return;
     }
@@ -149,7 +159,6 @@ export function Notificaciones() {
         })),
         titulo,
         mensaje,
-        tipo,
         categoria,
         prioridad,
       })
@@ -169,8 +178,8 @@ export function Notificaciones() {
       !busqueda ||
       n.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
       n.destinatario.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideTipo = filtroTipo === "todas" || n.tipo.toLowerCase() === filtroTipo;
-    return coincideBusqueda && coincideTipo;
+    const coincideCategoria = filtroTipo === "todas" || n.categoria === filtroTipo;
+    return coincideBusqueda && coincideCategoria;
   });
 
   const enviadas   = notificaciones.length;
@@ -355,21 +364,7 @@ export function Notificaciones() {
               </div>
 
               {/* ── Campos del mensaje ── */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <Label>Tipo</Label>
-                  <Select value={tipo} onValueChange={setTipo}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Seleccionar tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Reporte">Reporte</SelectItem>
-                      <SelectItem value="Alerta">Alerta</SelectItem>
-                      <SelectItem value="Recordatorio">Recordatorio</SelectItem>
-                      <SelectItem value="Información">Información</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label>Categoría</Label>
                   <Select value={categoria} onValueChange={setCategoria}>
@@ -377,10 +372,9 @@ export function Notificaciones() {
                       <SelectValue placeholder="Seleccionar categoría" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Académico">Académico</SelectItem>
-                      <SelectItem value="Administrativo">Administrativo</SelectItem>
-                      <SelectItem value="Evento">Evento</SelectItem>
-                      <SelectItem value="Conducta">Conducta</SelectItem>
+                      {categoriasDisponibles.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -507,10 +501,13 @@ export function Notificaciones() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todas</SelectItem>
-                <SelectItem value="reporte">Reportes</SelectItem>
-                <SelectItem value="alerta">Alertas</SelectItem>
-                <SelectItem value="recordatorio">Recordatorios</SelectItem>
-                <SelectItem value="información">Información</SelectItem>
+                <SelectItem value="Académico">Académico</SelectItem>
+                <SelectItem value="Asistencia">Asistencia</SelectItem>
+                <SelectItem value="Conducta">Conducta</SelectItem>
+                <SelectItem value="Citatorio">Citatorio</SelectItem>
+                <SelectItem value="Administrativo">Administrativo</SelectItem>
+                <SelectItem value="Aviso">Aviso</SelectItem>
+                <SelectItem value="Orientación">Orientación</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -562,7 +559,7 @@ export function Notificaciones() {
                         )}
                         <div className="flex items-center gap-1">
                           <Bell className="h-3 w-3" />
-                          <span>{notif.tipo}</span>
+                          <span>{notif.categoria}</span>
                         </div>
                         <span>{notif.fecha}</span>
                       </div>

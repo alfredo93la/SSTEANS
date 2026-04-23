@@ -7,7 +7,7 @@ import { Input } from "../../Components/ui/input";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { toast } from "sonner";
-import { Save, AlertCircle, CheckCircle, Lock, Settings, Plus, Trash2, ChevronUp } from "lucide-react";
+import { Save, AlertCircle, CheckCircle, Lock, Settings, Plus, Trash2, ChevronUp, Send } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 
 interface GrupoData   { id: number; nombre: string; }
@@ -17,8 +17,8 @@ interface AlumnoData  { id: number; nombre: string; }
 interface RubroData   { id: number; nombre: string; ponderacion: number; orden: number; }
 interface CalData     {
   alumnoId: number;
-  promedio: number;
-  valores: Record<number, number>; // rubroId => valor
+  promedio: number | null;
+  valores: Record<number, number | null>; // rubroId => valor | null si no capturado
 }
 
 // ─── Editor de rubros ─────────────────────────────────────────────────────────
@@ -157,6 +157,8 @@ export function RegistrarCalificaciones() {
   const [calificaciones, setCalificaciones]             = useState<CalData[]>([]);
   const [cambiosPendientes, setCambiosPendientes]       = useState<Set<number>>(new Set());
   const [editandoRubros, setEditandoRubros]             = useState(false);
+  const [publicada, setPublicada]                       = useState(false);
+  const [publicando, setPublicando]                     = useState(false);
 
   const periodoActual  = periodos.find(p => p.id.toString() === periodoSeleccionado);
   const capturaAbierta = periodoActual?.capturaAbierta ?? false;
@@ -219,6 +221,7 @@ export function RegistrarCalificaciones() {
   useEffect(() => {
     if (!grupoSeleccionado || !materiaSeleccionada || !periodoSeleccionado || rubros.length === 0) {
       setCalificaciones([]);
+      setPublicada(false);
       return;
     }
     axios.get("/api/calificaciones", {
@@ -227,9 +230,10 @@ export function RegistrarCalificaciones() {
       .then(({ data }) => {
         setCalificaciones((data.calificaciones ?? []).map((c: any) => ({
           alumnoId: c.alumnoId,
-          promedio: c.promedio ?? 0,
+          promedio: c.promedio ?? null,
           valores:  c.valores ?? {},
         })));
+        setPublicada(data.publicada ?? false);
         setCambiosPendientes(new Set());
       })
       .catch(() => {});
@@ -239,23 +243,24 @@ export function RegistrarCalificaciones() {
   const materia = materias.find(m => m.id.toString() === materiaSeleccionada);
 
   const getCalificacion = (alumnoId: number): CalData =>
-    calificaciones.find(c => c.alumnoId === alumnoId) ?? { alumnoId, promedio: 0, valores: {} };
+    calificaciones.find(c => c.alumnoId === alumnoId) ?? { alumnoId, promedio: null, valores: {} };
 
   const handleValorChange = (alumnoId: number, rubroId: number, valor: string) => {
-    const num = parseFloat(valor) || 0;
-    if (num < 0 || num > 10) { toast.error("La calificación debe estar entre 0 y 10"); return; }
+    const num: number | null = valor === '' ? null : parseFloat(valor);
+    if (num !== null && (num < 5 || num > 10)) { toast.error("La calificación debe estar entre 5 y 10"); return; }
 
     setCalificaciones(prev => {
       const nuevas = [...prev];
       const idx = nuevas.findIndex(c => c.alumnoId === alumnoId);
-      const entry = idx >= 0 ? { ...nuevas[idx] } : { alumnoId, promedio: 0, valores: {} };
+      const entry = idx >= 0 ? { ...nuevas[idx] } : { alumnoId, promedio: null, valores: {} };
 
       entry.valores = { ...entry.valores, [rubroId]: num };
 
-      // Recalcular promedio ponderado en el cliente
-      entry.promedio = parseFloat(
-        rubros.reduce((s, r) => s + (entry.valores[r.id] ?? 0) * (r.ponderacion / 100), 0).toFixed(2)
-      );
+      // Recalcular promedio ponderado solo si TODOS los rubros tienen valor
+      const allFilled = rubros.every(r => entry.valores[r.id] !== null && entry.valores[r.id] !== undefined);
+      entry.promedio = allFilled
+        ? parseFloat(rubros.reduce((s, r) => s + (entry.valores[r.id] as number) * (r.ponderacion / 100), 0).toFixed(2))
+        : null;
 
       if (idx >= 0) nuevas[idx] = entry; else nuevas.push(entry);
       return nuevas;
@@ -274,12 +279,32 @@ export function RegistrarCalificaciones() {
       .then(() => {
         toast.success(`Calificaciones guardadas — ${materia?.nombre} · ${grupo?.nombre}`);
         setCambiosPendientes(new Set());
+        setPublicada(false);
       })
       .catch(err => toast.error(err.response?.data?.message ?? "Error al guardar calificaciones"));
   };
 
-  const getPromedioColor = (p: number) =>
-    p >= 9 ? "text-[#059669]" : p >= 7 ? "text-[#D97706]" : "text-[#E11D48]";
+  const handlePublicar = () => {
+    if (!grupoSeleccionado || !materiaSeleccionada || !periodoSeleccionado) return;
+    setPublicando(true);
+    axios.post("/api/calificaciones/publicar", {
+      grupo_id:   parseInt(grupoSeleccionado),
+      materia_id: parseInt(materiaSeleccionada),
+      periodo_id: parseInt(periodoSeleccionado),
+    })
+      .then(() => {
+        toast.success(`Calificaciones publicadas — ${materia?.nombre} · ${grupo?.nombre}`);
+        setPublicada(true);
+      })
+      .catch(err => toast.error(err.response?.data?.message ?? "Error al publicar calificaciones"))
+      .finally(() => setPublicando(false));
+  };
+
+  const todosCompletos = alumnosDelGrupo.length > 0 &&
+    alumnosDelGrupo.every(a => getCalificacion(a.id).promedio !== null);
+
+  const getPromedioColor = (p: number | null) =>
+    p === null ? "text-[#6B7280]" : p >= 9 ? "text-[#059669]" : p >= 7 ? "text-[#D97706]" : "text-[#E11D48]";
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -417,18 +442,35 @@ export function RegistrarCalificaciones() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Calificaciones — {materia?.nombre}</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  Calificaciones — {materia?.nombre}
+                  {publicada && (
+                    <Badge className="bg-green-100 text-[#059669] border-green-200">
+                      <CheckCircle className="h-3 w-3 mr-1" />Publicadas
+                    </Badge>
+                  )}
+                </CardTitle>
                 <CardDescription>
                   {grupo?.nombre} · {periodoActual?.nombre} · {alumnosDelGrupo.length} alumnos
                 </CardDescription>
               </div>
-              <Button
-                onClick={guardarCalificaciones}
-                disabled={cambiosPendientes.size === 0 || !capturaAbierta}
-                className="bg-[#1D4ED8] hover:bg-[#1E40AF]"
-              >
-                <Save className="h-4 w-4 mr-2" />Guardar Cambios
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={guardarCalificaciones}
+                  disabled={cambiosPendientes.size === 0 || !capturaAbierta}
+                  variant="outline"
+                >
+                  <Save className="h-4 w-4 mr-2" />Guardar Cambios
+                </Button>
+                <Button
+                  onClick={handlePublicar}
+                  disabled={!todosCompletos || cambiosPendientes.size > 0 || publicada || publicando || !capturaAbierta}
+                  className="bg-[#059669] hover:bg-[#047857]"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {publicando ? "Publicando…" : publicada ? "Ya publicadas" : "Publicar"}
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -466,7 +508,7 @@ export function RegistrarCalificaciones() {
                           {rubros.map(r => (
                             <TableCell key={r.id} className="text-center">
                               <Input
-                                type="number" min="0" max="10" step="0.1"
+                                type="number" min="5" max="10" step="0.1"
                                 value={cal.valores[r.id] ?? ''}
                                 onChange={e => handleValorChange(alumno.id, r.id, e.target.value)}
                                 disabled={!capturaAbierta}
@@ -476,7 +518,7 @@ export function RegistrarCalificaciones() {
                           ))}
                           <TableCell className="text-center">
                             <span className={`font-bold ${getPromedioColor(cal.promedio)}`}>
-                              {cal.promedio.toFixed(1)}
+                              {cal.promedio !== null ? cal.promedio.toFixed(1) : '—'}
                             </span>
                           </TableCell>
                           <TableCell className="text-center">
@@ -484,7 +526,7 @@ export function RegistrarCalificaciones() {
                               <Badge className="bg-amber-100 text-[#D97706]">
                                 <AlertCircle className="h-3 w-3 mr-1" />Sin guardar
                               </Badge>
-                            ) : cal.promedio > 0 ? (
+                            ) : cal.promedio !== null ? (
                               <Badge className="bg-green-100 text-[#059669]">
                                 <CheckCircle className="h-3 w-3 mr-1" />Guardado
                               </Badge>
@@ -505,27 +547,30 @@ export function RegistrarCalificaciones() {
                 <div className="text-center">
                   <p className="text-sm text-[#6B7280]">Promedio General</p>
                   <p className="text-2xl font-bold text-[#1D4ED8] mt-1">
-                    {alumnosDelGrupo.length > 0
-                      ? (alumnosDelGrupo.reduce((s, a) => s + getCalificacion(a.id).promedio, 0) / alumnosDelGrupo.length).toFixed(1)
-                      : "—"}
+                    {(() => {
+                      const conPromedio = alumnosDelGrupo.map(a => getCalificacion(a.id).promedio).filter((p): p is number => p !== null);
+                      return conPromedio.length > 0
+                        ? (conPromedio.reduce((s, p) => s + p, 0) / conPromedio.length).toFixed(1)
+                        : "—";
+                    })()}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-[#6B7280]">Aprobados (≥6)</p>
                   <p className="text-2xl font-bold text-[#059669] mt-1">
-                    {alumnosDelGrupo.filter(a => getCalificacion(a.id).promedio >= 6).length}
+                    {alumnosDelGrupo.filter(a => { const p = getCalificacion(a.id).promedio; return p !== null && p >= 6; }).length}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-[#6B7280]">Reprobados (&lt;6)</p>
                   <p className="text-2xl font-bold text-[#E11D48] mt-1">
-                    {alumnosDelGrupo.filter(a => { const p = getCalificacion(a.id).promedio; return p > 0 && p < 6; }).length}
+                    {alumnosDelGrupo.filter(a => { const p = getCalificacion(a.id).promedio; return p !== null && p < 6; }).length}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-[#6B7280]">Sin Calificar</p>
                   <p className="text-2xl font-bold text-[#6B7280] mt-1">
-                    {alumnosDelGrupo.filter(a => getCalificacion(a.id).promedio === 0).length}
+                    {alumnosDelGrupo.filter(a => getCalificacion(a.id).promedio === null).length}
                   </p>
                 </div>
               </div>

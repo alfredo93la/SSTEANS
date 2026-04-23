@@ -33,24 +33,10 @@ use App\Models\Materia;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return auth()->check()
-        ? redirect()->route('dashboard')
-        : redirect()->route('login');
-});
-
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', function () {
+    Route::get('/', function () {
         return Inertia::render('App');
     })->name('dashboard');
-
-    Route::get('/dashboard/admin', function () {
-        return Inertia::render('App');
-    })->middleware('permission:usuarios.manage')->name('dashboard.admin');
-
-    Route::get('/dashboard/social', function () {
-        return Inertia::render('App');
-    })->middleware('permission:reportes.manage')->name('dashboard.social');
 });
 
 Route::middleware('auth')->group(function () {
@@ -75,6 +61,7 @@ Route::middleware(['auth', 'verified', 'permission:usuarios.manage'])->prefix('a
     Route::get('/roles-permisos', [RolePermissionManagementController::class, 'index'])->name('admin.roles.permisos.index');
     Route::post('/roles', [RolePermissionManagementController::class, 'store'])->name('admin.roles.store');
     Route::put('/roles/{role}', [RolePermissionManagementController::class, 'update'])->name('admin.roles.update');
+    Route::delete('/roles/{role}', [RolePermissionManagementController::class, 'destroy'])->name('admin.roles.destroy');
 
     Route::get('/usuarios', [UserManagementController::class, 'index'])->name('admin.usuarios.index');
     Route::post('/usuarios', [UserManagementController::class, 'store'])->name('admin.usuarios.store');
@@ -90,11 +77,11 @@ Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
     Route::get('/agenda/eventos', [AgendaEventoController::class, 'index'])
         ->middleware('permission:agenda.view');
     Route::post('/agenda/eventos', [AgendaEventoController::class, 'store'])
-        ->middleware('permission:agenda.manage');
+        ->middleware('permission:agenda.manage|examenes.manage');
     Route::put('/agenda/eventos/{evento}', [AgendaEventoController::class, 'update'])
-        ->middleware('permission:agenda.manage');
+        ->middleware('permission:agenda.manage|examenes.manage');
     Route::delete('/agenda/eventos/{evento}', [AgendaEventoController::class, 'destroy'])
-        ->middleware('permission:agenda.manage');
+        ->middleware('permission:agenda.manage|examenes.manage');
 
     Route::get('/circulares', [CircularController::class, 'index'])
         ->middleware('permission:circulares.view');
@@ -104,6 +91,11 @@ Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
         ->middleware('permission:circulares.manage');
     Route::delete('/circulares/{circular}', [CircularController::class, 'destroy'])
         ->middleware('permission:circulares.manage');
+    Route::patch('/circulares/{circular}/leer', [CircularController::class, 'marcarLeida'])
+        ->middleware('permission:circulares.view');
+    Route::get('/circulares/{circular}/adjuntos/{archivo}', [CircularController::class, 'descargarAdjunto'])
+        ->middleware('permission:circulares.view')
+        ->where('archivo', '.+');
 });
 
 // ─── Admin: configuración académica ──────────────────────────────────────────
@@ -117,8 +109,10 @@ Route::middleware(['auth', 'verified', 'permission:configuracion.manage'])
         Route::post('/ciclos',                        [CicloEscolarController::class, 'store']);
         Route::put('/ciclos/{ciclo}',                 [CicloEscolarController::class, 'update']);
         Route::delete('/ciclos/{ciclo}',              [CicloEscolarController::class, 'destroy']);
-        Route::post('/ciclos/{ciclo}/activar',        [CicloEscolarController::class, 'activate']);
-        Route::post('/ciclos/{ciclo}/cerrar',         [CicloEscolarController::class, 'close']);
+        Route::post('/ciclos/{ciclo}/activar',           [CicloEscolarController::class, 'activate']);
+        Route::get('/ciclos/{ciclo}/verificar-cierre', [CicloEscolarController::class, 'verificarCierre']);
+        Route::post('/ciclos/{ciclo}/cerrar',          [CicloEscolarController::class, 'close']);
+        Route::post('/ciclos/{ciclo}/archivar',        [CicloEscolarController::class, 'archivar']);
 
         Route::get('/materias',          [MateriaController::class, 'index']);
         Route::post('/materias',         [MateriaController::class, 'store']);
@@ -189,11 +183,16 @@ Route::middleware(['auth', 'verified', 'permission:grupos.manage'])->prefix('api
     Route::get('/ciclos', [CicloEscolarController::class, 'index']);
 });
 
+// ─── Ciclos: lectura para Tutor y Trabajador Social (historial) ───────────────
+Route::middleware(['auth', 'verified', 'permission:calificaciones.view|alumnos.view'])->prefix('api')->group(function () {
+    Route::get('/ciclos-escolares', [CicloEscolarController::class, 'index']);
+});
+
 // ─── Periodos de Evaluación ────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
-    // Profesores y tutores: todos los periodos del ciclo activo (debe ir antes de {periodo})
+    // Profesores, tutores y trabajador social: periodos por ciclo (debe ir antes de {periodo})
     Route::get('/periodos/ciclo-activo',             [PeriodoEvaluacionController::class, 'cicloActivo'])
-        ->middleware('permission:calificaciones.manage|calificaciones.view');
+        ->middleware('permission:calificaciones.manage|calificaciones.view|alumnos.view');
     // Admin: CRUD completo
     Route::get('/periodos',                          [PeriodoEvaluacionController::class, 'index'])
         ->middleware('permission:periodos.manage');
@@ -227,9 +226,11 @@ Route::middleware(['auth', 'verified'])->prefix('api/profesor')->group(function 
 
 // ─── Calificaciones ───────────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
-    Route::get('/calificaciones',  [CalificacionController::class, 'index'])
+    Route::get('/calificaciones',         [CalificacionController::class, 'index'])
         ->middleware('permission:calificaciones.manage');
-    Route::post('/calificaciones', [CalificacionController::class, 'upsert'])
+    Route::post('/calificaciones',        [CalificacionController::class, 'upsert'])
+        ->middleware('permission:calificaciones.manage');
+    Route::post('/calificaciones/publicar', [CalificacionController::class, 'publicar'])
         ->middleware('permission:calificaciones.manage');
 });
 
@@ -283,7 +284,10 @@ Route::middleware(['auth', 'verified'])->prefix('api/tutor')->group(function () 
 
 // ─── Trabajador Social ────────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified', 'permission:alumnos.view'])->prefix('api/trabajador-social')->group(function () {
-    Route::get('/alumnos', [WorkerSocialController::class, 'alumnos']);
+    Route::get('/alumnos',             [WorkerSocialController::class, 'alumnos']);
+    Route::get('/alumnos/{alumno}',    [WorkerSocialController::class, 'alumno']);
+    Route::get('/calificaciones/{alumno}',    [CalificacionController::class, 'forAlumno']);
+    Route::get('/reportes-conducta/{alumno}', [ReporteConductaController::class, 'forAlumno']);
 });
 
 // ─── Notificaciones ───────────────────────────────────────────────────────────
