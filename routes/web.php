@@ -24,6 +24,7 @@ use App\Http\Controllers\Administrativo\GrupoController;
 use App\Http\Controllers\Administrativo\SalonController;
 use App\Http\Controllers\Administrativo\TutorAdminController;
 use App\Http\Controllers\Tutor\AssignedStudentsController;
+use App\Http\Controllers\Tutor\SolicitarAlumnoController;
 use App\Http\Controllers\Profesor\ProfesorController;
 use App\Http\Controllers\Profesor\RubroEvaluacionController;
 use App\Http\Controllers\TrabajadorSocial\WorkerSocialController;
@@ -53,6 +54,13 @@ Route::middleware(['auth', 'verified', 'permission:dashboard.view'])->group(func
         ->middleware('permission:calificaciones.view')
         ->name('tutor.alumnos.asignados');
 });
+
+Route::middleware(['auth', 'verified', 'permission:dashboard.view'])
+    ->prefix('api/tutor')
+    ->group(function () {
+        Route::post('/solicitar-alumno',      [SolicitarAlumnoController::class, 'store']);
+        Route::get('/solicitudes-pendientes', [SolicitarAlumnoController::class, 'index']);
+    });
 
 Route::middleware(['auth', 'verified', 'permission:usuarios.manage'])->prefix('admin')->group(function () {
     Route::get('/usuarios-roles', [UserRoleManagementController::class, 'index'])->name('admin.usuarios.roles.index');
@@ -151,10 +159,12 @@ Route::middleware(['auth', 'verified', 'permission:grupos.manage'])
 Route::middleware(['auth', 'verified', 'permission:alumnos.manage'])
     ->prefix('api/administrativo')
     ->group(function () {
-        Route::get('/alumnos',             [AlumnoAdminController::class, 'index']);
-        Route::post('/alumnos',            [AlumnoAdminController::class, 'store']);
-        Route::put('/alumnos/{alumno}',    [AlumnoAdminController::class, 'update']);
-        Route::delete('/alumnos/{alumno}', [AlumnoAdminController::class, 'destroy']);
+        Route::get('/alumnos',                          [AlumnoAdminController::class, 'index']);
+        Route::post('/alumnos',                         [AlumnoAdminController::class, 'store']);
+        Route::put('/alumnos/{alumno}',                 [AlumnoAdminController::class, 'update']);
+        Route::delete('/alumnos/{alumno}',              [AlumnoAdminController::class, 'destroy']);
+        Route::post('/alumnos/{alumno}/aprobar',        [AlumnoAdminController::class, 'aprobar']);
+        Route::post('/alumnos/{alumno}/rechazar',       [AlumnoAdminController::class, 'rechazar']);
     });
 
 Route::middleware(['auth', 'verified', 'permission:tutores.manage'])

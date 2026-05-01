@@ -15,6 +15,8 @@ import {
   GraduationCap,
   Loader2,
   UserPlus,
+  Sigma,
+  SquareSigma,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
@@ -258,7 +260,7 @@ const handleAsignarDirecto = (alumnoId: number) => {
         {[
           { label: "Total grupos", value: grupos.length, color: "text-[#7C3AED]", from: "from-purple-50", to: "to-purple-100", Icon: Users },
           { label: "Total alumnos", value: grupos.reduce((s, g) => s + Number(g.asignaciones_count ?? 0), 0), color: "text-[#1D4ED8]", from: "from-blue-50", to: "to-blue-100", Icon: GraduationCap },
-          { label: "Capacidad total", value: grupos.reduce((s, g) => s + Number(g.capacidad_maxima), 0), color: "text-[#059669]", from: "from-green-50", to: "to-green-100", Icon: Users },
+          { label: "Capacidad total", value: grupos.reduce((s, g) => s + Number(g.capacidad_maxima), 0), color: "text-[#059669]", from: "from-green-50", to: "to-green-100", Icon: SquareSigma },
         ].map(({ label, value, color, from, to, Icon }) => (
           <Card key={label} className={`border-[#E5E7EB] bg-linear-to-br ${from} ${to}`}>
             <CardContent className="pt-6">

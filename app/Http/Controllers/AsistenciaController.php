@@ -139,8 +139,19 @@ class AsistenciaController extends Controller
             return response()->json(['message' => 'Esta clase no está programada para el día seleccionado.'], 403);
         }
 
-        DB::transaction(function () use ($request, $cicloId, $userId): void {
+        // Solo guardar asistencia de alumnos con asignación activa en el ciclo
+        $alumnoIdsActivos = Alumno::whereHas('asignaciones', function ($q) use ($grupoId, $cicloId): void {
+            $q->where('grupo_id', $grupoId)
+              ->where('ciclo_escolar_id', $cicloId)
+              ->where('estado', 'activo');
+        })->pluck('id')->flip();
+
+        DB::transaction(function () use ($request, $cicloId, $userId, $alumnoIdsActivos): void {
             foreach ($request->asistencias as $item) {
+                if (! $alumnoIdsActivos->has($item['alumnoId'])) {
+                    continue;
+                }
+
                 Asistencia::updateOrCreate(
                     [
                         'alumno_id'  => $item['alumnoId'],

@@ -1,22 +1,40 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { usePage } from "@inertiajs/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
+import { Input } from "../../Components/ui/input";
+import { Label } from "../../Components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
 import {
-  Clock,
-  ClipboardList,
-  FileText,
-  CalendarDays,
-  Users,
-  Mail,
+  AlertCircle,
   Bell,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  FileText,
+  Loader2,
+  Mail,
+  Plus,
+  Users,
 } from "lucide-react";
 import type { PageProps } from "../../types";
 
 const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const TIPOS_EXAMEN = ["Parcial", "Final", "Extraordinario", "Examen"];
+
+type CurpStatus = "idle" | "checking" | "exists" | "ok";
+
+function parentescoOpciones(sexo: string): string[] {
+  if (sexo === "Masculino") return ["Hijo", "Nieto", "Sobrino", "Hermano", "Tutelado", "Otro"];
+  if (sexo === "Femenino")  return ["Hija", "Nieta", "Sobrina", "Hermana", "Tutelada", "Otro"];
+  return ["Hijo/a", "Nieto/a", "Sobrino/a", "Hermano/a", "Tutelado/a", "Otro"];
+}
+
+const formAlumnoVacio = { nombre: "", apellidos: "", curp: "", fecha_nacimiento: "", sexo: "", parentesco: "" };
 
 interface TareaData { id: number; titulo: string; materia: string | null; fechaEntrega: string; estadoEntrega: string; }
 interface EventoData {
@@ -38,13 +56,56 @@ interface DashboardTutorProps {
 }
 
 export function DashboardTutor({ onNavigate, hijoSeleccionado }: DashboardTutorProps) {
-  const { auth } = usePage<PageProps>().props;
+  const { auth, escuela } = usePage<PageProps>().props;
   const userName = auth.user?.name ?? "Tutor";
+  const inscripcionesAbiertas = (escuela as any)?.registro_tutores_activo === true;
 
   const [tareasAlumno, setTareasAlumno] = useState<TareaData[]>([]);
   const [eventosAgenda, setEventosAgenda] = useState<EventoData[]>([]);
   const [circularesSinLeer, setCircularesSinLeer] = useState(0);
   const [notifsSinLeer, setNotifsSinLeer] = useState(0);
+
+  // Solicitar nuevo alumno
+  const [modalSolicitar, setModalSolicitar] = useState(false);
+  const [formAlumno, setFormAlumno] = useState(formAlumnoVacio);
+  const [savingAlumno, setSavingAlumno] = useState(false);
+  const [curpStatus, setCurpStatus] = useState<CurpStatus>("idle");
+  const [pendientes, setPendientes] = useState<{ id: number; nombre: string; parentesco: string }[]>([]);
+
+  const checkCurp = useCallback(async (curp: string) => {
+    if (curp.length !== 18) return;
+    setCurpStatus("checking");
+    try {
+      const { data } = await axios.get("/api/check-curp", { params: { curp: curp.toUpperCase() } });
+      setCurpStatus(data.exists ? "exists" : "ok");
+    } catch {
+      setCurpStatus("idle");
+    }
+  }, []);
+
+  const cargarPendientes = () => {
+    axios.get("/api/tutor/solicitudes-pendientes")
+      .then(({ data }) => setPendientes(data.pendientes ?? []))
+      .catch(() => {});
+  };
+
+  const handleSolicitar = () => {
+    if (!formAlumno.nombre || !formAlumno.apellidos || !formAlumno.curp || !formAlumno.fecha_nacimiento || !formAlumno.sexo || !formAlumno.parentesco) return;
+    setSavingAlumno(true);
+    axios.post("/api/tutor/solicitar-alumno", { ...formAlumno, curp: formAlumno.curp.toUpperCase() })
+      .then(() => {
+        setModalSolicitar(false);
+        setFormAlumno(formAlumnoVacio);
+        setCurpStatus("idle");
+        cargarPendientes();
+      })
+      .catch((err) => {
+        const errors = err.response?.data?.errors;
+        const msg = errors ? Object.values(errors).flat().join(" ") : (err.response?.data?.message ?? "Error al enviar la solicitud.");
+        alert(msg);
+      })
+      .finally(() => setSavingAlumno(false));
+  };
 
   useEffect(() => {
     if (!hijoSeleccionado) return;
@@ -63,6 +124,7 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado }: DashboardTutorP
     axios.get("/api/notificaciones")
       .then(({ data }) => setNotifsSinLeer((data.notificaciones ?? []).filter((n: { leida: boolean }) => !n.leida).length))
       .catch(() => {});
+    cargarPendientes();
   }, []);
 
   const tareasPendientes = tareasAlumno.filter(t => t.estadoEntrega === "Pendiente").length;
@@ -117,17 +179,52 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado }: DashboardTutorP
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              className="rounded-lg border-blue-200 text-[#1D4ED8] hover:bg-blue-50"
-              onClick={() => onNavigate("#/notificaciones")}
-            >
-              <Bell className="h-4 w-4 mr-2" />
-              Ver notificaciones
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                className="rounded-lg border-blue-200 text-[#1D4ED8] hover:bg-blue-50"
+                onClick={() => onNavigate("#/notificaciones")}
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Ver notificaciones
+              </Button>
+              {inscripcionesAbiertas && (
+                <Button
+                  className="rounded-lg text-white"
+                  style={{ background: "var(--gradient-primary)" }}
+                  onClick={() => setModalSolicitar(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Solicitar nuevo alumno
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Solicitudes pendientes */}
+      {pendientes.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-800">
+                  {pendientes.length === 1 ? "Tienes una solicitud pendiente de aprobación:" : `Tienes ${pendientes.length} solicitudes pendientes de aprobación:`}
+                </p>
+                <ul className="mt-1 space-y-0.5">
+                  {pendientes.map((p) => (
+                    <li key={p.id} className="text-sm text-amber-700">
+                      · {p.nombre} <span className="text-amber-500">({p.parentesco})</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -329,6 +426,89 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado }: DashboardTutorP
           </CardContent>
         </Card>
       </div>
+      {/* Dialog: solicitar nuevo alumno */}
+      <Dialog open={modalSolicitar} onOpenChange={(open) => { setModalSolicitar(open); if (!open) { setFormAlumno(formAlumnoVacio); setCurpStatus("idle"); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Solicitar registro de nuevo alumno</DialogTitle>
+            <DialogDescription>El administrador validará la solicitud antes de activar el alumno.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Nombre(s) *</Label>
+                <Input value={formAlumno.nombre} onChange={(e) => setFormAlumno({ ...formAlumno, nombre: e.target.value })} className="h-10 rounded-lg" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Apellidos *</Label>
+                <Input value={formAlumno.apellidos} onChange={(e) => setFormAlumno({ ...formAlumno, apellidos: e.target.value })} className="h-10 rounded-lg" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>CURP *</Label>
+              <div className="relative">
+                <Input
+                  value={formAlumno.curp}
+                  maxLength={18}
+                  onChange={(e) => { setFormAlumno({ ...formAlumno, curp: e.target.value.toUpperCase() }); setCurpStatus("idle"); }}
+                  onBlur={() => checkCurp(formAlumno.curp)}
+                  className={`h-10 rounded-lg pr-9 ${curpStatus === "exists" ? "border-red-500" : curpStatus === "ok" ? "border-green-500" : ""}`}
+                />
+                {curpStatus === "checking" && <Loader2 className="absolute right-3 top-2.5 w-4 h-4 animate-spin text-gray-400" />}
+                {curpStatus === "ok"       && <CheckCircle2 className="absolute right-3 top-2.5 w-4 h-4 text-green-500" />}
+                {curpStatus === "exists"   && <AlertCircle  className="absolute right-3 top-2.5 w-4 h-4 text-red-500" />}
+              </div>
+              {curpStatus === "exists" && <p className="text-xs text-red-500">Este CURP ya está registrado.</p>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Fecha de nacimiento *</Label>
+                <Input type="date" value={formAlumno.fecha_nacimiento} onChange={(e) => setFormAlumno({ ...formAlumno, fecha_nacimiento: e.target.value })} className="h-10 rounded-lg" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Sexo *</Label>
+                <Select value={formAlumno.sexo} onValueChange={(v) => setFormAlumno({ ...formAlumno, sexo: v, parentesco: "" })}>
+                  <SelectTrigger className="h-10 rounded-lg"><SelectValue placeholder="Seleccionar…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Masculino">Masculino</SelectItem>
+                    <SelectItem value="Femenino">Femenino</SelectItem>
+                    <SelectItem value="No especificado">No especificado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Parentesco *</Label>
+              <Select value={formAlumno.parentesco} onValueChange={(v) => setFormAlumno({ ...formAlumno, parentesco: v })} disabled={!formAlumno.sexo}>
+                <SelectTrigger className="h-10 rounded-lg">
+                  <SelectValue placeholder={formAlumno.sexo ? "Seleccionar…" : "Primero selecciona el sexo"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {parentescoOpciones(formAlumno.sexo).map((op) => (
+                    <SelectItem key={op} value={op}>{op}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalSolicitar(false)}>Cancelar</Button>
+            <Button
+              onClick={handleSolicitar}
+              disabled={savingAlumno || curpStatus === "exists" || !formAlumno.nombre || !formAlumno.apellidos || !formAlumno.curp || !formAlumno.fecha_nacimiento || !formAlumno.sexo || !formAlumno.parentesco}
+              className="text-white"
+              style={{ background: "var(--gradient-primary)" }}
+            >
+              {savingAlumno ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Enviando…</> : "Enviar solicitud"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

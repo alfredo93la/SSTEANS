@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePage } from "@inertiajs/react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
@@ -6,65 +8,151 @@ import {
   Users,
   Calendar,
   ClipboardCheck,
-  BookOpen,
   FileText,
   AlertCircle,
-  Send
 } from "lucide-react";
+import type { PageProps } from "../../types";
+
+interface GrupoData {
+  id: number;
+  nombre: string;
+  turno: string;
+  alumnos: number;
+}
+
+interface ClaseHorario {
+  id: number;
+  grupoId: number;
+  grupo: string;
+  materiaId: number;
+  materia: string;
+  horaInicio: string;
+  horaFin: string;
+  salon: string;
+  diaSemana: string;
+}
+
+interface TareaData {
+  id: number;
+  titulo: string;
+  grupo: string | null;
+  grupoId: number;
+  fechaEntrega: string;
+  entregadasCount: number;
+  totalAlumnos: number;
+}
 
 interface DashboardProfesorProps {
   onNavigate: (route: string) => void;
 }
 
+const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+function fechaHoyLabel(): string {
+  const d = new Date();
+  return `${DIAS_SEMANA[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function diasHastaVencimiento(fechaEntrega: string): number {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  // fechaEntrega puede venir en formato "dd/mm/yyyy" o "yyyy-mm-dd"
+  let fecha: Date;
+  if (fechaEntrega.includes("/")) {
+    const [d, m, y] = fechaEntrega.split("/");
+    fecha = new Date(Number(y), Number(m) - 1, Number(d));
+  } else {
+    const [y, m, d] = fechaEntrega.split("-");
+    fecha = new Date(Number(y), Number(m) - 1, Number(d));
+  }
+  return Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
-  const [tabActiva, setTabActiva] = useState("general");
+  const { auth } = usePage<PageProps>().props;
+  const userName = auth.user?.name ?? "Profesor";
 
-  // Datos simulados para el profesor
-  const gruposAsignados = [
-    { id: 1, nombre: "1°A", alumnos: 28, materia: "Matemáticas" },
-    { id: 2, nombre: "2°B", alumnos: 30, materia: "Matemáticas" },
-    { id: 3, nombre: "3°A", alumnos: 25, materia: "Física" }
-  ];
+  const [grupos, setGrupos] = useState<GrupoData[]>([]);
+  const [clasesHoy, setClasesHoy] = useState<ClaseHorario[]>([]);
+  const [tareas, setTareas] = useState<TareaData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const sesionesHoy = [
-    { hora: "08:00 - 09:00", grupo: "1°A", materia: "Matemáticas", aula: "201" },
-    { hora: "10:00 - 11:00", grupo: "2°B", materia: "Matemáticas", aula: "203" },
-    { hora: "13:00 - 14:00", grupo: "3°A", materia: "Física", aula: "Lab 1" }
-  ];
+  useEffect(() => {
+    const diaSemanaHoy = DIAS_SEMANA[new Date().getDay()];
 
-  const tareasProximasAVencer = [
-    { grupo: "1°A", titulo: "Ejercicios unidad 3", vence: "20/11/2025", entregadas: 18, total: 28 },
-    { grupo: "2°B", titulo: "Proyecto final", vence: "22/11/2025", entregadas: 25, total: 30 },
-    { grupo: "3°A", titulo: "Reporte laboratorio", vence: "25/11/2025", entregadas: 20, total: 25 }
-  ];
+    Promise.all([
+      axios.get("/api/profesor/grupos"),
+      axios.get("/api/profesor/horario"),
+      axios.get("/api/tareas"),
+    ])
+      .then(([gruposRes, horarioRes, tareasRes]) => {
+        setGrupos(gruposRes.data.grupos ?? []);
 
-  const pendientes = [
-    { tipo: "Calificaciones", descripcion: "Registrar calificaciones parciales 2°B", urgente: true },
-    { tipo: "Asistencia", descripcion: "Confirmar asistencia del viernes", urgente: false },
-    { tipo: "Observaciones", descripcion: "Revisar observaciones pendientes", urgente: false }
-  ];
+        const horario: ClaseHorario[] = horarioRes.data.horario ?? [];
+        const hoy = horario
+          .filter((c) => c.diaSemana === diaSemanaHoy)
+          .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+        setClasesHoy(hoy);
+
+        setTareas(tareasRes.data.tareas ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const totalAlumnos = grupos.reduce((sum, g) => sum + (g.alumnos ?? 0), 0);
+
+  const tareasProximas = [...tareas]
+    .filter((t) => t.totalAlumnos === 0 || t.entregadasCount < t.totalAlumnos)
+    .sort((a, b) => {
+      const da = diasHastaVencimiento(a.fechaEntrega);
+      const db = diasHastaVencimiento(b.fechaEntrega);
+      return da - db;
+    })
+    .slice(0, 3);
+
+  const pendientes = tareas
+    .filter((t) => {
+      const pct = t.totalAlumnos > 0 ? (t.entregadasCount / t.totalAlumnos) * 100 : 0;
+      return pct < 80;
+    })
+    .sort((a, b) => diasHastaVencimiento(a.fechaEntrega) - diasHastaVencimiento(b.fechaEntrega))
+    .slice(0, 5)
+    .map((t) => {
+      const pct = t.totalAlumnos > 0 ? (t.entregadasCount / t.totalAlumnos) * 100 : 0;
+      const dias = diasHastaVencimiento(t.fechaEntrega);
+      return {
+        tipo: "Tarea",
+        descripcion: `${t.grupo ? t.grupo + ": " : ""}${t.titulo} — ${t.totalAlumnos - t.entregadasCount} sin entregar`,
+        urgente: pct < 50 || dias <= 2,
+      };
+    });
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Banner de bienvenida */}
       <Card className="bg-linear-to-br from-purple-50 to-blue-50 border-purple-200">
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-[#111827]">
-                ¡Buen día, Profesor!
-              </h2>
-              <p className="text-sm text-[#6B7280] mt-1">
-                Tienes {sesionesHoy.length} sesiones programadas hoy
-              </p>
-            </div>
+          <div>
+            <h2 className="text-[#111827]">¡Buen día, {userName}!</h2>
+            <p className="text-sm text-[#6B7280] mt-1">
+              {loading
+                ? "Cargando información..."
+                : clasesHoy.length > 0
+                ? `Tienes ${clasesHoy.length} sesión${clasesHoy.length > 1 ? "es" : ""} programada${clasesHoy.length > 1 ? "s" : ""} hoy`
+                : "No tienes sesiones programadas hoy"}
+            </p>
           </div>
         </CardContent>
       </Card>
 
       {/* KPIs principales */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-all cursor-pointer" onClick={() => setTabActiva("horario")}>
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-all cursor-pointer"
+          onClick={() => onNavigate("#/horario")}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -72,16 +160,19 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Grupos Asignados</p>
-                <p className="text-2xl font-bold text-[#7C3AED]">{gruposAsignados.length}</p>
+                <p className="text-2xl font-bold text-[#7C3AED]">{grupos.length}</p>
                 <p className="text-xs text-[#6B7280] mt-1">
-                  {gruposAsignados.reduce((sum, g) => sum + g.alumnos, 0)} alumnos total
+                  {totalAlumnos > 0 ? `${totalAlumnos} alumnos total` : "—"}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all cursor-pointer" onClick={() => setTabActiva("horario")}>
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all cursor-pointer"
+          onClick={() => onNavigate("#/horario")}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -89,14 +180,19 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Sesiones Hoy</p>
-                <p className="text-2xl font-bold text-[#1D4ED8]">{sesionesHoy.length}</p>
-                <p className="text-xs text-[#6B7280] mt-1">Próxima: {sesionesHoy[0]?.hora}</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">{clasesHoy.length}</p>
+                <p className="text-xs text-[#6B7280] mt-1">
+                  {clasesHoy[0] ? `Próxima: ${clasesHoy[0].horaInicio}` : "Sin sesiones"}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100 hover:shadow-lg transition-all cursor-pointer" onClick={() => setTabActiva("gestionar-tareas")}>
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100 hover:shadow-lg transition-all cursor-pointer"
+          onClick={() => onNavigate("#/tareas")}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -104,8 +200,10 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Tareas Activas</p>
-                <p className="text-2xl font-bold text-[#D97706]">{tareasProximasAVencer.length}</p>
-                <p className="text-xs text-[#6B7280] mt-1">Por vencer esta semana</p>
+                <p className="text-2xl font-bold text-[#D97706]">{tareas.length}</p>
+                <p className="text-xs text-[#6B7280] mt-1">
+                  {tareasProximas.filter((t) => diasHastaVencimiento(t.fechaEntrega) <= 7).length} vencen esta semana
+                </p>
               </div>
             </div>
           </CardContent>
@@ -121,7 +219,7 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
                 <p className="text-sm text-[#6B7280]">Pendientes</p>
                 <p className="text-2xl font-bold text-[#E11D48]">{pendientes.length}</p>
                 <p className="text-xs text-[#6B7280] mt-1">
-                  {pendientes.filter(p => p.urgente).length} urgentes
+                  {pendientes.filter((p) => p.urgente).length} urgentes
                 </p>
               </div>
             </div>
@@ -135,200 +233,125 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
         <Card className="border-[#E5E7EB]">
           <CardHeader>
             <CardTitle>Sesiones de Hoy</CardTitle>
-            <CardDescription>Miércoles, 27 de noviembre 2025</CardDescription>
+            <CardDescription>{fechaHoyLabel()}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {sesionesHoy.map((sesion, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-linear-to-br from-gray-50 to-white border border-[#E5E7EB] hover:shadow-md transition-all"
-                >
-                  <div className="shrink-0 w-16 text-center">
-                    <p className="text-xs text-[#6B7280]">Hora</p>
-                    <p className="text-sm font-semibold text-[#111827]">{sesion.hora.split(' - ')[0]}</p>
-                  </div>
-                  <div className="w-px h-12 bg-gray-200" />
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-[#111827]">{sesion.materia}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="secondary" className="text-xs">
-                        {sesion.grupo}
-                      </Badge>
-                      <span className="text-xs text-[#6B7280]">Aula {sesion.aula}</span>
+            {clasesHoy.length === 0 ? (
+              <div className="text-center py-8 text-[#6B7280]">
+                <Calendar className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">No hay sesiones programadas para hoy</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {clasesHoy.map((clase) => (
+                  <div
+                    key={clase.id}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-linear-to-br from-gray-50 to-white border border-[#E5E7EB] hover:shadow-md transition-all"
+                  >
+                    <div className="shrink-0 w-16 text-center">
+                      <p className="text-xs text-[#6B7280]">Hora</p>
+                      <p className="text-sm font-semibold text-[#111827]">{clase.horaInicio}</p>
                     </div>
+                    <div className="w-px h-12 bg-gray-200" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-[#111827]">{clase.materia}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {clase.grupo}
+                        </Badge>
+                        {clase.salon && (
+                          <span className="text-xs text-[#6B7280]">Aula {clase.salon}</span>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onNavigate("#/asistencia")}
+                      title="Registrar asistencia"
+                    >
+                      <ClipboardCheck className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => setTabActiva("asistencia")}>
-                    <ClipboardCheck className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Tareas próximas a vencer */}
+        {/* Tareas por revisar */}
         <Card className="border-[#E5E7EB]">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Tareas por Vencer</CardTitle>
-                <CardDescription>Seguimiento de entregas</CardDescription>
+                <CardTitle>Tareas por Revisar</CardTitle>
+                <CardDescription>Entregas pendientes de revisión</CardDescription>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setTabActiva("gestionar-tareas")}>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate("#/tareas")}>
                 Ver todas
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {tareasProximasAVencer.map((tarea, idx) => {
-                const porcentaje = Math.round((tarea.entregadas / tarea.total) * 100);
-                return (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer"
-                    onClick={() => setTabActiva("gestionar-tareas")}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h4 className="font-semibold text-[#111827] text-sm">{tarea.titulo}</h4>
-                        <p className="text-xs text-[#6B7280] mt-1">{tarea.grupo} • Vence: {tarea.vence}</p>
+            {tareasProximas.length === 0 ? (
+              <div className="text-center py-8 text-[#6B7280]">
+                <FileText className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">No hay tareas activas</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tareasProximas.map((tarea) => {
+                  const porcentaje =
+                    tarea.totalAlumnos > 0
+                      ? Math.round((tarea.entregadasCount / tarea.totalAlumnos) * 100)
+                      : 0;
+                  return (
+                    <div
+                      key={tarea.id}
+                      className="p-3 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer"
+                      onClick={() => onNavigate("#/tareas")}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold text-[#111827] text-sm">{tarea.titulo}</h4>
+                          <p className="text-xs text-[#6B7280] mt-1">
+                            {tarea.grupo} • Vence: {tarea.fechaEntrega}
+                          </p>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className={
+                            porcentaje >= 80
+                              ? "bg-green-100 text-[#059669]"
+                              : "bg-amber-100 text-[#D97706]"
+                          }
+                        >
+                          {porcentaje}%
+                        </Badge>
                       </div>
-                      <Badge 
-                        variant="secondary"
-                        className={porcentaje >= 80 ? "bg-green-100 text-[#059669]" : "bg-amber-100 text-[#D97706]"}
-                      >
-                        {porcentaje}%
-                      </Badge>
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between text-xs text-[#6B7280] mb-1">
+                          <span>
+                            {tarea.entregadasCount} de {tarea.totalAlumnos} entregadas
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${
+                              porcentaje >= 80 ? "bg-[#059669]" : "bg-[#D97706]"
+                            }`}
+                            style={{ width: `${porcentaje}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="mt-3">
-                      <div className="flex items-center justify-between text-xs text-[#6B7280] mb-1">
-                        <span>{tarea.entregadas} de {tarea.total} entregadas</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full ${porcentaje >= 80 ? "bg-[#059669]" : "bg-[#D97706]"}`}
-                          style={{ width: `${porcentaje}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Grupos asignados y pendientes */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Grupos asignados */}
-        <Card className="border-[#E5E7EB] lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Mis Grupos</CardTitle>
-            <CardDescription>Grupos bajo tu responsabilidad</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {gruposAsignados.map((grupo) => (
-                <button
-                  key={grupo.id}
-                  onClick={() => setTabActiva("horario")}
-                  className="p-4 rounded-xl bg-linear-to-br from-purple-50 to-blue-50 border border-purple-200 hover:shadow-lg transition-all text-left"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-linear-to-br from-[#7C3AED] to-[#1D4ED8] rounded-lg flex items-center justify-center text-white font-bold">
-                      {grupo.nombre.split('°')[0]}
-                    </div>
-                  </div>
-                  <h4 className="font-semibold text-[#111827]">{grupo.nombre}</h4>
-                  <p className="text-sm text-[#6B7280] mt-1">{grupo.materia}</p>
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-purple-200">
-                    <Users className="h-4 w-4 text-[#7C3AED]" />
-                    <span className="text-sm font-medium text-[#7C3AED]">{grupo.alumnos} alumnos</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Pendientes */}
-        <Card className="border-[#E5E7EB]">
-          <CardHeader>
-            <CardTitle>Por Hacer</CardTitle>
-            <CardDescription>Tareas pendientes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {pendientes.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`p-3 rounded-lg border transition-all hover:shadow-md ${
-                    item.urgente 
-                      ? "bg-red-50 border-red-200" 
-                      : "bg-white border-[#E5E7EB]"
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    {item.urgente && (
-                      <AlertCircle className="h-4 w-4 text-[#E11D48] shrink-0 mt-0.5" />
-                    )}
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-[#7C3AED]">{item.tipo}</p>
-                      <p className="text-sm text-[#111827] mt-1">{item.descripcion}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Accesos rápidos */}
-      <Card className="border-[#E5E7EB]">
-        <CardHeader>
-          <CardTitle>Acciones Rápidas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Button
-              variant="outline"
-              className="h-auto flex-col gap-2 py-4"
-              onClick={() => setTabActiva("asistencia")}
-            >
-              <ClipboardCheck className="h-6 w-6 text-[#1D4ED8]" />
-              <span className="text-sm">Registrar Asistencia</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto flex-col gap-2 py-4"
-              onClick={() => setTabActiva("calificaciones")}
-            >
-              <BookOpen className="h-6 w-6 text-[#7C3AED]" />
-              <span className="text-sm">Calificaciones</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto flex-col gap-2 py-4"
-              onClick={() => setTabActiva("asignar-tarea")}
-            >
-              <FileText className="h-6 w-6 text-[#D97706]" />
-              <span className="text-sm">Asignar Tarea</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-auto flex-col gap-2 py-4"
-              onClick={() => setTabActiva("mensajeria")}
-            >
-              <Send className="h-6 w-6 text-[#E11D48]" />
-              <span className="text-sm">Enviar Notificación</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

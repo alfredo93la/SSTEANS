@@ -24,15 +24,17 @@ class ConfiguracionEscuela extends Model
         'acceso_profesor',
         'acceso_trab_social',
         'acceso_administrativo',
+        'registro_tutores_activo',
     ];
 
     protected function casts(): array
     {
         return [
-            'acceso_tutor'        => 'boolean',
-            'acceso_profesor'     => 'boolean',
-            'acceso_trab_social'  => 'boolean',
-            'acceso_administrativo' => 'boolean',
+            'acceso_tutor'             => 'boolean',
+            'acceso_profesor'          => 'boolean',
+            'acceso_trab_social'       => 'boolean',
+            'acceso_administrativo'    => 'boolean',
+            'registro_tutores_activo'  => 'boolean',
         ];
     }
 }

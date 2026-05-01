@@ -15,6 +15,8 @@ class AgendaEventoController extends Controller
         $user = request()->user();
         $canManage = $user?->hasPermission('agenda.manage') ?? false;
 
+        $TIPOS_EXAMEN = ['Parcial', 'Final', 'Extraordinario', 'Examen'];
+
         $query = AgendaEvento::query()
             ->with('destinatarios:id,agenda_evento_id,rol')
             ->orderBy('fecha')
@@ -23,13 +25,32 @@ class AgendaEventoController extends Controller
         if (! $canManage && $user) {
             $query->whereHas('destinatarios', fn ($q) => $q->where('rol', $user->role));
 
+            if ($user->role === 'Profesor') {
+                // Exámenes: solo los que el profesor creó
+                // Otros eventos: todos los que tengan 'Profesor' como destinatario
+                $query->where(function ($q) use ($user, $TIPOS_EXAMEN) {
+                    $q->whereNotIn('tipo', $TIPOS_EXAMEN)
+                        ->orWhere('creado_por_id', $user->id);
+                });
+            }
+
             if ($user->role === 'Tutor') {
                 /** @var \App\Models\User $user */
                 $gruposHijos = $this->getGruposDelTutor($user);
-                $query->where(function ($q) use ($gruposHijos) {
-                    $q->whereNull('grupo')
-                        ->orWhere('grupo', 'General')
-                        ->orWhereIn('grupo', $gruposHijos);
+                $query->where(function ($q) use ($gruposHijos, $TIPOS_EXAMEN) {
+                    // Exámenes: solo los del grupo de sus hijos
+                    // Otros eventos: generales o de sus grupos
+                    $q->where(function ($inner) use ($gruposHijos, $TIPOS_EXAMEN) {
+                        $inner->whereIn('tipo', $TIPOS_EXAMEN)
+                            ->whereIn('grupo', $gruposHijos);
+                    })->orWhere(function ($inner) use ($gruposHijos, $TIPOS_EXAMEN) {
+                        $inner->whereNotIn('tipo', $TIPOS_EXAMEN)
+                            ->where(function ($g) use ($gruposHijos) {
+                                $g->whereNull('grupo')
+                                    ->orWhere('grupo', 'General')
+                                    ->orWhereIn('grupo', $gruposHijos);
+                            });
+                    });
                 });
             }
         }
@@ -79,6 +100,7 @@ class AgendaEventoController extends Controller
             'grupo' => $validated['grupo'] ?? 'General',
             'materia' => $validated['materia'] ?? '-',
             'tipo' => $validated['tipo'],
+            'creado_por_id' => $request->user()?->id,
         ]);
 
         $evento->destinatarios()->createMany(

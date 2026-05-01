@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../..
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../Components/ui/table";
 import { Badge } from "../../Components/ui/badge";
-import { GraduationCap, Clock, History } from "lucide-react";
+import { Clock, History, BookA } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 
@@ -86,7 +86,7 @@ export function CalificacionesTutor({ alumnoId }: CalificacionesTutorProps) {
     <div className="space-y-6 animate-fade-in">
       <AlumnoInfoCard alumnoId={alumnoId} />
       <PageTitle
-        icon={GraduationCap}
+        icon={BookA}
         title="Calificaciones"
         description="Consulta el rendimiento académico por materia"
         color="bg-[#1D4ED8]"

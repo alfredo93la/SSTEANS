@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Card, CardContent } from "../../Components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../Components/ui/card";
 import { Badge } from "../../Components/ui/badge";
 import { Button } from "../../Components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../Components/ui/dialog";
-import { Mail, MailOpen, Bell, Calendar, FileText, CheckCircle, Loader2 } from "lucide-react";
+import { Mail, MailOpen, Bell, Calendar, FileText, CheckCircle, Loader2, Users, Inbox } from "lucide-react";
+import { Label } from "../../Components/ui/label";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 
@@ -21,6 +22,8 @@ interface Notificacion {
   remitente: string;
   alumnoId: number | null;
   alumno: string | null;
+  grupoId: number | null;
+  grupo: string | null;
 }
 
 export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
@@ -104,9 +107,9 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
     <div className="space-y-6 animate-fade-in">
       <AlumnoInfoCard alumnoId={alumnoId} />
       <PageTitle
-        icon={Bell}
-        title="Notificaciones"
-        description="Bandeja de entrada de mensajes y avisos escolares"
+        icon={Inbox}
+        title="Bandeja de Notificaciones"
+        description="Buzón de entrada de mensajes y avisos relacionados con el alumno"
         color="bg-[#059669]"
       >
         {noLeidas > 0 && (
@@ -116,44 +119,7 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
         )}
       </PageTitle>
 
-      {/* Filtros */}
-      <Card className="border-[#E5E7EB]">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-[#6B7280] mb-2 block">Estado</label>
-              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-                <SelectTrigger className="rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas las notificaciones</SelectItem>
-                  <SelectItem value="no_leidas">No leídas</SelectItem>
-                  <SelectItem value="leidas">Leídas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm text-[#6B7280] mb-2 block">Categoría</label>
-              <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
-                <SelectTrigger className="rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas las categorías</SelectItem>
-                  <SelectItem value="Académico">Académico</SelectItem>
-                  <SelectItem value="Asistencia">Asistencia</SelectItem>
-                  <SelectItem value="Conducta">Conducta</SelectItem>
-                  <SelectItem value="Citatorio">Citatorio</SelectItem>
-                  <SelectItem value="Administrativo">Administrativo</SelectItem>
-                  <SelectItem value="Aviso">Aviso</SelectItem>
-                  <SelectItem value="Orientación">Orientación</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -198,82 +164,134 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
         </Card>
       </div>
 
+      {/* Filtros */}
+      <Card className="border-[#E5E7EB]">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-[#6B7280] mb-2 block">Estado</label>
+              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                <SelectTrigger className="rounded-lg">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas las notificaciones</SelectItem>
+                  <SelectItem value="no_leidas">No leídas</SelectItem>
+                  <SelectItem value="leidas">Leídas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm text-[#6B7280] mb-2 block">Categoría</label>
+              <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
+                <SelectTrigger className="rounded-lg">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas las categorías</SelectItem>
+                  <SelectItem value="Académico">Académico</SelectItem>
+                  <SelectItem value="Asistencia">Asistencia</SelectItem>
+                  <SelectItem value="Conducta">Conducta</SelectItem>
+                  <SelectItem value="Citatorio">Citatorio</SelectItem>
+                  <SelectItem value="Administrativo">Administrativo</SelectItem>
+                  <SelectItem value="Aviso">Aviso</SelectItem>
+                  <SelectItem value="Orientación">Orientación</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Lista */}
-      <div className="space-y-3">
-        {loading ? (
-          <Card className="border-[#E5E7EB]">
-            <CardContent className="py-12 flex justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-[#6B7280]" />
-            </CardContent>
-          </Card>
-        ) : notificacionesFiltradas.length === 0 ? (
-          <Card className="border-[#E5E7EB]">
-            <CardContent className="py-12 text-center">
-              <Bell className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />
-              <p className="text-[#6B7280]">No hay notificaciones que coincidan con los filtros</p>
-            </CardContent>
-          </Card>
-        ) : (
-          notificacionesFiltradas.map((notif) => (
-            <Card
-              key={notif.id}
-              className={`border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer ${
-                !notif.leida ? "bg-blue-50 border-blue-200" : "bg-white"
-              }`}
-              onClick={() => verDetalle(notif)}
-            >
-              <CardContent className="pt-6">
-                <div className="flex gap-4">
-                  <div className="shrink-0">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                      !notif.leida ? "bg-blue-100" : "bg-gray-100"
-                    }`}>
-                      {!notif.leida ? (
-                        <Mail className="h-6 w-6 text-[#1D4ED8]" />
-                      ) : (
-                        <MailOpen className="h-6 w-6 text-[#6B7280]" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
-                      <h3 className={`font-semibold text-[#111827] ${!notif.leida ? "font-bold" : ""}`}>
-                        {notif.titulo}
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        {notif.prioridad !== "Baja" && (
-                          <Badge className={getPrioridadBadge(notif.prioridad)}>
-                            {notif.prioridad}
+      <Card className="border-[#E5E7EB]">
+        <CardHeader>
+          <CardTitle>Historial de Notificaciones</CardTitle>
+          <CardDescription>Últimas notificaciones recibidas</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {loading ? (
+              <Card className="border-[#E5E7EB]">
+                <CardContent className="py-12 flex justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#6B7280]" />
+                </CardContent>
+              </Card>
+            ) : notificacionesFiltradas.length === 0 ? (
+              <Card className="border-[#E5E7EB]">
+                <CardContent className="py-12 text-center">
+                  <Bell className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />
+                  <p className="text-[#6B7280]">No hay notificaciones que coincidan con los filtros</p>
+                </CardContent>
+              </Card>
+            ) : (
+              notificacionesFiltradas.map((notif) => (
+                <Card
+                  key={notif.id}
+                  className={`border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer ${
+                    !notif.leida ? "bg-blue-50 border-blue-200" : "bg-white"
+                  }`}
+                  onClick={() => verDetalle(notif)}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex gap-4">
+                      <div className="shrink-0">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                          !notif.leida ? "bg-blue-100" : "bg-gray-100"
+                        }`}>
+                          {!notif.leida ? (
+                            <Mail className="h-6 w-6 text-[#1D4ED8]" />
+                          ) : (
+                            <MailOpen className="h-6 w-6 text-[#6B7280]" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
+                          <h3 className={`font-semibold text-[#111827] ${!notif.leida ? "font-bold" : ""}`}>
+                            {notif.titulo}
+                          </h3>
+                          <div className="flex items-center gap-2">
+                            {notif.prioridad !== "Baja" && (
+                              <Badge className={getPrioridadBadge(notif.prioridad)}>
+                                {notif.prioridad}
+                              </Badge>
+                            )}
+                            {!notif.leida && <div className="w-2 h-2 bg-[#1D4ED8] rounded-full" />}
+                          </div>
+                        </div>
+                        <p className={`text-sm text-[#6B7280] line-clamp-2 mb-3 ${!notif.leida ? "font-medium" : ""}`}>
+                          {notif.mensaje}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-[#6B7280]">
+                          <Badge variant="secondary" className={getCategoriaColor(notif.categoria)}>
+                            {notif.categoria}
                           </Badge>
-                        )}
-                        {!notif.leida && <div className="w-2 h-2 bg-[#1D4ED8] rounded-full" />}
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>{notif.fecha} • {notif.hora}</span>
+                          </div>
+                          <span>De: {notif.remitente}</span>
+                          {notif.alumno ? (
+                            <span className="bg-blue-50 text-[#1D4ED8] px-1.5 py-0.5 rounded text-xs font-medium">
+                              Alumno: {notif.alumno}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 bg-purple-50 text-[#7C3AED] px-1.5 py-0.5 rounded text-xs font-medium">
+                              <Users className="h-3 w-3" />
+                              {notif.grupo ? `Grupo ${notif.grupo}` : "Todo el grupo"}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <p className={`text-sm text-[#6B7280] line-clamp-2 mb-3 ${!notif.leida ? "font-medium" : ""}`}>
-                      {notif.mensaje}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-[#6B7280]">
-                      <Badge variant="secondary" className={getCategoriaColor(notif.categoria)}>
-                        {notif.categoria}
-                      </Badge>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>{notif.fecha} • {notif.hora}</span>
-                      </div>
-                      <span>De: {notif.remitente}</span>
-                      {notif.alumno && (
-                        <span className="bg-blue-50 text-[#1D4ED8] px-1.5 py-0.5 rounded text-xs font-medium">
-                          Alumno: {notif.alumno}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Dialog detalle */}
       <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
@@ -306,12 +324,27 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
                   <h4 className="font-semibold text-[#111827] mb-1">Remitente</h4>
                   <p className="text-sm text-[#6B7280]">{notificacionSeleccionada.remitente}</p>
                 </div>
-                {notificacionSeleccionada.alumno && (
-                  <div>
-                    <h4 className="font-semibold text-[#111827] mb-1">Alumno relacionado</h4>
-                    <p className="text-sm text-[#1D4ED8] font-medium">{notificacionSeleccionada.alumno}</p>
-                  </div>
-                )}
+                <div>
+                  <Label className="text-[#6B7280]">
+                    {notificacionSeleccionada.alumno ? "Tutor de" : "Tutores de"}
+                  </Label>
+                  {notificacionSeleccionada.alumno ? (
+                    <div className="mt-1 px-3 py-2 border border-[#E5E7EB] rounded-lg bg-blue-50">
+                      <p className="text-sm font-medium text-[#111827]">{notificacionSeleccionada.alumno}</p>
+                      <p className="text-xs text-[#6B7280]">Alumno</p>
+                    </div>
+                  ) : (
+                    <div className="mt-1 px-3 py-2 border border-[#E5E7EB] rounded-lg bg-purple-50">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-[#7C3AED]" />
+                        <p className="text-sm font-medium text-[#111827]">
+                          {notificacionSeleccionada.grupo ?? "Todo el grupo"}
+                        </p>
+                      </div>
+                      <p className="text-xs text-[#6B7280]">Grupo</p>
+                    </div>
+                  )}
+                </div>
                 <div>
                   <h4 className="font-semibold text-[#111827] mb-1">Fecha y hora</h4>
                   <p className="text-sm text-[#6B7280]">

@@ -127,7 +127,7 @@ export function ResponsiveLayout({
           }
         })
         .catch(() => {});
-    } else if (permissions.includes("reportes.manage")) {
+    } else if (permissions.includes("reportes.manage") && userRole !== "Trabajador Social") {
       axios.get<{ reportes: { estatus: string }[] }>("/api/reportes-conducta")
         .then(({ data }) => {
           const count = (data.reportes ?? []).filter(r => r.estatus === "Abierto").length;
@@ -442,7 +442,7 @@ export function ResponsiveLayout({
                     <Button
                       variant="ghost"
                       className="w-full justify-between text-[#1D4ED8] hover:bg-blue-50 h-8 text-sm font-medium"
-                      onClick={() => { setBellOpen(false); onNavigate("#/dashboard/notificaciones"); }}
+                      onClick={() => { setBellOpen(false); onNavigate("#/notificaciones"); }}
                     >
                       Ver todas las notificaciones
                       <ChevronRight className="h-4 w-4" />

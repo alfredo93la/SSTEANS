@@ -24,6 +24,7 @@ class AgendaEvento extends Model
         'grupo',
         'materia',
         'circular_id',
+        'creado_por_id',
     ];
 
     public function destinatarios(): HasMany

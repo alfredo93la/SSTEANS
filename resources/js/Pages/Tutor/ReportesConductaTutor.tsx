@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Card, CardContent } from "../../Components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../Components/ui/card";
 import { Badge } from "../../Components/ui/badge";
 import { Button } from "../../Components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../Components/ui/dialog";
-import { AlertTriangle, FileText, User, Calendar, AlertCircle, CheckCircle, Paperclip, History } from "lucide-react";
+import { AlertTriangle, FileText, User, Calendar, Paperclip, History, Clock, XCircle } from "lucide-react";
+import { Label } from "../../Components/ui/label";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 
@@ -35,6 +36,18 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
   const [reportes, setReportes] = useState<ReporteData[]>([]);
   const [reporteSeleccionado, setReporteSeleccionado] = useState<ReporteData | null>(null);
   const [dialogAbierto, setDialogAbierto] = useState(false);
+  const [alumnoInfo, setAlumnoInfo] = useState<{ nombre: string; grupo: string } | null>(null);
+
+  useEffect(() => {
+    if (!alumnoId) return;
+    axios.get("/tutor/alumnos-asignados")
+      .then(({ data }) => {
+        const lista = data.data ?? [];
+        const found = lista.find((a: { id: number }) => a.id === alumnoId);
+        if (found) setAlumnoInfo({ nombre: found.nombre, grupo: found.grupo });
+      })
+      .catch(() => { });
+  }, [alumnoId]);
 
   // Cargar ciclos y seleccionar el activo
   useEffect(() => {
@@ -46,7 +59,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
         if (activo) setCicloSeleccionado(activo.id.toString());
         else if (lista.length > 0) setCicloSeleccionado(lista[0].id.toString());
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Recargar reportes cuando cambia el ciclo
@@ -56,7 +69,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
       params: { ciclo_id: cicloSeleccionado },
     })
       .then(({ data }) => setReportes(data.reportes ?? []))
-      .catch(() => {});
+      .catch(() => { });
   }, [alumnoId, cicloSeleccionado]);
 
   const cicloActivo = ciclos.find((c) => c.activo);
@@ -81,18 +94,18 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
   const getTipoColor = (tipo: string) => {
     switch (tipo) {
       case "Disciplina": return "text-[#E11D48] bg-red-100";
-      case "Material":   return "text-[#D97706] bg-amber-100";
+      case "Material": return "text-[#D97706] bg-amber-100";
       case "Asistencia": return "text-[#1D4ED8] bg-blue-100";
-      default:           return "text-[#6B7280] bg-gray-100";
+      default: return "text-[#6B7280] bg-gray-100";
     }
   };
 
   const getGravedadBadge = (gravedad: string) => {
     switch (gravedad) {
-      case "Alta":  return { className: "bg-[#E11D48] text-white", text: "Alta" };
+      case "Alta": return { className: "bg-[#E11D48] text-white", text: "Alta" };
       case "Media": return { className: "bg-[#D97706] text-white", text: "Media" };
-      case "Baja":  return { className: "bg-[#059669] text-white", text: "Baja" };
-      default:      return { className: "bg-[#6B7280] text-white", text: gravedad };
+      case "Baja": return { className: "bg-[#059669] text-white", text: "Baja" };
+      default: return { className: "bg-[#6B7280] text-white", text: gravedad };
     }
   };
 
@@ -109,7 +122,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
       <PageTitle
         icon={AlertTriangle}
         title="Reportes de Conducta"
-        description="Consulta los reportes y observaciones del estudiante"
+        description="Consulta los reportes de conducta del alumno"
         color="bg-[#E11D48]"
       >
         <div className="flex items-center gap-2">
@@ -122,19 +135,19 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
             <Badge className="bg-green-100 text-green-700 border-0 shrink-0">Ciclo actual</Badge>
           )}
           <div className="w-48">
-          <Select value={cicloSeleccionado} onValueChange={setCicloSeleccionado}>
-            <SelectTrigger className="rounded-lg">
-              <SelectValue placeholder="Ciclo escolar" />
-            </SelectTrigger>
-            <SelectContent>
-              {ciclos.map((c) => (
-                <SelectItem key={c.id} value={c.id.toString()}>
-                  {c.nombre}
-                  {c.activo && " (actual)"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select value={cicloSeleccionado} onValueChange={setCicloSeleccionado}>
+              <SelectTrigger className="rounded-lg">
+                <SelectValue placeholder="Ciclo escolar" />
+              </SelectTrigger>
+              <SelectContent>
+                {ciclos.map((c) => (
+                  <SelectItem key={c.id} value={c.id.toString()}>
+                    {c.nombre}
+                    {c.activo && " (actual)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </PageTitle>
@@ -174,7 +187,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
-                <AlertCircle className="h-6 w-6 text-[#D97706]" />
+                <Clock className="h-6 w-6 text-[#D97706]" />
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">En Seguimiento</p>
@@ -188,7 +201,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
-                <CheckCircle className="h-6 w-6 text-[#059669]" />
+                <XCircle className="h-6 w-6 text-[#059669]" />
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Cerrados</p>
@@ -200,172 +213,192 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
       </div>
 
       {/* Lista de reportes */}
-      {reportes.length === 0 ? (
-        <Card className="border-[#E5E7EB]">
-          <CardContent className="py-12 text-center">
-            <FileText className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />
-            <p className="text-[#6B7280]">
-              {esHistorico
-                ? `No hay reportes registrados en el ciclo ${ciclos.find(c => c.id.toString() === cicloSeleccionado)?.nombre}`
-                : "No hay reportes registrados para este alumno"}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {reportes.map((reporte) => {
-            const badge = getEstatusBadge(reporte.estatus);
-            const tipoColor = getTipoColor(reporte.tipoReporte);
-            const gravedadBadge = getGravedadBadge(reporte.gravedad);
+      <Card className="border-[#E5E7EB]">
+        <CardHeader>
+          <CardTitle>Historial de Reportes</CardTitle>
+          <CardDescription>Últimos reportes registrados</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {reportes.length === 0 ? (
+            <Card className="border-[#E5E7EB]">
+              <CardContent className="py-12 text-center">
+                <FileText className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />
+                <p className="text-[#6B7280]">
+                  {esHistorico
+                    ? `No hay reportes registrados en el ciclo ${ciclos.find(c => c.id.toString() === cicloSeleccionado)?.nombre}`
+                    : "No hay reportes registrados para este alumno"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {reportes.map((reporte) => {
+                const badge = getEstatusBadge(reporte.estatus);
+                const tipoColor = getTipoColor(reporte.tipoReporte);
+                const gravedadBadge = getGravedadBadge(reporte.gravedad);
 
-            return (
-              <Card key={reporte.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="shrink-0">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                        reporte.estatus === "Cerrado" ? "bg-green-100" : "bg-red-100"
-                      }`}>
-                        <AlertTriangle className={`h-6 w-6 ${
-                          reporte.estatus === "Cerrado" ? "text-[#059669]" : "text-[#E11D48]"
-                        }`} />
-                      </div>
-                    </div>
-
-                    <div className="flex-1 space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <Badge variant="secondary" className={tipoColor}>
-                              {reporte.tipoReporte}
-                            </Badge>
-                            <Badge className={gravedadBadge.className}>
-                              Gravedad: {gravedadBadge.text}
-                            </Badge>
-                            <Badge className={badge.className}>
-                              {badge.text}
-                            </Badge>
+                return (
+                  <Card key={reporte.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="shrink-0">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${reporte.estatus === "Cerrado" ? "bg-green-100" : "bg-red-100"
+                            }`}>
+                            <AlertTriangle className={`h-6 w-6 ${reporte.estatus === "Cerrado" ? "text-[#059669]" : "text-[#E11D48]"
+                              }`} />
                           </div>
-                          <h3 className="font-semibold text-[#111827]">{reporte.descripcion}</h3>
                         </div>
-                      </div>
 
-                      <div className="flex flex-wrap gap-4 text-sm text-[#6B7280]">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>{reporte.fecha}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          <span>Reportado por: {reporte.reportadoPorNombre}</span>
-                        </div>
-                        {reporte.archivoAdjunto && (
-                          <div className="flex items-center gap-2">
-                            <Paperclip className="h-4 w-4" />
-                            <a
-                              href={reporte.archivoAdjunto}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[#1D4ED8] underline underline-offset-2"
-                            >
-                              {nombreArchivo(reporte.archivoAdjunto)}
-                            </a>
+                        <div className="flex-1 space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <Badge variant="secondary" className={tipoColor}>
+                                  {reporte.tipoReporte}
+                                </Badge>
+                                <Badge className={gravedadBadge.className}>
+                                  Gravedad: {gravedadBadge.text}
+                                </Badge>
+                                <Badge className={badge.className}>
+                                  {badge.text}
+                                </Badge>
+                              </div>
+                              <h3 className="font-semibold text-[#111827]">{reporte.descripcion}</h3>
+                            </div>
                           </div>
-                        )}
-                      </div>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => verDetalle(reporte)}
-                        className="w-full sm:w-auto"
-                      >
-                        Ver detalles completos
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                          <div className="flex flex-wrap gap-4 text-sm text-[#6B7280]">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              <span>{reporte.fecha}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4" />
+                              <span>Reportado por: {reporte.reportadoPorNombre}</span>
+                            </div>
+                            {reporte.archivoAdjunto && (
+                              <div className="flex items-center gap-2">
+                                <Paperclip className="h-4 w-4" />
+                                <a
+                                  href={reporte.archivoAdjunto}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[#1D4ED8] underline underline-offset-2"
+                                >
+                                  {nombreArchivo(reporte.archivoAdjunto)}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => verDetalle(reporte)}
+                            className="w-full sm:w-auto"
+                          >
+                            Ver detalles completos
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
 
       {/* Dialog de detalle */}
       <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalle del Reporte</DialogTitle>
-            <DialogDescription>Información completa del reporte de conducta</DialogDescription>
+            <DialogDescription>
+              Información detallada del reporte seleccionado.
+            </DialogDescription>
           </DialogHeader>
 
           {reporteSeleccionado && (
-            <div className="space-y-4 mt-4">
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary" className={getTipoColor(reporteSeleccionado.tipoReporte)}>
-                  {reporteSeleccionado.tipoReporte}
-                </Badge>
-                <Badge className={getGravedadBadge(reporteSeleccionado.gravedad).className}>
-                  Gravedad: {reporteSeleccionado.gravedad}
-                </Badge>
-                <Badge className={getEstatusBadge(reporteSeleccionado.estatus).className}>
-                  {reporteSeleccionado.estatus}
-                </Badge>
+            <div className="space-y-4">
+              {alumnoInfo && (
+                <div>
+                  <Label className="text-[#6B7280]">Alumno</Label>
+                  <div className="mt-1 px-3 py-2 border border-[#E5E7EB] rounded-lg bg-blue-50">
+                    <p className="text-sm font-medium text-[#111827]">{alumnoInfo.nombre}</p>
+                    <p className="text-xs text-[#6B7280]">{alumnoInfo.grupo}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[#6B7280]">Tipo de Reporte</Label>
+                  <div className="mt-1">
+                    <Badge variant="secondary">{reporteSeleccionado.tipoReporte}</Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[#6B7280]">Nivel de Gravedad</Label>
+                  <div className="mt-1">
+                    <Badge className={getGravedadBadge(reporteSeleccionado.gravedad).className}>
+                      {reporteSeleccionado.gravedad}
+                    </Badge>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-3">
+              <div>
+                <Label className="text-[#6B7280]">Estado del Reporte</Label>
+                <div className="mt-1">
+                  <Badge className={getEstatusBadge(reporteSeleccionado.estatus).className}>
+                    {reporteSeleccionado.estatus}
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-[#6B7280]">Descripción del Incidente</Label>
+                <p className="mt-1 text-sm text-[#111827]">{reporteSeleccionado.descripcion}</p>
+              </div>
+
+              <div>
+                <Label className="text-[#6B7280]">Acciones Tomadas</Label>
+                <p className="mt-1 text-sm text-[#111827]">{reporteSeleccionado.observaciones || "Sin observaciones"}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[#E5E7EB]">
                 <div>
-                  <h4 className="font-semibold text-[#111827] mb-1">Fecha</h4>
-                  <p className="text-sm text-[#6B7280]">{reporteSeleccionado.fecha}</p>
+                  <Label className="text-[#6B7280]">Reportado por</Label>
+                  <p className="text-sm mt-1">{reporteSeleccionado.reportadoPorNombre}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#111827] mb-1">Descripción</h4>
-                  <p className="text-sm text-[#6B7280]">{reporteSeleccionado.descripcion}</p>
+                  <Label className="text-[#6B7280]">Fecha</Label>
+                  <p className="text-sm mt-1">{reporteSeleccionado.fecha}</p>
                 </div>
+              </div>
+
+              {reporteSeleccionado.archivoAdjunto && (
                 <div>
-                  <h4 className="font-semibold text-[#111827] mb-1">Observaciones</h4>
-                  <p className="text-sm text-[#6B7280]">{reporteSeleccionado.observaciones || "Sin observaciones"}</p>
+                  <Label className="text-[#6B7280]">Archivos Adjuntos</Label>
+                  <a
+                    href={reporteSeleccionado.archivoAdjunto}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-flex items-center gap-2 text-sm text-[#1D4ED8] underline underline-offset-2"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    Ver archivo adjunto
+                  </a>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-[#111827] mb-1">Reportado por</h4>
-                  <p className="text-sm text-[#6B7280]">{reporteSeleccionado.reportadoPorNombre}</p>
-                </div>
-                {reporteSeleccionado.archivoAdjunto && (
-                  <div>
-                    <h4 className="font-semibold text-[#111827] mb-1">Archivo adjunto</h4>
-                    <a
-                      href={reporteSeleccionado.archivoAdjunto}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-[#1D4ED8] underline underline-offset-2"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                      {nombreArchivo(reporteSeleccionado.archivoAdjunto)}
-                    </a>
-                  </div>
-                )}
-                <div>
-                  <h4 className="font-semibold text-[#111827] mb-1">Estatus</h4>
-                  <div className="flex items-start gap-2 p-3 rounded-lg border border-[#E5E7EB] bg-gray-50">
-                    {reporteSeleccionado.estatus === "Cerrado" ? (
-                      <>
-                        <CheckCircle className="h-5 w-5 text-[#059669] mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-[#059669]">Reporte cerrado</p>
-                          <p className="text-xs text-[#6B7280] mt-1">El caso ha sido resuelto y cerrado.</p>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="h-5 w-5 text-[#D97706] mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium text-[#D97706]">En seguimiento</p>
-                          <p className="text-xs text-[#6B7280] mt-1">El caso está siendo monitoreado activamente.</p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
+              )}
+
+              <div className="flex gap-2 justify-end pt-4 border-t">
+                <Button variant="outline" onClick={() => setDialogAbierto(false)}>
+                  Cerrar
+                </Button>
               </div>
             </div>
           )}

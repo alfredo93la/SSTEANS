@@ -94,7 +94,7 @@ export function AlumnosTS({ onNavigate }: AlumnosTSProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Users} title="Gestión de Alumnos" description="Consulta información y expedientes de alumnos por grupo" color="bg-[#1D4ED8]" />
+      <PageTitle icon={Users} title="Listado de Alumnos" description="Consulta información y expedientes de alumnos por grupo" color="bg-[#1D4ED8]" />
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -161,7 +161,7 @@ export function AlumnosTS({ onNavigate }: AlumnosTSProps) {
       {/* Listado */}
       <Card className="border-[#E5E7EB]">
         <CardHeader>
-          <CardTitle>Listado de Alumnos</CardTitle>
+          <CardTitle>Alumnos</CardTitle>
           <CardDescription>
             {grupoActual
               ? `Grupo ${grupoActual.nombre} — ${alumnosFiltrados.length} alumno(s)`

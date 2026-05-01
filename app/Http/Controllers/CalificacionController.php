@@ -147,8 +147,19 @@ class CalificacionController extends Controller
             return response()->json(['message' => 'Define los rubros de evaluación antes de registrar calificaciones.'], 422);
         }
 
-        DB::transaction(function () use ($request, $cicloId, $rubros): void {
+        // Solo guardar calificaciones de alumnos con asignación activa en el ciclo
+        $alumnoIdsActivos = Alumno::whereHas('asignaciones', function ($q) use ($request, $cicloId): void {
+            $q->where('grupo_id', $request->integer('grupo_id'))
+              ->where('ciclo_escolar_id', $cicloId)
+              ->where('estado', 'activo');
+        })->pluck('id')->flip();
+
+        DB::transaction(function () use ($request, $cicloId, $rubros, $alumnoIdsActivos): void {
             foreach ($request->calificaciones as $cal) {
+                if (! $alumnoIdsActivos->has($cal['alumnoId'])) {
+                    continue;
+                }
+
                 $valores = $cal['valores'] ?? [];
 
                 // Separar valores válidos (no nulos) de los pendientes

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { usePage } from "@inertiajs/react";
+import type { PageProps } from "../../types";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
@@ -9,6 +11,7 @@ import { Textarea } from "../../Components/ui/textarea";
 import {
   Users, Search, Filter, Eye, Edit, Plus, UserCog,
   CheckCircle, XCircle, Trash2, Loader2, Mail, Phone,
+  UserPen,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -51,7 +54,7 @@ interface UsuarioItem {
 // ─── Estado inicial del formulario ─────────────────────────────────────────
 
 const formVacio = {
-  nombre: "", apellidos: "", email: "", password: "",
+  nombre: "", apellidos: "", email: "",
   curp: "", telefono: "", direccion: "",
   rolId: "", status: "Activo" as UsuarioItem["status"],
   // Tutor
@@ -186,20 +189,19 @@ function FormUsuario({ form, setForm, roles, isEdit = false }: {
         {/* Datos comunes */}
         <div className="space-y-1.5">
           <Label>Nombre(s) *</Label>
-          <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Juan" />
+          <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Escribe el(los) nombre(s)" />
         </div>
         <div className="space-y-1.5">
           <Label>Apellidos *</Label>
-          <Input value={form.apellidos} onChange={(e) => setForm({ ...form, apellidos: e.target.value })} placeholder="Pérez García" />
+          <Input value={form.apellidos} onChange={(e) => setForm({ ...form, apellidos: e.target.value })} placeholder="Escribe los apellidos" />
         </div>
         <div className="col-span-2 space-y-1.5">
           <Label>Correo electrónico *</Label>
           <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="correo@ejemplo.com" />
         </div>
         {!isEdit && (
-          <div className="col-span-2 space-y-1.5">
-            <Label>Contraseña temporal *</Label>
-            <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Mínimo 8 caracteres" />
+          <div className="col-span-2 p-3 rounded-xl bg-blue-50 border border-blue-200 text-sm text-blue-700">
+            Se generará una contraseña temporal y se enviará automáticamente al correo del usuario.
           </div>
         )}
         <div className="space-y-1.5">
@@ -294,6 +296,9 @@ function DetalleEspecificoRol({ usuario }: { usuario: UsuarioItem }) {
 // ─── Componente principal ──────────────────────────────────────────────────
 
 export function Usuarios() {
+  const { auth } = usePage<PageProps>().props;
+  const currentUserId = auth.user?.id;
+
   const [users, setUsers] = useState<UsuarioItem[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
@@ -354,15 +359,15 @@ export function Usuarios() {
   };
 
   const handleCrear = () => {
-    if (!form.nombre || !form.apellidos || !form.email || !form.password || !form.rolId) {
-      toast.error("Nombre, apellidos, correo, contraseña y rol son obligatorios.");
+    if (!form.nombre || !form.apellidos || !form.email || !form.rolId) {
+      toast.error("Nombre, apellidos, correo y rol son obligatorios.");
       return;
     }
     const rolNombre = roles.find((r) => String(r.id) === form.rolId)?.nombre ?? "";
     setSaving(true);
     axios.post("/admin/usuarios", {
       nombre: form.nombre, apellidos: form.apellidos, email: form.email,
-      password: form.password, curp: form.curp || undefined,
+      curp: form.curp || undefined,
       telefono: form.telefono || undefined, direccion: form.direccion || undefined,
       roles: [Number(form.rolId)], status: form.status,
       ...payloadEspecifico(rolNombre),
@@ -404,7 +409,7 @@ export function Usuarios() {
     setUsuarioSel(u);
     setForm({
       nombre: p?.nombre ?? "", apellidos: p?.apellidos ?? "",
-      email: u.email, password: "",
+      email: u.email,
       curp: p?.curp ?? "", telefono: p?.telefono ?? "", direccion: p?.direccion ?? "",
       rolId: u.roles[0]?.id.toString() ?? "", status: u.status,
       // Tutor
@@ -463,7 +468,7 @@ export function Usuarios() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Users} title="Gestión de Usuarios" description="Administra los usuarios y sus permisos del sistema" color="bg-[#1D4ED8]">
+      <PageTitle icon={UserPen} title="Gestión de Usuarios" description="Administra los usuarios y sus permisos del sistema" color="bg-[#1D4ED8]">
         <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
           <DialogTrigger asChild>
             <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
@@ -475,7 +480,7 @@ export function Usuarios() {
               <DialogTitle>Crear Nuevo Usuario</DialogTitle>
               <DialogDescription>Alta de usuario con datos personales y rol del sistema.</DialogDescription>
             </DialogHeader>
-            <FormUsuario form={form} setForm={setForm} roles={roles} />
+            <FormUsuario form={form} setForm={setForm} roles={roles.filter((r) => r.nombre !== "Administrador")} />
             <DialogFooter>
               <Button variant="outline" onClick={() => setModalNuevo(false)}>Cancelar</Button>
               <Button onClick={handleCrear} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
@@ -487,11 +492,10 @@ export function Usuarios() {
       </PageTitle>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="border-[#E5E7EB] bg-linear-to-br from-indigo-50 to-indigo-100"><CardContent className="pt-6"><div className="flex items-center gap-3"><div className="p-3 bg-white rounded-xl"><Users className="h-6 w-6 text-indigo-600" /></div><div><p className="text-sm text-[#6B7280]">Total Usuarios</p><p className="text-2xl font-bold text-indigo-600">{estadisticas.total}</p></div></div></CardContent></Card>
         <Card className="border-[#E5E7EB] bg-linear-to-br from-emerald-50 to-emerald-100"><CardContent className="pt-6"><div className="flex items-center gap-3"><div className="p-3 bg-white rounded-xl"><CheckCircle className="h-6 w-6 text-emerald-600" /></div><div><p className="text-sm text-[#6B7280]">Activos</p><p className="text-2xl font-bold text-[#059669]">{estadisticas.activos}</p></div></div></CardContent></Card>
         <Card className="border-[#E5E7EB] bg-linear-to-br from-rose-50 to-rose-100"><CardContent className="pt-6"><div className="flex items-center gap-3"><div className="p-3 bg-white rounded-xl"><XCircle className="h-6 w-6 text-rose-600" /></div><div><p className="text-sm text-[#6B7280]">Inactivos</p><p className="text-2xl font-bold text-[#DC2626]">{estadisticas.inactivos}</p></div></div></CardContent></Card>
-        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100"><CardContent className="pt-6"><div className="flex items-center gap-3"><div className="p-3 bg-white rounded-xl"><UserCog className="h-6 w-6 text-blue-600" /></div><div><p className="text-sm text-[#6B7280]">Profesores</p><p className="text-2xl font-bold text-[#1D4ED8]">{estadisticas.profesores}</p></div></div></CardContent></Card>
       </div>
 
       {/* Filtros */}
@@ -568,9 +572,11 @@ export function Usuarios() {
                             <CheckCircle className="h-4 w-4" />Validar
                           </Button>
                         )}
-                        <Button variant="outline" size="sm" className="text-[#E11D48] hover:text-[#E11D48]" onClick={() => handleEliminar(u.id)}>
-                          <Trash2 className="h-4 w-4" />Eliminar
-                        </Button>
+                        {u.id !== currentUserId && (
+                          <Button variant="outline" size="sm" className="text-[#E11D48] hover:text-[#E11D48]" onClick={() => handleEliminar(u.id)}>
+                            <Trash2 className="h-4 w-4" />Eliminar
+                          </Button>
+                        )}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 mt-2 text-sm text-[#6B7280]">
@@ -658,7 +664,12 @@ export function Usuarios() {
             <DialogTitle>Editar Usuario</DialogTitle>
             <DialogDescription>Modifica los datos del usuario y su perfil.</DialogDescription>
           </DialogHeader>
-          <FormUsuario form={form} setForm={setForm} roles={roles} isEdit />
+          <FormUsuario
+            form={form}
+            setForm={setForm}
+            roles={usuarioSel?.role === "Administrador" ? roles : roles.filter((r) => r.nombre !== "Administrador")}
+            isEdit
+          />
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalEditar(false)}>Cancelar</Button>
             <Button onClick={handleEditar} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">

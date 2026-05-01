@@ -23,6 +23,7 @@ export const ROUTE_PERMISSIONS: Record<string, string[]> = {
   "#/horarios":         ["horarios.manage"],
 
   // ── Administración ────────────────────────────────────────────────────────────
+  "#/validacion":       ["usuarios.validate"],
   "#/usuarios":         ["usuarios.manage"],
   "#/roles":            ["roles.manage"],
   "#/ciclos":           ["ciclos.manage"],

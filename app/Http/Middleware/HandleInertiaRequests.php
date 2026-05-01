@@ -84,7 +84,7 @@ class HandleInertiaRequests extends Middleware
                     ]
                     : null,
             ],
-            'escuela' => fn () => ConfiguracionEscuela::first()?->only('nombre', 'numero', 'servicio_educativo') ?? ['nombre' => '', 'numero' => '', 'servicio_educativo' => ''],
+            'escuela' => fn () => ConfiguracionEscuela::first()?->only('nombre', 'numero', 'servicio_educativo', 'registro_tutores_activo') ?? ['nombre' => '', 'numero' => '', 'servicio_educativo' => '', 'registro_tutores_activo' => false],
             'cicloActivo' => fn () => ($c = CicloEscolar::where('activo', true)->first())
                 ? ['id' => $c->id, 'nombre' => $c->nombre, 'fecha_inicio' => $c->fecha_inicio->format('Y-m-d'), 'fecha_fin' => $c->fecha_fin->format('Y-m-d')]
                 : null,

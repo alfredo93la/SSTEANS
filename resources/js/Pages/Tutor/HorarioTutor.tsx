@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "../../Components/ui/card";
-import { CalendarDays, Loader2 } from "lucide-react";
+import { CalendarDays, Loader2, Clock } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 
@@ -35,9 +35,9 @@ export function HorarioTutor({ alumnoId }: HorarioTutorProps) {
     <div className="space-y-6 animate-fade-in">
       <AlumnoInfoCard alumnoId={alumnoId} />
       <PageTitle
-        icon={CalendarDays}
+        icon={Clock}
         title="Horario de Clases"
-        description="Horario semanal de clases por materia"
+        description="Horario semanal de clases del alumno"
         color="bg-[#7C3AED]"
       />
 

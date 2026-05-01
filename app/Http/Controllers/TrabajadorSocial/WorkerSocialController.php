@@ -38,6 +38,7 @@ class WorkerSocialController extends Controller
             $query->whereHas('persona', fn ($q) => $q
                 ->where('nombre', 'like', "%{$busq}%")
                 ->orWhere('apellidos', 'like', "%{$busq}%")
+                ->orWhere('curp', 'like', "%{$busq}%")
             );
         }
 
@@ -50,6 +51,8 @@ class WorkerSocialController extends Controller
             return [
                 'id'             => $a->id,
                 'nombre'         => trim("{$a->persona?->nombre} {$a->persona?->apellidos}"),
+                'curp'           => $a->persona?->curp ?? '',
+                'grupo'          => $grado && $grupo ? "{$grado->numero}°{$grupo->nombre}" : '',
                 'grupo_id'       => $grupo?->id,
                 'estado'         => $a->estado,
                 'tutor'           => $tutor ? trim("{$tutor->persona?->nombre} {$tutor->persona?->apellidos}") : null,

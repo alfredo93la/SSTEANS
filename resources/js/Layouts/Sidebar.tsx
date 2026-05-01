@@ -1,4 +1,4 @@
-import { Home, FileText, ClipboardList, CalendarCheck, GraduationCap, CheckCircle2, AlertTriangle, Bell, Users, BookMarked, Clock, CalendarRange, BookKey, Settings2, ClipboardCheck, Settings, CalendarDays, ChevronRight, ChevronDown } from "lucide-react";
+import { Home, ScrollText, ClipboardList, GraduationCap, CheckCircle2, AlertTriangle, Inbox, Users, BookMarked, Clock, CalendarRange, BookKey, Settings2, ClipboardCheck, CalendarDays, ChevronRight, ChevronDown, Send, BookA, ShieldUser, Shield, UserPen, UserCheck } from "lucide-react";
 import { cn } from "../Components/ui/utils";
 import { useState } from "react";
 
@@ -38,28 +38,39 @@ const hasAny = (userPermissions: string[], required: string | string[]): boolean
 const allMenuItems: MenuItem[] = [
   // ── Compartido ────────────────────────────────────────────────────────────────
   { id: "general",        label: "Inicio",                icon: Home,           route: "#/dashboard",    permission: "dashboard.view" },
-  { id: "agenda",         label: "Agenda Escolar",        icon: CalendarCheck,  route: "#/agenda",       permission: ["agenda.view", "agenda.manage"] },
-  { id: "circulares",     label: "Circulares",            icon: FileText,       route: "#/circulares",   permission: ["circulares.view", "circulares.manage"] },
+  { id: "agenda",         label: "Agenda Escolar",        icon: CalendarDays,  route: "#/agenda",       permission: ["agenda.view", "agenda.manage"] },
+  { id: "circulares",     label: "Circulares",            icon: ScrollText,       route: "#/circulares",   permission: ["circulares.view", "circulares.manage"] },
 
-  // ── Módulos académicos ────────────────────────────────────────────────────────
-  { id: "calificaciones", label: "Calificaciones",        icon: GraduationCap,  route: "#/calificaciones", permission: ["calificaciones.view", "calificaciones.manage"] },
-  { id: "tareas",         label: "Tareas",                icon: ClipboardList,  route: "#/tareas",         permission: ["tareas.view", "tareas.manage"] },
-  { id: "asistencia",     label: "Asistencia",            icon: CheckCircle2,   route: "#/asistencia",     permission: ["asistencia.view", "asistencia.manage"] },
-  { id: "examenes",       label: "Exámenes",              icon: ClipboardCheck, route: "#/examenes",       permission: ["examenes.view", "examenes.manage"] },
-  { id: "horario",        label: "Horario de Clases",     icon: CalendarDays,   route: "#/horario",        permission: "horario.view" },
-  { id: "reportes",       label: "Reportes de Conducta",  icon: AlertTriangle,  route: "#/reportes",       permission: ["reportes.view", "reportes.manage"] },
-  { id: "notificaciones", label: "Notificaciones",        icon: Bell,           route: "#/notificaciones", permission: ["notificaciones.view", "notificaciones.manage"] },
+  // ── Módulos Tutor ────────────────────────────────────────────────────────
+  { id: "calificaciones", label: "Calificaciones",            icon: BookA,  route: "#/calificaciones", permission: ["calificaciones.view"] },
+  { id: "tareas",         label: "Tareas",                    icon: ClipboardList,  route: "#/tareas",         permission: ["tareas.view"] },
+  { id: "asistencia",     label: "Asistencia",                icon: CheckCircle2,   route: "#/asistencia",     permission: ["asistencia.view"] },
+  { id: "examenes",       label: "Exámenes Programados",      icon: ClipboardCheck, route: "#/examenes",       permission: ["examenes.view"] },
+  { id: "horario",        label: "Horario de Clases",         icon: Clock,   route: "#/horario",        permission: "horario.view" },
+  { id: "reportes",       label: "Reportes de Conducta",      icon: AlertTriangle,  route: "#/reportes",       permission: ["reportes.view"] },
+  { id: "notificaciones", label: "Bandeja de Notificaciones", icon: Inbox,       route: "#/notificaciones", permission: ["notificaciones.view"] },
+
+  // ── Módulos Profesor y Trabajador Social ────────────────────────────────────────────────────────
+  { id: "calificaciones", label: "Registro de Calificaciones",            icon: BookA,  route: "#/calificaciones", permission: ["calificaciones.manage"] },
+  { id: "tareas",         label: "Gestión de Tareas",                    icon: ClipboardList,  route: "#/tareas",         permission: ["tareas.manage"] },
+  { id: "asistencia",     label: "Control de Asistencia",                icon: CheckCircle2,   route: "#/asistencia",     permission: ["asistencia.manage"] },
+  { id: "examenes",       label: "Exámenes Programados",      icon: ClipboardCheck, route: "#/examenes",       permission: ["examenes.manage"] },
+  //{ id: "horario",        label: "Horario de Clases",         icon: CalendarRange,   route: "#/horario",        permission: "horario.view" },
+  { id: "reportes",       label: "Reportes de Conducta",      icon: AlertTriangle,  route: "#/reportes",       permission: ["reportes.manage"] },
+  { id: "notificaciones", label: "Enviar Notificaciones",     icon: Send,           route: "#/notificaciones", permission: ["notificaciones.manage"] },
+  { id: "alumnos",        label: "Listado de Alumnos",    icon: Users,  route: "#/alumnos",    permission: ["alumnos.view"] },
 
   // ── Gestión escolar ───────────────────────────────────────────────────────────
-  { id: "alumnos",        label: "Gestión de Alumnos",    icon: GraduationCap,  route: "#/alumnos",    permission: ["alumnos.view", "alumnos.manage"] },
-  { id: "tutores",        label: "Gestión de Tutores",    icon: Users,          route: "#/tutores",    permission: "tutores.manage" },
+  { id: "alumnos",        label: "Gestión de Alumnos",    icon: GraduationCap,  route: "#/alumnos",    permission: ["alumnos.manage"] },
+  { id: "tutores",        label: "Gestión de Tutores",    icon: ShieldUser,          route: "#/tutores",    permission: "tutores.manage" },
   { id: "grupos",         label: "Gestión de Grupos",     icon: Users,          route: "#/grupos",     permission: "grupos.manage" },
-  { id: "materias",       label: "Gestión de Materias",   icon: BookMarked,     route: "#/materias",   permission: "materias.manage" },
-  { id: "horarios",       label: "Gestión de Horarios",   icon: Clock,          route: "#/horarios",   permission: "horarios.manage" },
+  { id: "horarios",       label: "Asignación de Horarios",   icon: Clock,          route: "#/horarios",   permission: "horarios.manage" },
 
   // ── Administración ────────────────────────────────────────────────────────────
-  { id: "usuarios",       label: "Gestión de Usuarios",   icon: Users,          route: "#/usuarios",         permission: "usuarios.manage" },
-  { id: "roles",          label: "Roles y Permisos",      icon: Settings,       route: "#/roles",            permission: "roles.manage" },
+  { id: "validacion",     label: "Validación de Cuentas", icon: UserCheck,        route: "#/validacion",       permission: "usuarios.validate" },
+  { id: "usuarios",       label: "Gestión de Usuarios",   icon: UserPen,          route: "#/usuarios",         permission: "usuarios.manage" },
+  { id: "roles",          label: "Roles y Permisos",      icon: Shield,       route: "#/roles",            permission: "roles.manage" },
+  { id: "materias",       label: "Gestión de Materias",   icon: BookMarked,     route: "#/materias",   permission: "materias.manage" },
   { id: "ciclos",         label: "Ciclos Escolares",      icon: CalendarRange,  route: "#/ciclos",           permission: "ciclos.manage" },
   { id: "periodos",       label: "Periodos de Evaluación",icon: BookKey,        route: "#/periodos",         permission: "periodos.manage" },
   { id: "configuracion",  label: "Configuración General", icon: Settings2,      route: "#/configuracion",    permission: "configuracion.manage" },

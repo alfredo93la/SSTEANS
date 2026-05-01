@@ -42,6 +42,7 @@ return [
             'periodos.manage',
             'configuracion.manage',
             'materias.manage',
+            'alumnos.manage',
         ],
         'Personal Administrativo' => [
             'dashboard.view',

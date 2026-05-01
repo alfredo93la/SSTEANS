@@ -7,7 +7,6 @@ import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { PageTitle } from "../../Layouts/PageTitle";
 import {
-  Users,
   Search,
   Eye,
   GraduationCap,
@@ -17,6 +16,9 @@ import {
   UserCircle,
   Phone,
   Mail,
+  ShieldUser,
+  UserX,
+  CheckCircle2,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
@@ -63,6 +65,7 @@ export function TutoresAdmin() {
   const [alumnoVincularId, setAlumnoVincularId] = useState("");
   const [parentescoVincular, setParentescoVincular] = useState("");
   const [saving, setSaving] = useState(false);
+  const [alumnoSearchText, setAlumnoSearchText] = useState("");
 
   const cargar = () => {
     setLoading(true);
@@ -142,14 +145,14 @@ export function TutoresAdmin() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Users} title="Gestión de Tutores" description="Vincula tutores con alumnos" color="bg-[#7C3AED]" />
+      <PageTitle icon={ShieldUser} title="Gestión de Tutores" description="Vincula tutores con alumnos" color="bg-[#7C3AED]" />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-white rounded-xl"><Users className="h-6 w-6 text-[#7C3AED]" /></div>
+              <div className="p-3 bg-white rounded-xl"><ShieldUser className="h-6 w-6 text-[#7C3AED]" /></div>
               <div><p className="text-sm text-[#6B7280]">Total Tutores</p><p className="text-2xl font-bold text-[#7C3AED]">{tutores.length}</p></div>
             </div>
           </CardContent>
@@ -165,7 +168,7 @@ export function TutoresAdmin() {
         <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-white rounded-xl"><UserCircle className="h-6 w-6 text-[#F59E0B]" /></div>
+              <div className="p-3 bg-white rounded-xl"><UserX className="h-6 w-6 text-[#F59E0B]" /></div>
               <div><p className="text-sm text-[#6B7280]">Sin alumnos</p><p className="text-2xl font-bold text-[#F59E0B]">{tutores.filter((t) => t.alumnos.length === 0).length}</p></div>
             </div>
           </CardContent>
@@ -307,7 +310,7 @@ export function TutoresAdmin() {
       </Dialog>
 
       {/* Modal vincular alumno */}
-      <Dialog open={modalVincular} onOpenChange={(open) => { setModalVincular(open); if (!open) { setAlumnoVincularId(""); setParentescoVincular(""); } }}>
+      <Dialog open={modalVincular} onOpenChange={(open) => { setModalVincular(open); if (!open) { setAlumnoVincularId(""); setParentescoVincular(""); setAlumnoSearchText(""); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Vincular Alumno</DialogTitle>
@@ -315,25 +318,56 @@ export function TutoresAdmin() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label>Seleccionar alumno</Label>
+              <Label>Buscar alumno</Label>
               {alumnos.filter((a) => !a.tiene_tutor).length === 0 ? (
                 <p className="text-sm text-[#6B7280] py-2">Todos los alumnos ya tienen un tutor asignado.</p>
               ) : (
-                <Select
-                  value={alumnoVincularId}
-                  onValueChange={(v) => { setAlumnoVincularId(v); setParentescoVincular(""); }}
-                >
-                  <SelectTrigger><SelectValue placeholder="Buscar alumno..." /></SelectTrigger>
-                  <SelectContent>
-                    {alumnos
-                      .filter((a) => !a.tiene_tutor)
-                      .map((a) => (
-                        <SelectItem key={a.id} value={a.id.toString()}>
-                          {a.persona.nombre} {a.persona.apellidos}{a.persona.curp ? ` — ${a.persona.curp}` : ""}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+                    <Input
+                      placeholder="Nombre o CURP del alumno..."
+                      value={alumnoSearchText}
+                      onChange={(e) => { setAlumnoSearchText(e.target.value); setAlumnoVincularId(""); setParentescoVincular(""); }}
+                      className="pl-10"
+                    />
+                  </div>
+                  {alumnoSearchText.length >= 2 && (
+                    <div className="border rounded-md max-h-40 overflow-y-auto">
+                      {(() => {
+                        const sinTutor = alumnos.filter((a) => !a.tiene_tutor);
+                        const resultados = sinTutor.filter((a) => {
+                          const nombre = `${a.persona.nombre} ${a.persona.apellidos}`.toLowerCase();
+                          const curp = (a.persona.curp ?? "").toLowerCase();
+                          const q = alumnoSearchText.toLowerCase();
+                          return nombre.includes(q) || curp.includes(q);
+                        });
+                        return resultados.length === 0 ? (
+                          <p className="text-sm text-[#6B7280] px-3 py-2">Sin resultados.</p>
+                        ) : resultados.slice(0, 8).map((a) => (
+                          <button
+                            key={a.id}
+                            type="button"
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors ${alumnoVincularId === a.id.toString() ? "bg-blue-100 font-medium" : ""}`}
+                            onClick={() => {
+                              setAlumnoVincularId(a.id.toString());
+                              setAlumnoSearchText(`${a.persona.nombre} ${a.persona.apellidos}`);
+                              setParentescoVincular("");
+                            }}
+                          >
+                            {a.persona.nombre} {a.persona.apellidos}
+                            {a.persona.curp && <span className="ml-2 text-xs text-[#6B7280] font-mono">{a.persona.curp}</span>}
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  )}
+                  {alumnoVincularId && (
+                    <p className="text-xs text-green-700 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Alumno seleccionado
+                    </p>
+                  )}
+                </>
               )}
             </div>
             <div className="space-y-1.5">

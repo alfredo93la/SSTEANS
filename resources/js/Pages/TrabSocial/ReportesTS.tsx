@@ -28,6 +28,7 @@ interface AlumnoData {
   id: number;
   nombre: string;
   grupo: string;
+  curp: string;
 }
 
 interface ReporteData {
@@ -74,6 +75,7 @@ export function ReportesTS() {
   const [formulario, setFormulario] = useState<FormDataReporte>(initialForm);
   const [guardando, setGuardando] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [busquedaAlumnoModal, setBusquedaAlumnoModal] = useState("");
 
   useEffect(() => {
     cargarDatos();
@@ -205,6 +207,21 @@ export function ReportesTS() {
     setModalDetalle(true);
   };
 
+  const alumnosFiltradosModal = useMemo(() => {
+    const q = busquedaAlumnoModal.toLowerCase();
+    return alumnos.filter((a) =>
+      !q ||
+      a.nombre.toLowerCase().includes(q) ||
+      a.grupo.toLowerCase().includes(q) ||
+      a.curp.toLowerCase().includes(q)
+    );
+  }, [alumnos, busquedaAlumnoModal]);
+
+  const alumnoSeleccionado = useMemo(() =>
+    alumnos.find((a) => a.id.toString() === formulario.alumnoId),
+    [alumnos, formulario.alumnoId]
+  );
+
   const abrirNuevoReporte = (abierto: boolean) => {
     setModalNuevo(abierto);
 
@@ -212,6 +229,7 @@ export function ReportesTS() {
       setEditandoId(null);
       setFormulario(initialForm);
       setArchivosAdjuntos([]);
+      setBusquedaAlumnoModal("");
     }
   };
 
@@ -392,23 +410,61 @@ export function ReportesTS() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="alumno">Alumno</Label>
-                  <Select value={formulario.alumnoId} onValueChange={(value) => actualizarCampo("alumnoId", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar alumno" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {alumnos.map((alumno) => (
-                        <SelectItem key={alumno.id} value={alumno.id.toString()}>
-                          {alumno.nombre} - {alumno.grupo}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div>
+                <Label>Alumno</Label>
+                  {alumnoSeleccionado ? (
+                    <div className="mt-1 flex items-center justify-between px-3 py-2 border border-[#E5E7EB] rounded-lg bg-blue-50">
+                      <div>
+                        <p className="text-sm font-medium text-[#111827]">{alumnoSeleccionado.nombre}</p>
+                        <p className="text-xs text-[#6B7280]">
+                          {alumnoSeleccionado.grupo}{alumnoSeleccionado.curp ? ` · ${alumnoSeleccionado.curp}` : ""}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { actualizarCampo("alumnoId", ""); setBusquedaAlumnoModal(""); }}
+                        className="hover:text-red-500"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="mt-1 space-y-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+                        <Input
+                          placeholder="Buscar por nombre, grupo o CURP..."
+                          value={busquedaAlumnoModal}
+                          onChange={(e) => setBusquedaAlumnoModal(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
+                      <div className="max-h-36 overflow-y-auto border border-[#E5E7EB] rounded-lg divide-y divide-[#F3F4F6]">
+                        {alumnosFiltradosModal.length === 0 ? (
+                          <p className="text-sm text-[#6B7280] text-center py-3">Sin resultados</p>
+                        ) : (
+                          alumnosFiltradosModal.map((alumno) => (
+                            <button
+                              key={alumno.id}
+                              type="button"
+                              className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 text-left"
+                              onClick={() => { actualizarCampo("alumnoId", alumno.id.toString()); setBusquedaAlumnoModal(""); }}
+                            >
+                              <p className="text-sm font-medium text-[#111827]">{alumno.nombre}</p>
+                              <p className="text-xs text-[#6B7280]">
+                                {alumno.grupo}{alumno.curp ? ` · ${alumno.curp}` : ""}
+                              </p>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="tipo">Tipo de Reporte</Label>
                   <Select value={formulario.tipoReporte} onValueChange={(value) => actualizarCampo("tipoReporte", value)}>
@@ -424,20 +480,20 @@ export function ReportesTS() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div>
-                <Label htmlFor="gravedad">Nivel de Gravedad</Label>
-                <Select value={formulario.gravedad} onValueChange={(value) => actualizarCampo("gravedad", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar gravedad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="alta">Alta</SelectItem>
-                    <SelectItem value="media">Media</SelectItem>
-                    <SelectItem value="baja">Baja</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div>
+                  <Label htmlFor="gravedad">Nivel de Gravedad</Label>
+                  <Select value={formulario.gravedad} onValueChange={(value) => actualizarCampo("gravedad", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar gravedad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="alta">Alta</SelectItem>
+                      <SelectItem value="media">Media</SelectItem>
+                      <SelectItem value="baja">Baja</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div>
@@ -665,51 +721,78 @@ export function ReportesTS() {
           </DialogHeader>
           {reporteSeleccionado && (
             <div className="space-y-4">
+              {/* Alumno — mismo estilo que el chip del formulario */}
+              <div>
+                <Label className="text-[#6B7280]">Alumno</Label>
+                <div className="mt-1 px-3 py-2 border border-[#E5E7EB] rounded-lg bg-blue-50">
+                  <p className="text-sm font-medium text-[#111827]">
+                    {getAlumno(reporteSeleccionado.alumnoId)?.nombre ?? `Alumno #${reporteSeleccionado.alumnoId}`}
+                  </p>
+                  <p className="text-xs text-[#6B7280]">
+                    {(() => {
+                      const a = getAlumno(reporteSeleccionado.alumnoId);
+                      return [a?.grupo, a?.curp].filter(Boolean).join(" · ") || "Sin grupo";
+                    })()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Tipo de Reporte + Nivel de Gravedad — misma grid que el formulario */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-[#6B7280]">Alumno</Label>
-                  <p className="font-semibold">{getAlumno(reporteSeleccionado.alumnoId)?.nombre ?? `Alumno #${reporteSeleccionado.alumnoId}`}</p>
+                  <Label className="text-[#6B7280]">Tipo de Reporte</Label>
+                  <div className="mt-1">
+                    <Badge variant="secondary">{reporteSeleccionado.tipoReporte}</Badge>
+                  </div>
                 </div>
                 <div>
-                  <Label className="text-[#6B7280]">Grupo</Label>
-                  <p className="font-semibold">{getAlumno(reporteSeleccionado.alumnoId)?.grupo ?? "Sin grupo"}</p>
+                  <Label className="text-[#6B7280]">Nivel de Gravedad</Label>
+                  <div className="mt-1">
+                    <Badge className={getBadgeGravedad(reporteSeleccionado.gravedad)}>
+                      {reporteSeleccionado.gravedad}
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-[#6B7280]">Tipo</Label>
-                  <Badge variant="secondary">{reporteSeleccionado.tipoReporte}</Badge>
-                </div>
-                <div>
-                  <Label className="text-[#6B7280]">Gravedad</Label>
-                  <Badge className={getBadgeGravedad(reporteSeleccionado.gravedad)}>
-                    {reporteSeleccionado.gravedad}
+              </div>
+
+              {/* Estado del Reporte */}
+              <div>
+                <Label className="text-[#6B7280]">Estado del Reporte</Label>
+                <div className="mt-1">
+                  <Badge className={getBadgeEstado(reporteSeleccionado.estatus.toLowerCase().replace(/\s+/g, "_"))}>
+                    {getEstadoTexto(reporteSeleccionado.estatus.toLowerCase().replace(/\s+/g, "_"))}
                   </Badge>
                 </div>
               </div>
 
+              {/* Descripción del Incidente */}
               <div>
-                <Label className="text-[#6B7280]">Descripción</Label>
-                <p className="mt-1">{reporteSeleccionado.descripcion}</p>
+                <Label className="text-[#6B7280]">Descripción del Incidente</Label>
+                <p className="mt-1 text-sm text-[#111827]">{reporteSeleccionado.descripcion}</p>
               </div>
 
+              {/* Acciones Tomadas */}
               <div>
                 <Label className="text-[#6B7280]">Acciones Tomadas</Label>
-                <p className="mt-1">{reporteSeleccionado.observaciones || "Sin observaciones"}</p>
+                <p className="mt-1 text-sm text-[#111827]">{reporteSeleccionado.observaciones || "Sin observaciones"}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Metadata */}
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[#E5E7EB]">
                 <div>
                   <Label className="text-[#6B7280]">Reportado por</Label>
-                  <p>{reporteSeleccionado.reportadoPorNombre}</p>
+                  <p className="text-sm mt-1">{reporteSeleccionado.reportadoPorNombre}</p>
                 </div>
                 <div>
                   <Label className="text-[#6B7280]">Fecha</Label>
-                  <p>{reporteSeleccionado.fecha}</p>
+                  <p className="text-sm mt-1">{reporteSeleccionado.fecha}</p>
                 </div>
               </div>
 
+              {/* Archivos Adjuntos */}
               {reporteSeleccionado.archivoAdjunto && (
                 <div>
-                  <Label className="text-[#6B7280]">Archivo adjunto</Label>
+                  <Label className="text-[#6B7280]">Archivos Adjuntos</Label>
                   <a
                     href={reporteSeleccionado.archivoAdjunto}
                     target="_blank"

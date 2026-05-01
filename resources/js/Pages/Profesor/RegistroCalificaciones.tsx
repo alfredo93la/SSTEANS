@@ -7,7 +7,7 @@ import { Input } from "../../Components/ui/input";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { toast } from "sonner";
-import { Save, AlertCircle, CheckCircle, Lock, Settings, Plus, Trash2, ChevronUp, Send } from "lucide-react";
+import { Save, AlertCircle, CheckCircle, Lock, Settings, Plus, Trash2, ChevronUp, Send, BookA } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 
 interface GrupoData   { id: number; nombre: string; }
@@ -145,7 +145,7 @@ function RubrosEditor({
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
-export function RegistrarCalificaciones() {
+export function RegistroCalificaciones() {
   const [grupos, setGrupos]                             = useState<GrupoData[]>([]);
   const [materias, setMaterias]                         = useState<MateriaData[]>([]);
   const [periodos, setPeriodos]                         = useState<PeriodoData[]>([]);
@@ -308,7 +308,7 @@ export function RegistrarCalificaciones() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Save} title="Registrar Calificaciones" description="Captura las evaluaciones de tus alumnos" color="bg-[#059669]" />
+      <PageTitle icon={BookA} title="Registro de Calificaciones" description="Captura las evaluaciones de tus alumnos" color="bg-[#059669]" />
 
       {/* ── Selectores ── */}
       <Card className="border-[#E5E7EB]">

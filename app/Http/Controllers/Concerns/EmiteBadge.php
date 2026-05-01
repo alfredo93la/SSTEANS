@@ -13,23 +13,27 @@ trait EmiteBadge
      */
     protected function emitirBadge(string $seccion, string $permiso, ?int $userId = null): void
     {
-        if ($userId !== null) {
-            broadcast(new BadgeActualizado($userId, $seccion));
-            return;
+        try {
+            if ($userId !== null) {
+                broadcast(new BadgeActualizado($userId, $seccion));
+                return;
+            }
+
+            // Roles gestores (con .manage) nunca reciben el badge por Reverb.
+            $permisoManage = "{$seccion}.manage";
+
+            $roles = collect(config('permissions.roles', []))
+                ->filter(fn (array $perms) =>
+                    in_array($permiso, $perms, true) &&
+                    ! in_array($permisoManage, $perms, true)
+                )
+                ->keys();
+
+            User::whereIn('role', $roles)
+                ->pluck('id')
+                ->each(fn ($id) => broadcast(new BadgeActualizado($id, $seccion)));
+        } catch (\Throwable) {
+            // Reverb not running — badge update skipped, API response unaffected
         }
-
-        // Roles gestores (con .manage) nunca reciben el badge por Reverb.
-        $permisoManage = "{$seccion}.manage";
-
-        $roles = collect(config('permissions.roles', []))
-            ->filter(fn (array $perms) =>
-                in_array($permiso, $perms, true) &&
-                ! in_array($permisoManage, $perms, true)
-            )
-            ->keys();
-
-        User::whereIn('role', $roles)
-            ->pluck('id')
-            ->each(fn ($id) => broadcast(new BadgeActualizado($id, $seccion)));
     }
 }

@@ -1,17 +1,21 @@
 import { FormEventHandler } from "react";
-import { Head, useForm } from "@inertiajs/react";
+import { Head, useForm, Link } from "@inertiajs/react";
 import { Button } from "../../Components/ui/button";
 import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
-import { Checkbox } from "../../Components/ui/checkbox";
 import { Alert, AlertDescription } from "../../Components/ui/alert";
-import { AlertCircle, GraduationCap, ArrowRight } from "lucide-react";
+import { AlertCircle, GraduationCap, ArrowRight, CheckCircle2 } from "lucide-react";
 
-export default function Login() {
+interface Props {
+  canResetPassword: boolean;
+  status?: string;
+  canRegister?: boolean;
+}
+
+export default function Login({ canResetPassword, status, canRegister }: Props) {
   const { data, setData, post, processing, errors, reset } = useForm({
-    email: "", 
+    email: "",
     password: "",
-    remember: false,
   });
 
   const handleSubmit: FormEventHandler = (e) => {
@@ -53,7 +57,13 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Si Inertia devuelve un error global, lo mostramos aquí */}
+            {status && (
+              <Alert className="border-green-200 bg-green-50 animate-scale-in">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-700">{status}</AlertDescription>
+              </Alert>
+            )}
+
             {errors.email && (
               <Alert variant="destructive" className="animate-scale-in">
                 <AlertCircle className="h-4 w-4" />
@@ -92,20 +102,16 @@ export default function Login() {
               {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="recordarme"
-                  name="remember"
-                  checked={data.remember}
-                  onCheckedChange={(checked) => setData("remember", checked as boolean)}
-                  disabled={processing}
-                />
-                <Label htmlFor="recordarme" className="text-sm font-normal text-[#6B7280] cursor-pointer">
-                  Recuérdame
-                </Label>
+            {canResetPassword && (
+              <div className="flex justify-end">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-[#1D4ED8] hover:text-[#7C3AED] transition-colors"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
               </div>
-            </div>
+            )}
 
             <Button
               type="submit"
@@ -119,6 +125,15 @@ export default function Login() {
               </span>
               <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
             </Button>
+
+            {canRegister && (
+              <p className="text-center text-sm text-[#6B7280] pt-1">
+                ¿Eres tutor y aún no tienes cuenta?{" "}
+                <Link href="/register" className="text-[#1D4ED8] hover:text-[#7C3AED] transition-colors font-medium">
+                  Regístrate aquí
+                </Link>
+              </p>
+            )}
           </form>
         </div>
 

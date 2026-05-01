@@ -10,11 +10,15 @@ use App\Models\Role;
 use App\Models\TrabSocial;
 use App\Models\Tutor;
 use App\Models\User;
+use App\Mail\CredencialesUsuario;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UserManagementController extends Controller
@@ -88,7 +92,6 @@ class UserManagementController extends Controller
             'nombre'       => ['required', 'string', 'max:100'],
             'apellidos'    => ['required', 'string', 'max:100'],
             'email'        => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password'     => ['required', 'string', 'min:8'],
             'curp'         => ['nullable', 'string', 'size:18', 'unique:personas,curp'],
             'telefono'     => ['nullable', 'string', 'max:20'],
             'direccion'    => ['nullable', 'string', 'max:255'],
@@ -112,7 +115,13 @@ class UserManagementController extends Controller
 
         $primaryRole = Role::query()->findOrFail($validated['roles'][0]);
 
-        $user = DB::transaction(function () use ($validated, $primaryRole, $request): User {
+        if ($primaryRole->nombre === 'Administrador' && User::whereHas('roles', fn ($q) => $q->where('nombre', 'Administrador'))->exists()) {
+            return response()->json(['message' => 'Ya existe un administrador en el sistema.'], 422);
+        }
+
+        $tempPassword = Str::random(8) . rand(10, 99) . '!';
+
+        $user = DB::transaction(function () use ($validated, $primaryRole, $request, $tempPassword): User {
             $persona = Persona::query()->create([
                 'tipo_persona' => $this->tipoPersona($primaryRole->nombre),
                 'nombre'       => $validated['nombre'],
@@ -125,14 +134,15 @@ class UserManagementController extends Controller
             $status = $validated['status'] ?? 'Activo';
 
             $user = User::query()->create([
-                'persona_id'   => $persona->id,
-                'name'         => "{$validated['nombre']} {$validated['apellidos']}",
-                'email'        => $validated['email'],
-                'password'     => Hash::make($validated['password']),
-                'role'         => $primaryRole->nombre,
-                'status'       => $status,
-                'validated_at' => $status === 'Activo' ? now() : null,
-                'validated_by' => $status === 'Activo' ? $request->user()?->id : null,
+                'persona_id'           => $persona->id,
+                'name'                 => "{$validated['nombre']} {$validated['apellidos']}",
+                'email'                => $validated['email'],
+                'password'             => Hash::make($tempPassword),
+                'role'                 => $primaryRole->nombre,
+                'status'               => $status,
+                'must_change_password' => true,
+                'validated_at'         => $status === 'Activo' ? now() : null,
+                'validated_by'         => $status === 'Activo' ? $request->user()?->id : null,
             ]);
 
             $user->roles()->sync($validated['roles']);
@@ -142,8 +152,14 @@ class UserManagementController extends Controller
             return $user;
         });
 
+        try {
+            Mail::to($user->email)->send(new CredencialesUsuario($user, $tempPassword));
+        } catch (\Throwable $e) {
+            Log::error('Error enviando credenciales a ' . $user->email . ': ' . $e->getMessage());
+        }
+
         return response()->json([
-            'message' => 'Usuario creado correctamente.',
+            'message' => "Usuario creado. Se han enviado las credenciales al correo {$user->email}.",
             'user'    => $user->load($this->personaRelations()),
         ], 201);
     }
@@ -228,8 +244,12 @@ class UserManagementController extends Controller
         ]);
     }
 
-    public function destroy(User $user): JsonResponse
+    public function destroy(Request $request, User $user): JsonResponse
     {
+        if ($request->user()?->id === $user->id) {
+            return response()->json(['message' => 'No puedes eliminar tu propia cuenta.'], 403);
+        }
+
         DB::transaction(function () use ($user): void {
             $personaId = $user->persona_id;
             $user->roles()->detach();

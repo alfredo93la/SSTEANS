@@ -78,8 +78,9 @@ export function PeriodosEvaluacion() {
 
   const handleEditar = (p: PeriodoData) => {
     const toISO = (fecha: string) => {
+      if (/^\d{4}-\d{2}-\d{2}/.test(fecha)) return fecha.slice(0, 10);
       const [d, m, y] = fecha.split('/');
-      return `${y}-${m}-${d}`;
+      return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
     };
     setForm({ cicloId: p.cicloId.toString(), nombre: p.nombre, fechaInicio: toISO(p.fechaInicio), fechaFin: toISO(p.fechaFin) });
     setEditandoId(p.id);

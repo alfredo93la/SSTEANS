@@ -7,6 +7,7 @@ import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import {
   GraduationCap,
+  Link as LinkIcon,
   Search,
   Filter,
   Eye,
@@ -14,9 +15,13 @@ import {
   Trash2,
   Plus,
   Users,
-  UserCircle,
   Phone,
   Loader2,
+  UserCheck,
+  UserMinus,
+  CheckCircle2,
+  XCircle,
+  Clock,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
 import { PageTitle } from "../../Layouts/PageTitle";
@@ -40,6 +45,10 @@ interface Alumno {
 const formVacio = { nombre: "", apellidos: "", curp: "", fecha_nacimiento: "", sexo: "Masculino", telefono: "", direccion: "", estado: "Activo" };
 
 type AlumnoForm = typeof formVacio;
+
+const PARENTESCO_OPCIONES = ["Padre", "Madre", "Abuelo", "Abuela", "Tío", "Tía", "Hermano", "Hermana", "Tutor legal", "Otro"];
+
+interface TutorSimple { id: number; nombre: string; apellidos: string; }
 
 function FormAlumno({ form, setForm }: { form: AlumnoForm; setForm: (f: AlumnoForm) => void }) {
   return (
@@ -109,6 +118,12 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   const [alumnoSel, setAlumnoSel] = useState<Alumno | null>(null);
   const [form, setForm] = useState(formVacio);
   const [saving, setSaving] = useState(false);
+  const [vincularEnabled, setVincularEnabled] = useState(false);
+  const [tutoresList, setTutoresList] = useState<TutorSimple[]>([]);
+  const [loadingTutores, setLoadingTutores] = useState(false);
+  const [tutorBusq, setTutorBusq] = useState("");
+  const [tutorSelId, setTutorSelId] = useState<number | null>(null);
+  const [parentescoNuevo, setParentescoNuevo] = useState("");
 
   const cargar = (q?: string) => {
     setLoading(true);
@@ -120,25 +135,72 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
 
   useEffect(() => { cargar(); }, []);
 
-  const handleGuardar = () => {
+  const resetVincular = () => {
+    setVincularEnabled(false);
+    setTutorBusq("");
+    setTutorSelId(null);
+    setParentescoNuevo("");
+  };
+
+  const toggleVincular = () => {
+    if (!vincularEnabled && tutoresList.length === 0) {
+      setLoadingTutores(true);
+      axios.get("/api/administrativo/tutores")
+        .then(({ data }) => setTutoresList(
+          data.tutores.map((t: { id: number; persona: { nombre: string; apellidos: string } }) => ({
+            id: t.id,
+            nombre: t.persona.nombre,
+            apellidos: t.persona.apellidos,
+          }))
+        ))
+        .catch(() => toast.error("No se pudieron cargar los tutores."))
+        .finally(() => setLoadingTutores(false));
+    }
+    if (vincularEnabled) {
+      resetVincular();
+    } else {
+      setVincularEnabled(true);
+    }
+  };
+
+  const handleGuardar = async () => {
     if (!form.nombre || !form.apellidos || !form.curp || !form.fecha_nacimiento) {
       toast.error("Nombre, apellidos, CURP y fecha de nacimiento son obligatorios.");
       return;
     }
     setSaving(true);
-    axios.post("/api/administrativo/alumnos", form)
-      .then(({ data }) => {
-        setAlumnos((prev) => [...prev, data.alumno]);
-        setModalNuevo(false);
-        setForm(formVacio);
+    try {
+      const { data } = await axios.post("/api/administrativo/alumnos", form);
+      const nuevoAlumno = data.alumno;
+      if (vincularEnabled && tutorSelId) {
+        try {
+          await axios.post(`/api/administrativo/tutores/${tutorSelId}/vincular`, {
+            alumno_id: nuevoAlumno.id,
+            parentesco: parentescoNuevo || undefined,
+          });
+          const { data: refreshed } = await axios.get("/api/administrativo/alumnos");
+          setAlumnos(refreshed.alumnos);
+          toast.success("Alumno registrado y vinculado al tutor.");
+        } catch (linkErr: unknown) {
+          setAlumnos((prev) => [...prev, nuevoAlumno]);
+          const msg = (linkErr as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Error al vincular";
+          toast.warning(`Alumno creado, pero no se pudo vincular: ${msg}`);
+        }
+      } else {
+        setAlumnos((prev) => [...prev, nuevoAlumno]);
         toast.success("Alumno registrado correctamente.");
-      })
-      .catch((err) => {
-        const errors = err.response?.data?.errors;
-        const msg = errors ? Object.values(errors).flat().join(" ") : (err.response?.data?.message ?? "Error al registrar.");
-        toast.error(msg);
-      })
-      .finally(() => setSaving(false));
+      }
+      setModalNuevo(false);
+      setForm(formVacio);
+      resetVincular();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } };
+      const errors = e.response?.data?.errors;
+      const msg = errors ? (Object.values(errors).flat() as string[]).join(" ") : (e.response?.data?.message ?? "Error al registrar.");
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEditar = () => {
@@ -153,6 +215,26 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
       })
       .catch((err) => toast.error(err.response?.data?.message ?? "Error al actualizar."))
       .finally(() => setSaving(false));
+  };
+
+  const handleAprobar = (alumno: Alumno) => {
+    if (!confirm(`¿Aprobar a ${alumno.persona.nombre} ${alumno.persona.apellidos}?`)) return;
+    axios.post(`/api/administrativo/alumnos/${alumno.id}/aprobar`)
+      .then(({ data }) => {
+        setAlumnos((prev) => prev.map((a) => a.id === data.alumno.id ? data.alumno : a));
+        toast.success("Alumno aprobado correctamente.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo aprobar."));
+  };
+
+  const handleRechazar = (alumno: Alumno) => {
+    if (!confirm(`¿Rechazar y eliminar la solicitud de ${alumno.persona.nombre} ${alumno.persona.apellidos}?`)) return;
+    axios.post(`/api/administrativo/alumnos/${alumno.id}/rechazar`)
+      .then(() => {
+        setAlumnos((prev) => prev.filter((a) => a.id !== alumno.id));
+        toast.success("Solicitud rechazada.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo rechazar."));
   };
 
   const handleEliminar = (alumno: Alumno) => {
@@ -189,8 +271,9 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   };
 
   const getEstadoColor = (estado: string) => {
-    if (estado === "Activo") return "bg-green-100 text-green-700 border-green-200";
-    if (estado === "Baja") return "bg-red-100 text-red-700 border-red-200";
+    if (estado === "Activo")    return "bg-green-100 text-green-700 border-green-200";
+    if (estado === "Baja")      return "bg-red-100 text-red-700 border-red-200";
+    if (estado === "Pendiente") return "bg-amber-100 text-amber-700 border-amber-200";
     return "bg-gray-100 text-gray-700 border-gray-200";
   };
 
@@ -204,7 +287,7 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       <PageTitle icon={GraduationCap} title="Gestión de Alumnos" description="Administra el catálogo completo de alumnos" color="bg-[#1D4ED8]">
-        <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
+        <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) { setForm(formVacio); resetVincular(); } }}>
           <DialogTrigger asChild>
             <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               <Plus className="h-4 w-4 mr-2" />Nuevo Alumno
@@ -216,6 +299,77 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
               <DialogDescription>Llena los campos para dar de alta un nuevo alumno.</DialogDescription>
             </DialogHeader>
             <FormAlumno form={form} setForm={setForm} />
+            <div className="border-t pt-4">
+              <button
+                type="button"
+                className="flex items-center gap-2 text-sm font-medium text-[#1D4ED8] hover:underline"
+                onClick={toggleVincular}
+              >
+                <LinkIcon className="h-4 w-4" />
+                {vincularEnabled ? "Cancelar vinculación" : "Vincular con un tutor (opcional)"}
+              </button>
+              {vincularEnabled && (
+                <div className="mt-3 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label>Buscar tutor</Label>
+                    {loadingTutores ? (
+                      <div className="flex justify-center py-2"><Loader2 className="h-4 w-4 animate-spin text-[#1D4ED8]" /></div>
+                    ) : (
+                      <>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+                          <Input
+                            placeholder="Nombre del tutor..."
+                            value={tutorBusq}
+                            onChange={(e) => { setTutorBusq(e.target.value); setTutorSelId(null); setParentescoNuevo(""); }}
+                            className="pl-10"
+                          />
+                        </div>
+                        {tutorBusq.length >= 2 && (
+                          <div className="border rounded-md max-h-40 overflow-y-auto">
+                            {(() => {
+                              const resultados = tutoresList.filter((t) =>
+                                `${t.nombre} ${t.apellidos}`.toLowerCase().includes(tutorBusq.toLowerCase())
+                              );
+                              return resultados.length === 0 ? (
+                                <p className="text-sm text-[#6B7280] px-3 py-2">Sin resultados.</p>
+                              ) : resultados.slice(0, 8).map((t) => (
+                                <button
+                                  key={t.id}
+                                  type="button"
+                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors ${tutorSelId === t.id ? "bg-blue-100 font-medium" : ""}`}
+                                  onClick={() => { setTutorSelId(t.id); setTutorBusq(`${t.nombre} ${t.apellidos}`); }}
+                                >
+                                  {t.nombre} {t.apellidos}
+                                </button>
+                              ));
+                            })()}
+                          </div>
+                        )}
+                        {tutorSelId && (
+                          <p className="text-xs text-green-700 flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Tutor seleccionado
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  {tutorSelId && (
+                    <div className="space-y-1.5">
+                      <Label>Parentesco (del tutor al alumno)</Label>
+                      <Select value={parentescoNuevo} onValueChange={setParentescoNuevo}>
+                        <SelectTrigger><SelectValue placeholder="Seleccionar parentesco" /></SelectTrigger>
+                        <SelectContent>
+                          {PARENTESCO_OPCIONES.map((p) => (
+                            <SelectItem key={p} value={p}>{p}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setModalNuevo(false)}>Cancelar</Button>
               <Button onClick={handleGuardar} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
@@ -227,7 +381,7 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
       </PageTitle>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -242,7 +396,7 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
         <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-white rounded-xl"><Users className="h-6 w-6 text-[#059669]" /></div>
+              <div className="p-3 bg-white rounded-xl"><UserCheck className="h-6 w-6 text-[#059669]" /></div>
               <div>
                 <p className="text-sm text-[#6B7280]">Activos</p>
                 <p className="text-2xl font-bold text-[#059669]">{alumnos.filter((a) => a.estado === "Activo").length}</p>
@@ -253,10 +407,21 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
         <Card className="border-[#E5E7EB] bg-linear-to-br from-red-50 to-red-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-white rounded-xl"><UserCircle className="h-6 w-6 text-[#DC2626]" /></div>
+              <div className="p-3 bg-white rounded-xl"><UserMinus className="h-6 w-6 text-[#DC2626]" /></div>
               <div>
                 <p className="text-sm text-[#6B7280]">Bajas</p>
                 <p className="text-2xl font-bold text-[#DC2626]">{alumnos.filter((a) => a.estado === "Baja").length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl"><Clock className="h-6 w-6 text-[#D97706]" /></div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Pendientes</p>
+                <p className="text-2xl font-bold text-[#D97706]">{alumnos.filter((a) => a.estado === "Pendiente").length}</p>
               </div>
             </div>
           </CardContent>
@@ -286,6 +451,7 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
                 <SelectItem value="Activo">Activos</SelectItem>
                 <SelectItem value="Inactivo">Inactivos</SelectItem>
                 <SelectItem value="Baja">Bajas</SelectItem>
+                <SelectItem value="Pendiente">Pendientes</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -345,16 +511,29 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
                         </div>
                       </div>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => abrirDetalle(alumno)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => abrirEditar(alumno)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {permissions.includes("alumnos.manage") && (
-                          <Button variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600" onClick={() => handleEliminar(alumno)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        {alumno.estado === "Pendiente" ? (
+                          <>
+                            <Button variant="ghost" size="sm" className="hover:bg-green-50 hover:text-green-700" title="Aprobar" onClick={() => handleAprobar(alumno)}>
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600" title="Rechazar" onClick={() => handleRechazar(alumno)}>
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button variant="ghost" size="sm" onClick={() => abrirDetalle(alumno)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => abrirEditar(alumno)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            {permissions.includes("alumnos.manage") && (
+                              <Button variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600" onClick={() => handleEliminar(alumno)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>

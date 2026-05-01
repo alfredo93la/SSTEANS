@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Card, CardContent } from "../../Components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
@@ -17,7 +17,7 @@ interface MateriaData { id: number; nombre: string; }
 interface TareaData { id: number; titulo: string; descripcion: string; materiaId: number; materia: string | null; grupoId: number; grupo: string | null; fechaEntrega: string; entregadasCount: number; totalAlumnos: number; }
 interface EntregaData { alumnoId: number; nombre: string; estado: "Pendiente" | "Entregada" | "Tarde" | "No Entregada"; fechaEntrega: string | null; }
 
-export function GestionarTareas() {
+export function GestionTareas() {
   const [grupos, setGrupos] = useState<GrupoData[]>([]);
   const [tareas, setTareas] = useState<TareaData[]>([]);
   const [filtroGrupo, setFiltroGrupo] = useState("todos");
@@ -51,10 +51,10 @@ export function GestionarTareas() {
   useEffect(() => {
     axios.get("/api/profesor/grupos")
       .then(({ data }) => setGrupos(data.grupos ?? []))
-      .catch(() => {});
+      .catch(() => { });
     axios.get("/api/tareas")
       .then(({ data }) => setTareas(data.tareas ?? []))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -67,7 +67,7 @@ export function GestionarTareas() {
     setMateriasNueva([]);
     axios.get("/api/profesor/materias", { params: { grupo_id: grupoNueva } })
       .then(({ data }) => setMateriasNueva(data.materias ?? []))
-      .catch(() => {});
+      .catch(() => { });
   }, [grupoNueva]);
 
   const limpiarFormularioNueva = () => {
@@ -274,7 +274,7 @@ export function GestionarTareas() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={FileText} title="Gestionar Tareas" description="Administra las tareas asignadas a tus grupos" color="bg-[#D97706]">
+      <PageTitle icon={FileText} title="Gestión de Tareas" description="Administra las tareas asignadas a tus grupos" color="bg-[#D97706]">
         <div className="flex gap-3 flex-wrap">
           <Button
             onClick={() => setDialogNuevaTareaAbierto(true)}
@@ -351,140 +351,148 @@ export function GestionarTareas() {
       </div>
 
       {/* Lista de tareas */}
-      <div className="space-y-4">
-        {tareasFiltradas.length === 0 ? (
-          <Card className="border-[#E5E7EB]">
-            <CardContent className="py-12 text-center">
-              <FileText className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />
-              <p className="text-[#6B7280]">No hay tareas para mostrar</p>
-            </CardContent>
-          </Card>
-        ) : (
-          tareasFiltradas.map((tarea) => {
-            const porcentaje = calcularPorcentajeEntrega(tarea);
-            const diasRestantes = calcularDiasRestantes(tarea.fechaEntrega);
-            const revisadas = tarea.entregadasCount;
-            const total = tarea.totalAlumnos;
+      <Card className="border-[#E5E7EB]">
+        <CardHeader>
+          <CardTitle>Lista de Tareas</CardTitle>
+          <CardDescription>Últimas tareas asignadas</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {tareasFiltradas.length === 0 ? (
+              <Card className="border-[#E5E7EB]">
+                <CardContent className="py-12 text-center">
+                  <FileText className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />
+                  <p className="text-[#6B7280]">No hay tareas para mostrar</p>
+                </CardContent>
+              </Card>
+            ) : (
+              tareasFiltradas.map((tarea) => {
+                const porcentaje = calcularPorcentajeEntrega(tarea);
+                const diasRestantes = calcularDiasRestantes(tarea.fechaEntrega);
+                const revisadas = tarea.entregadasCount;
+                const total = tarea.totalAlumnos;
 
-            return (
-              <Card key={tarea.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    {/* Header de la tarea */}
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-start gap-3 mb-2">
-                          <FileText className="h-5 w-5 text-[#7C3AED] mt-1 shrink-0" />
+                return (
+                  <Card key={tarea.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
+                    <CardContent className="pt-6">
+                      <div className="space-y-4">
+                        {/* Header de la tarea */}
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-[#111827] text-lg">{tarea.titulo}</h3>
-                            <p className="text-sm text-[#6B7280] mt-1">{tarea.descripcion}</p>
+                            <div className="flex items-start gap-3 mb-2">
+                              <FileText className="h-5 w-5 text-[#7C3AED] mt-1 shrink-0" />
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-[#111827] text-lg">{tarea.titulo}</h3>
+                                <p className="text-sm text-[#6B7280] mt-1">{tarea.descripcion}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              <Badge variant="secondary" className="bg-purple-100 text-[#7C3AED]">
+                                {tarea.materia}
+                              </Badge>
+                              <Badge variant="secondary" className="bg-blue-100 text-[#1D4ED8]">
+                                <Users className="h-3 w-3 mr-1" />
+                                {tarea.grupo}
+                              </Badge>
+                              <Badge
+                                variant="secondary"
+                                className={
+                                  diasRestantes < 0 ? "bg-gray-100 text-[#6B7280]" :
+                                    diasRestantes <= 3 ? "bg-red-100 text-[#E11D48]" :
+                                      "bg-green-100 text-[#059669]"
+                                }
+                              >
+                                <Calendar className="h-3 w-3 mr-1" />
+                                {tarea.fechaEntrega}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          {/* Acciones */}
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => abrirEntregas(tarea)}
+                              className="text-[#059669] border-[#059669] hover:bg-green-50"
+                            >
+                              <ClipboardList className="h-4 w-4 mr-1" />
+                              Entregas
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => abrirEditar(tarea)}
+                              className="text-[#1D4ED8] border-[#1D4ED8] hover:bg-blue-50"
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Editar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => abrirEliminar(tarea.id)}
+                              className="text-[#E11D48] border-[#E11D48] hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Eliminar
+                            </Button>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <Badge variant="secondary" className="bg-purple-100 text-[#7C3AED]">
-                            {tarea.materia}
-                          </Badge>
-                          <Badge variant="secondary" className="bg-blue-100 text-[#1D4ED8]">
-                            <Users className="h-3 w-3 mr-1" />
-                            {tarea.grupo}
-                          </Badge>
-                          <Badge
-                            variant="secondary"
-                            className={
-                              diasRestantes < 0 ? "bg-gray-100 text-[#6B7280]" :
-                              diasRestantes <= 3 ? "bg-red-100 text-[#E11D48]" :
-                              "bg-green-100 text-[#059669]"
-                            }
-                          >
-                            <Calendar className="h-3 w-3 mr-1" />
-                            {tarea.fechaEntrega}
-                          </Badge>
+                        {/* Progreso de revisión */}
+                        <div className="space-y-2 pt-3 border-t border-[#E5E7EB]">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2 text-[#6B7280]">
+                              <ClipboardList className="h-4 w-4" />
+                              <span>Revisadas: {revisadas} de {total}</span>
+                            </div>
+                            <Badge className={
+                              porcentaje >= 80 ? "bg-[#059669]" :
+                                porcentaje >= 50 ? "bg-[#D97706]" :
+                                  "bg-[#E11D48]"
+                            }>
+                              {porcentaje}%
+                            </Badge>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all ${porcentaje >= 80 ? "bg-[#059669]" :
+                                  porcentaje >= 50 ? "bg-[#D97706]" :
+                                    "bg-[#E11D48]"
+                                }`}
+                              style={{ width: `${porcentaje}%` }}
+                            />
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Acciones */}
-                      <div className="flex gap-2 flex-wrap">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => abrirEntregas(tarea)}
-                          className="text-[#059669] border-[#059669] hover:bg-green-50"
-                        >
-                          <ClipboardList className="h-4 w-4 mr-1" />
-                          Entregas
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => abrirEditar(tarea)}
-                          className="text-[#1D4ED8] border-[#1D4ED8] hover:bg-blue-50"
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => abrirEliminar(tarea.id)}
-                          className="text-[#E11D48] border-[#E11D48] hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Eliminar
-                        </Button>
+                        {/* Estado de la tarea */}
+                        {diasRestantes < 0 ? (
+                          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-sm text-[#6B7280]">
+                            <Clock className="h-4 w-4" />
+                            <span>Tarea vencida hace {Math.abs(diasRestantes)} días</span>
+                          </div>
+                        ) : diasRestantes <= 3 ? (
+                          <div className="flex items-center gap-2 p-2 bg-red-50 rounded-lg text-sm text-[#E11D48]">
+                            <Clock className="h-4 w-4" />
+                            <span>
+                              {diasRestantes === 0 ? "¡Vence hoy!" :
+                                diasRestantes === 1 ? "Vence mañana" :
+                                  `Vence en ${diasRestantes} días`}
+                            </span>
+                          </div>
+                        ) : null}
                       </div>
-                    </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-                    {/* Progreso de revisión */}
-                    <div className="space-y-2 pt-3 border-t border-[#E5E7EB]">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-[#6B7280]">
-                          <ClipboardList className="h-4 w-4" />
-                          <span>Revisadas: {revisadas} de {total}</span>
-                        </div>
-                        <Badge className={
-                          porcentaje >= 80 ? "bg-[#059669]" :
-                          porcentaje >= 50 ? "bg-[#D97706]" :
-                          "bg-[#E11D48]"
-                        }>
-                          {porcentaje}%
-                        </Badge>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            porcentaje >= 80 ? "bg-[#059669]" :
-                            porcentaje >= 50 ? "bg-[#D97706]" :
-                            "bg-[#E11D48]"
-                          }`}
-                          style={{ width: `${porcentaje}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Estado de la tarea */}
-                    {diasRestantes < 0 ? (
-                      <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-sm text-[#6B7280]">
-                        <Clock className="h-4 w-4" />
-                        <span>Tarea vencida hace {Math.abs(diasRestantes)} días</span>
-                      </div>
-                    ) : diasRestantes <= 3 ? (
-                      <div className="flex items-center gap-2 p-2 bg-red-50 rounded-lg text-sm text-[#E11D48]">
-                        <Clock className="h-4 w-4" />
-                        <span>
-                          {diasRestantes === 0 ? "¡Vence hoy!" :
-                           diasRestantes === 1 ? "Vence mañana" :
-                           `Vence en ${diasRestantes} días`}
-                        </span>
-                      </div>
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
-      </div>
 
       {/* Dialog Nueva Tarea */}
       <Dialog open={dialogNuevaTareaAbierto} onOpenChange={(open) => { setDialogNuevaTareaAbierto(open); if (!open) limpiarFormularioNueva(); }}>
@@ -672,8 +680,8 @@ export function GestionarTareas() {
                           const activo = e.estado === opcion;
                           const bloqueado = !fechaLimitePasada && opcion !== "Entregada";
                           const estilos: Record<string, string> = {
-                            "Entregada":    activo ? "bg-[#059669] text-white border-[#059669]" : "bg-white text-[#6B7280] border-[#D1D5DB] hover:border-[#059669] hover:text-[#059669]",
-                            "Tarde":        activo ? "bg-[#D97706] text-white border-[#D97706]" : "bg-white text-[#6B7280] border-[#D1D5DB] hover:border-[#D97706] hover:text-[#D97706]",
+                            "Entregada": activo ? "bg-[#059669] text-white border-[#059669]" : "bg-white text-[#6B7280] border-[#D1D5DB] hover:border-[#059669] hover:text-[#059669]",
+                            "Tarde": activo ? "bg-[#D97706] text-white border-[#D97706]" : "bg-white text-[#6B7280] border-[#D1D5DB] hover:border-[#D97706] hover:text-[#D97706]",
                             "No Entregada": activo ? "bg-[#E11D48] text-white border-[#E11D48]" : "bg-white text-[#6B7280] border-[#D1D5DB] hover:border-[#E11D48] hover:text-[#E11D48]",
                           };
                           return (

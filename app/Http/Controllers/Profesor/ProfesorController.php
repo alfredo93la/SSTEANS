@@ -27,6 +27,10 @@ class ProfesorController extends Controller
                     $q->where('ciclo_escolar_id', $cicloId);
                 }
             })
+            ->withCount(['asignaciones as alumnos' => fn ($q) => $q
+                ->where('estado', 'activo')
+                ->when($cicloId, fn ($q2) => $q2->where('ciclo_escolar_id', $cicloId))
+            ])
             ->with(['grado:id,numero'])
             ->get()
             ->map(fn ($g) => [
@@ -34,6 +38,7 @@ class ProfesorController extends Controller
                 'nombre' => $g->grado ? $g->grado->numero.'°'.$g->nombre : $g->nombre,
                 'turno'  => $g->turno,
                 'grado'  => $g->grado?->numero,
+                'alumnos' => $g->alumnos ?? 0,
             ]);
 
         return response()->json(['grupos' => $grupos]);

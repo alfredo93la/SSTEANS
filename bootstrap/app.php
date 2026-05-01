@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\EnsureRoleAccess::class,
+            \App\Http\Middleware\RedirectIfMustChangePassword::class,
         ]);
 
         $middleware->alias([

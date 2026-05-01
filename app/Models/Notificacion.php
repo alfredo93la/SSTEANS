@@ -13,6 +13,7 @@ class Notificacion extends Model
         'remitente_user_id',
         'destinatario_user_id',
         'alumno_id',
+        'grupo_id',
         'titulo',
         'mensaje',
         'tipo',
@@ -38,5 +39,10 @@ class Notificacion extends Model
     public function alumno(): BelongsTo
     {
         return $this->belongsTo(Alumno::class);
+    }
+
+    public function grupo(): BelongsTo
+    {
+        return $this->belongsTo(Grupo::class);
     }
 }

@@ -12,14 +12,15 @@ import { AsistenciaTutor } from "./Tutor/AsistenciaTutor";
 import { ReportesConductaTutor } from "./Tutor/ReportesConductaTutor";
 import { NotificacionesTutor } from "./Tutor/NotificacionesTutor";
 import { HorarioTutor } from "./Tutor/HorarioTutor";
-import { RegistrarCalificaciones } from "./Profesor/RegistrarCalificaciones";
+import { RegistroCalificaciones } from "./Profesor/RegistroCalificaciones";
 import { ControlAsistencia } from "./Profesor/ControlAsistencia";
-import { GestionarTareas } from "./Profesor/GestionarTareas";
+import { GestionTareas } from "./Profesor/GestionTareas";
 import { HorarioDocente } from "./Profesor/HorarioProfesor";
-import { Notificaciones } from "./Notificaciones";
+import { Notificaciones } from "./EnviarNotificaciones";
 import { ReportesTS } from "./TrabSocial/ReportesTS";
 import { AlumnosTS } from "./TrabSocial/AlumnosTS";
 import { PerfilAlumnoTS } from "./TrabSocial/PerfilAlumnoTS";
+import { ValidacionUsuarios } from "./Admin/ValidacionUsuarios";
 import { Usuarios } from "./Admin/Usuarios";
 import { Roles } from "./Admin/Roles";
 import { Grupos } from "./Administrativo/Grupos";
@@ -114,6 +115,7 @@ export default function App() {
     "#/grupos":           "Grupos",
     "#/materias":         "Materias",
     "#/horarios":         "Horarios",
+    "#/validacion":       "Validación de Cuentas",
     "#/usuarios":         "Usuarios",
     "#/roles":            "Roles y Permisos",
     "#/ciclos":           "Ciclos Escolares",
@@ -154,14 +156,14 @@ export default function App() {
         {currentRoute === "#/calificaciones" && (
           has("calificaciones.view")
             ? <CalificacionesTutor alumnoId={hijoSeleccionado || 1} />
-            : <RegistrarCalificaciones />
+            : <RegistroCalificaciones />
         )}
 
         {/* Tareas: view → tutor, manage → profesor */}
         {currentRoute === "#/tareas" && (
           has("tareas.view")
             ? <TareasTutor alumnoId={hijoSeleccionado || 1} />
-            : <GestionarTareas />
+            : <GestionTareas />
         )}
 
         {/* Asistencia: view → tutor, manage → profesor */}
@@ -219,6 +221,7 @@ export default function App() {
         {currentRoute === "#/horarios" && <Horarios />}
 
         {/* Administración */}
+        {currentRoute === "#/validacion" && <ValidacionUsuarios />}
         {currentRoute === "#/usuarios" && <Usuarios />}
         {currentRoute === "#/roles" && <Roles />}
         {currentRoute === "#/ciclos" && <CiclosEscolares />}

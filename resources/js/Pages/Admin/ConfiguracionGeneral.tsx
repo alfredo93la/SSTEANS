@@ -27,6 +27,7 @@ interface Config {
   acceso_profesor: boolean;
   acceso_trab_social: boolean;
   acceso_administrativo: boolean;
+  registro_tutores_activo: boolean;
 }
 
 const defaults: Config = {
@@ -45,6 +46,7 @@ const defaults: Config = {
   acceso_profesor: true,
   acceso_trab_social: true,
   acceso_administrativo: true,
+  registro_tutores_activo: false,
 };
 
 export function ConfiguracionGeneral() {
@@ -218,10 +220,11 @@ export function ConfiguracionGeneral() {
             </CardHeader>
             <CardContent className="space-y-3">
               {([
-                { key: "acceso_tutor",        label: "Acceso de tutores",             desc: "Los tutores pueden iniciar sesión en el sistema" },
-                { key: "acceso_profesor",     label: "Acceso de profesores",          desc: "Los profesores pueden iniciar sesión en el sistema" },
-                { key: "acceso_trab_social",  label: "Acceso de trabajadores sociales", desc: "Los trabajadores sociales pueden iniciar sesión" },
-                { key: "acceso_administrativo", label: "Acceso de personal administrativo", desc: "El personal administrativo puede iniciar sesión" },
+                { key: "acceso_tutor",            label: "Acceso de tutores",                  desc: "Los tutores pueden iniciar sesión en el sistema" },
+                { key: "acceso_profesor",         label: "Acceso de profesores",               desc: "Los profesores pueden iniciar sesión en el sistema" },
+                { key: "acceso_trab_social",      label: "Acceso de trabajadores sociales",    desc: "Los trabajadores sociales pueden iniciar sesión" },
+                { key: "acceso_administrativo",   label: "Acceso de personal administrativo",  desc: "El personal administrativo puede iniciar sesión" },
+                { key: "registro_tutores_activo", label: "Auto-registro de tutores",           desc: "Permite que tutores se registren ellos mismos y sus hijos desde /register" },
               ] as { key: keyof Config; label: string; desc: string }[]).map(({ key, label, desc }) => (
                 <div key={key} className="flex items-center justify-between p-3 rounded-xl border border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors">
                   <div>

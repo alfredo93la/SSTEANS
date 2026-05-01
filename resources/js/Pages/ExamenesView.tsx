@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Card, CardContent } from "../Components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../Components/ui/card";
 import { Button } from "../Components/ui/button";
 import { Badge } from "../Components/ui/badge";
 import { Input } from "../Components/ui/input";
@@ -9,7 +9,7 @@ import { Textarea } from "../Components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../Components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
-import { FileText, Clock, BookOpen, Plus, Search, Filter, Edit2, Trash2 } from "lucide-react";
+import { FileText, Clock, BookOpen, Plus, Search, Filter, Edit2, Trash2, ClipboardCheck } from "lucide-react";
 import { PageTitle } from "../Layouts/PageTitle";
 import { toast } from "sonner";
 
@@ -262,7 +262,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       <PageTitle
-        icon={FileText}
+        icon={ClipboardCheck}
         title="Exámenes Programados"
         description="Calendario de evaluaciones y fechas de exámenes"
         color="bg-[#E11D48]"
@@ -369,7 +369,13 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
       </Card>
 
       {/* Lista de exámenes */}
-      <div className="grid grid-cols-1 gap-4">
+      <Card className="border-[#E5E7EB]">
+        <CardHeader>
+          <CardTitle>Lista de Exámenes</CardTitle>
+          <CardDescription>Últimos exámenes registrados</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4">
         {loading ? (
           <Card className="border-[#E5E7EB]">
             <CardContent className="pt-6">
@@ -489,6 +495,9 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
           </Card>
         )}
       </div>
+        </CardContent>
+      </Card>
+      
 
       {/* Dialog crear / editar */}
       <Dialog

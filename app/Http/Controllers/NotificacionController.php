@@ -17,7 +17,12 @@ class NotificacionController extends Controller
     public function index(Request $request): JsonResponse
     {
         $notificaciones = Notificacion::where('destinatario_user_id', $request->user()->id)
-            ->with('remitente:id,name', 'alumno.persona:id,nombre,apellidos')
+            ->with([
+                'remitente:id,name',
+                'alumno.persona:id,nombre,apellidos',
+                'grupo:id,nombre,grado_id',
+                'grupo.grado:id,numero',
+            ])
             ->latest()
             ->get()
             ->map(fn ($n) => $this->format($n));
@@ -51,6 +56,7 @@ class NotificacionController extends Controller
             'destinatarios'            => ['required', 'array', 'min:1'],
             'destinatarios.*.userId'   => ['required', 'integer', 'exists:users,id'],
             'destinatarios.*.alumnoId' => ['nullable', 'integer', 'exists:alumnos,id'],
+            'destinatarios.*.grupoId'  => ['nullable', 'integer', 'exists:grupos,id'],
             'titulo'                   => ['required', 'string', 'max:255'],
             'mensaje'                  => ['required', 'string', 'max:2000'],
             'categoria'                => ['required', 'string', 'in:Académico,Asistencia,Conducta,Citatorio,Administrativo,Aviso,Orientación'],
@@ -65,6 +71,7 @@ class NotificacionController extends Controller
                 'remitente_user_id'    => $remitenteId,
                 'destinatario_user_id' => $dest['userId'],
                 'alumno_id'            => $dest['alumnoId'] ?? null,
+                'grupo_id'             => $dest['grupoId'] ?? null,
                 'titulo'               => $validated['titulo'],
                 'mensaje'              => $validated['mensaje'],
                 'categoria'            => $validated['categoria'],
@@ -241,6 +248,11 @@ class NotificacionController extends Controller
 
     private function format(Notificacion $n): array
     {
+        $grupo = $n->grupo;
+        $grupoNombre = $grupo
+            ? ($grupo->grado ? "{$grupo->grado->numero}°{$grupo->nombre}" : $grupo->nombre)
+            : null;
+
         return [
             'id'           => $n->id,
             'titulo'       => $n->titulo,
@@ -252,6 +264,8 @@ class NotificacionController extends Controller
             'remitente'    => $n->remitente?->name ?? 'Sistema',
             'alumnoId'     => $n->alumno_id,
             'alumno'       => $this->alumnoNombre($n),
+            'grupoId'      => $n->grupo_id,
+            'grupo'        => $grupoNombre,
             'fecha'        => $n->created_at->format('d/m/Y'),
             'hora'         => $n->created_at->format('H:i'),
         ];

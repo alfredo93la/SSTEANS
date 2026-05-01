@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CredencialesUsuario;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class UserValidationController extends Controller
 {
@@ -61,16 +66,26 @@ class UserValidationController extends Controller
             ], 409);
         }
 
+        $tempPassword = Str::random(8) . rand(10, 99) . '!';
+
         $user->update([
-            'status' => 'Activo',
-            'rejection_reason' => null,
-            'validated_at' => now(),
-            'validated_by' => $request->user()?->id,
+            'status'               => 'Activo',
+            'rejection_reason'     => null,
+            'validated_at'         => now(),
+            'validated_by'         => $request->user()?->id,
+            'password'             => Hash::make($tempPassword),
+            'must_change_password' => true,
         ]);
 
+        try {
+            Mail::to($user->email)->send(new CredencialesUsuario($user, $tempPassword));
+        } catch (\Throwable $e) {
+            Log::error('Error enviando credenciales a ' . $user->email . ': ' . $e->getMessage());
+        }
+
         return response()->json([
-            'message' => 'Solicitud aprobada correctamente.',
-            'user' => $user,
+            'message' => "Solicitud aprobada. Se han enviado las credenciales al correo {$user->email}.",
+            'user'    => $user,
         ]);
     }
 

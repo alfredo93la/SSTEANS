@@ -220,7 +220,7 @@ export function Horarios() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Clock} title="Horarios" description="Gestiona el horario de clases por grupo" color="bg-[#1D4ED8]">
+      <PageTitle icon={Clock} title="Asignación de Horarios" description="Gestiona el horario de clases por grupo" color="bg-[#1D4ED8]">
         <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm({ ...formVacio, grupo_id: grupoSelId }); }}>
           <DialogTrigger asChild>
             <Button className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white">

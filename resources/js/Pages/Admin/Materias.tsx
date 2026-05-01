@@ -182,7 +182,7 @@ export function Materias() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={BookOpen} title="Gestión de Materias" description="Administra el catálogo de materias del plan de estudios" color="bg-[#059669]">
+      <PageTitle icon={BookMarked} title="Gestión de Materias" description="Administra el catálogo de materias del plan de estudios" color="bg-[#059669]">
         <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
           <DialogTrigger asChild>
             <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Administrativo;
 
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
+use App\Models\AsignacionGrupo;
 use App\Models\CicloEscolar;
 use App\Models\Persona;
 use Illuminate\Http\JsonResponse;
@@ -66,7 +67,7 @@ class AlumnoAdminController extends Controller
             'sexo'            => ['required', Rule::in(['Masculino', 'Femenino', 'No especificado'])],
             'telefono'        => ['nullable', 'string', 'max:30'],
             'direccion'       => ['nullable', 'string', 'max:500'],
-            'estado'          => ['nullable', Rule::in(['Activo', 'Inactivo', 'Baja'])],
+            'estado'          => ['nullable', Rule::in(['Activo', 'Inactivo', 'Baja', 'Pendiente'])],
         ]);
 
         $alumno = DB::transaction(function () use ($validated): Alumno {
@@ -103,10 +104,13 @@ class AlumnoAdminController extends Controller
             'sexo'            => ['required', Rule::in(['Masculino', 'Femenino', 'No especificado'])],
             'telefono'        => ['nullable', 'string', 'max:30'],
             'direccion'       => ['nullable', 'string', 'max:500'],
-            'estado'          => ['required', Rule::in(['Activo', 'Inactivo', 'Baja'])],
+            'estado'          => ['required', Rule::in(['Activo', 'Inactivo', 'Baja', 'Pendiente'])],
         ]);
 
-        DB::transaction(function () use ($validated, $alumno): void {
+        $estadoAnterior = $alumno->estado;
+        $nuevoEstado    = $validated['estado'];
+
+        DB::transaction(function () use ($validated, $alumno, $estadoAnterior, $nuevoEstado): void {
             $alumno->persona->update([
                 'nombre'    => $validated['nombre'],
                 'apellidos' => $validated['apellidos'],
@@ -116,16 +120,61 @@ class AlumnoAdminController extends Controller
             ]);
 
             $alumno->update([
-                'estado'          => $validated['estado'],
+                'estado'           => $nuevoEstado,
                 'fecha_nacimiento' => $validated['fecha_nacimiento'],
-                'sexo'            => $validated['sexo'],
+                'sexo'             => $validated['sexo'],
             ]);
+
+            if ($nuevoEstado !== $estadoAnterior) {
+                $cicloActivoId = CicloEscolar::where('activo', true)->value('id');
+
+                if ($cicloActivoId) {
+                    $estadoAsignacion = in_array($nuevoEstado, ['Baja', 'Inactivo']) ? 'baja' : 'activo';
+
+                    AsignacionGrupo::where('alumno_id', $alumno->id)
+                        ->where('ciclo_escolar_id', $cicloActivoId)
+                        ->update(['estado' => $estadoAsignacion]);
+                }
+            }
         });
 
         return response()->json([
             'message' => 'Alumno actualizado.',
             'alumno'  => $alumno->fresh()->load('persona:id,nombre,apellidos,curp,telefono,direccion'),
         ]);
+    }
+
+    public function aprobar(Alumno $alumno): JsonResponse
+    {
+        if ($alumno->estado !== 'Pendiente') {
+            return response()->json(['message' => 'El alumno no está pendiente de aprobación.'], 422);
+        }
+
+        $alumno->update(['estado' => 'Activo']);
+
+        return response()->json([
+            'message' => 'Alumno aprobado correctamente.',
+            'alumno'  => $alumno->fresh()->load('persona:id,nombre,apellidos,curp,telefono,direccion'),
+        ]);
+    }
+
+    public function rechazar(Request $request, Alumno $alumno): JsonResponse
+    {
+        if ($alumno->estado !== 'Pendiente') {
+            return response()->json(['message' => 'El alumno no está pendiente de aprobación.'], 422);
+        }
+
+        if ($alumno->asignaciones()->where('estado', 'activo')->exists()) {
+            return response()->json(['message' => 'No se puede rechazar: el alumno tiene un grupo asignado.'], 422);
+        }
+
+        DB::transaction(function () use ($alumno): void {
+            $personaId = $alumno->persona_id;
+            $alumno->delete();
+            Persona::destroy($personaId);
+        });
+
+        return response()->json(['message' => 'Solicitud rechazada y registro eliminado.']);
     }
 
     public function destroy(Alumno $alumno): JsonResponse

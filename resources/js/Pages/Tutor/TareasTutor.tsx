@@ -23,7 +23,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
     if (!alumnoId) return;
     axios.get(`/api/tutor/tareas/${alumnoId}`)
       .then(({ data }) => setTareasConEstado(data.tareas ?? []))
-      .catch(() => {});
+      .catch(() => { });
   }, [alumnoId]);
 
   // Filtrar tareas
@@ -66,46 +66,11 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
       <PageTitle
         icon={ClipboardList}
         title="Tareas"
-        description="Gestiona y consulta las tareas asignadas"
+        description="Consulta las tareas asignadas"
         color="bg-[#D97706]"
       />
-      
-      {/* Filtros */}
-      <div className="flex flex-col gap-4">
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-[#6B7280] mb-2 block">Filtrar por materia</label>
-            <Select value={materiaFiltro} onValueChange={setMateriaFiltro}>
-              <SelectTrigger className="rounded-lg">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas las materias</SelectItem>
-                {Array.from(new Map(tareasConEstado.map(t => [t.materiaId, t.materia])).entries()).map(([id, nombre]) => (
-                  <SelectItem key={id} value={id.toString()}>{nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
-          <div>
-            <label className="text-sm text-[#6B7280] mb-2 block">Filtrar por estado</label>
-            <Select value={estadoFiltro} onValueChange={setEstadoFiltro}>
-              <SelectTrigger className="rounded-lg">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="Pendiente">Pendientes</SelectItem>
-                <SelectItem value="Entregada">Entregadas</SelectItem>
-                <SelectItem value="Tarde">Entregadas tarde</SelectItem>
-                <SelectItem value="No Entregada">No entregadas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
 
       {/* Resumen estadístico */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -152,112 +117,164 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
         </Card>
       </div>
 
+      {/* Filtros */}
+      <Card className="border-[#E5E7EB]">
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-[#6B7280] mb-2 block">Filtrar por materia</label>
+                <Select value={materiaFiltro} onValueChange={setMateriaFiltro}>
+                  <SelectTrigger className="rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas las materias</SelectItem>
+                    {Array.from(new Map(tareasConEstado.map(t => [t.materiaId, t.materia])).entries()).map(([id, nombre]) => (
+                      <SelectItem key={id} value={id.toString()}>{nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm text-[#6B7280] mb-2 block">Filtrar por estado</label>
+                <Select value={estadoFiltro} onValueChange={setEstadoFiltro}>
+                  <SelectTrigger className="rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los estados</SelectItem>
+                    <SelectItem value="Pendiente">Pendientes</SelectItem>
+                    <SelectItem value="Entregada">Entregadas</SelectItem>
+                    <SelectItem value="Tarde">Entregadas tarde</SelectItem>
+                    <SelectItem value="No Entregada">No entregadas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+
+
       {/* Lista de tareas */}
-      <div className="space-y-4">
-        {tareasFiltradas.length === 0 ? (
-          <Card className="border-[#E5E7EB]">
-            <CardContent className="py-12 text-center">
-              <FileText className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />
-              <p className="text-[#6B7280]">No hay tareas que coincidan con los filtros seleccionados</p>
-            </CardContent>
-          </Card>
-        ) : (
-          tareasFiltradas.map((tarea) => {
-            const badge = getEstadoBadge(tarea.estadoEntrega);
-            const IconEstado = badge.icon;
-            const diasRestantes = calcularDiasRestantes(tarea.fechaEntrega);
-
-            return (
-              <Card key={tarea.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    {/* Indicador de estado */}
-                    <div className="shrink-0">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${badge.bg}`}>
-                        <IconEstado className={`h-6 w-6 ${badge.color}`} />
-                      </div>
-                    </div>
-
-                    {/* Información de la tarea */}
-                    <div className="flex-1 space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                        <div>
-                          <h3 className="font-semibold text-[#111827] text-lg">{tarea.titulo}</h3>
-                          <p className="text-sm text-[#6B7280] mt-1">{tarea.descripcion}</p>
-                        </div>
-                        <Badge className={badge.className}>
-                          {badge.text}
-                        </Badge>
-                      </div>
-
-                      <div className="flex flex-wrap gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-[#7C3AED]" />
-                          <span className="text-[#6B7280]">{tarea.materia}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-[#1D4ED8]" />
-                          <span className="text-[#6B7280]">Fecha límite: {tarea.fechaEntrega}</span>
-                        </div>
-                      </div>
-
-                      {/* Información adicional según el estado */}
-                      {tarea.estadoEntrega === "Pendiente" && diasRestantes >= 0 && (
-                        <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                          <Clock className="h-4 w-4 text-[#D97706]" />
-                          <span className="text-sm text-[#D97706] font-medium">
-                            {diasRestantes === 0
-                              ? "¡Vence hoy!"
-                              : diasRestantes === 1
-                              ? "Vence mañana"
-                              : `Faltan ${diasRestantes} días`}
-                          </span>
-                        </div>
-                      )}
-
-                      {tarea.estadoEntrega === "Pendiente" && diasRestantes < 0 && (
-                        <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
-                          <AlertCircle className="h-4 w-4 text-[#E11D48]" />
-                          <span className="text-sm text-[#E11D48] font-medium">
-                            Tarea vencida hace {Math.abs(diasRestantes)} días
-                          </span>
-                        </div>
-                      )}
-
-                      {tarea.estadoEntrega === "Entregada" && tarea.fechaEntregaAlumno && (
-                        <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                          <CheckCircle2 className="h-4 w-4 text-[#059669]" />
-                          <span className="text-sm text-[#059669] font-medium">
-                            Entregada el {tarea.fechaEntregaAlumno}
-                          </span>
-                        </div>
-                      )}
-
-                      {tarea.estadoEntrega === "Tarde" && (
-                        <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                          <Clock className="h-4 w-4 text-[#D97706]" />
-                          <span className="text-sm text-[#D97706] font-medium">
-                            Entregada fuera de tiempo{tarea.fechaEntregaAlumno ? ` el ${tarea.fechaEntregaAlumno}` : ""}
-                          </span>
-                        </div>
-                      )}
-
-                      {tarea.estadoEntrega === "No Entregada" && (
-                        <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
-                          <AlertCircle className="h-4 w-4 text-[#E11D48]" />
-                          <span className="text-sm text-[#E11D48] font-medium">
-                            Tarea no entregada
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+      <Card className="border-[#E5E7EB]">
+        <CardHeader>
+          <CardTitle>Lista de Tareas</CardTitle>
+          <CardDescription>Últimas tareas asignadas</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {tareasFiltradas.length === 0 ? (
+              <Card className="border-[#E5E7EB]">
+                <CardContent className="py-12 text-center">
+                  <FileText className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />
+                  <p className="text-[#6B7280]">No hay tareas que coincidan con los filtros seleccionados</p>
                 </CardContent>
               </Card>
-            );
-          })
-        )}
-      </div>
+            ) : (
+              tareasFiltradas.map((tarea) => {
+                const badge = getEstadoBadge(tarea.estadoEntrega);
+                const IconEstado = badge.icon;
+                const diasRestantes = calcularDiasRestantes(tarea.fechaEntrega);
+
+                return (
+                  <Card key={tarea.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        {/* Indicador de estado */}
+                        <div className="shrink-0">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${badge.bg}`}>
+                            <IconEstado className={`h-6 w-6 ${badge.color}`} />
+                          </div>
+                        </div>
+
+                        {/* Información de la tarea */}
+                        <div className="flex-1 space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                            <div>
+                              <h3 className="font-semibold text-[#111827] text-lg">{tarea.titulo}</h3>
+                              <p className="text-sm text-[#6B7280] mt-1">{tarea.descripcion}</p>
+                            </div>
+                            <Badge className={badge.className}>
+                              {badge.text}
+                            </Badge>
+                          </div>
+
+                          <div className="flex flex-wrap gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-[#7C3AED]" />
+                              <span className="text-[#6B7280]">{tarea.materia}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-[#1D4ED8]" />
+                              <span className="text-[#6B7280]">Fecha límite: {tarea.fechaEntrega}</span>
+                            </div>
+                          </div>
+
+                          {/* Información adicional según el estado */}
+                          {tarea.estadoEntrega === "Pendiente" && diasRestantes >= 0 && (
+                            <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                              <Clock className="h-4 w-4 text-[#D97706]" />
+                              <span className="text-sm text-[#D97706] font-medium">
+                                {diasRestantes === 0
+                                  ? "¡Vence hoy!"
+                                  : diasRestantes === 1
+                                    ? "Vence mañana"
+                                    : `Faltan ${diasRestantes} días`}
+                              </span>
+                            </div>
+                          )}
+
+                          {tarea.estadoEntrega === "Pendiente" && diasRestantes < 0 && (
+                            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+                              <AlertCircle className="h-4 w-4 text-[#E11D48]" />
+                              <span className="text-sm text-[#E11D48] font-medium">
+                                Tarea vencida hace {Math.abs(diasRestantes)} días
+                              </span>
+                            </div>
+                          )}
+
+                          {tarea.estadoEntrega === "Entregada" && tarea.fechaEntregaAlumno && (
+                            <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <CheckCircle2 className="h-4 w-4 text-[#059669]" />
+                              <span className="text-sm text-[#059669] font-medium">
+                                Entregada el {tarea.fechaEntregaAlumno}
+                              </span>
+                            </div>
+                          )}
+
+                          {tarea.estadoEntrega === "Tarde" && (
+                            <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                              <Clock className="h-4 w-4 text-[#D97706]" />
+                              <span className="text-sm text-[#D97706] font-medium">
+                                Entregada fuera de tiempo{tarea.fechaEntregaAlumno ? ` el ${tarea.fechaEntregaAlumno}` : ""}
+                              </span>
+                            </div>
+                          )}
+
+                          {tarea.estadoEntrega === "No Entregada" && (
+                            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+                              <AlertCircle className="h-4 w-4 text-[#E11D48]" />
+                              <span className="text-sm text-[#E11D48] font-medium">
+                                Tarea no entregada
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
     </div>
   );
 }

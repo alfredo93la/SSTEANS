@@ -19,10 +19,11 @@ class ConfiguracionEscuelaController extends Controller
                 'turnos_disponibles' => 'matutino',
                 'nivel_educativo'    => 'Secundaria',
                 'servicio_educativo' => 'General',
-                'acceso_tutor'        => true,
-                'acceso_profesor'     => true,
-                'acceso_trab_social'  => true,
-                'acceso_administrativo' => true,
+                'acceso_tutor'            => true,
+                'acceso_profesor'         => true,
+                'acceso_trab_social'      => true,
+                'acceso_administrativo'   => true,
+                'registro_tutores_activo' => false,
             ]
         );
 
@@ -43,10 +44,11 @@ class ConfiguracionEscuelaController extends Controller
             'direccion'             => ['nullable', 'string', 'max:500'],
             'nivel_educativo'       => ['nullable', 'string', 'max:100'],
             'servicio_educativo'    => ['nullable', 'string', 'max:100'],
-            'acceso_tutor'          => ['boolean'],
-            'acceso_profesor'       => ['boolean'],
-            'acceso_trab_social'    => ['boolean'],
-            'acceso_administrativo' => ['boolean'],
+            'acceso_tutor'             => ['boolean'],
+            'acceso_profesor'          => ['boolean'],
+            'acceso_trab_social'       => ['boolean'],
+            'acceso_administrativo'    => ['boolean'],
+            'registro_tutores_activo'  => ['boolean'],
         ]);
 
         $config = ConfiguracionEscuela::firstOrCreate(['id' => 1]);

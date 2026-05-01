@@ -26,7 +26,7 @@ export function HorarioDocente() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Clock} title="Mi Horario" description="Horario semanal de todas tus clases" color="bg-[#7C3AED]" />
+      <PageTitle icon={Clock} title="Horario de Clases" description="Horario semanal de todas tus clases como profesor" color="bg-[#7C3AED]" />
 
       {loading ? (
         <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#7C3AED]" /></div>

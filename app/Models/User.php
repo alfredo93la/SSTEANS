@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -31,6 +32,7 @@ class User extends Authenticatable
         'rejection_reason',
         'validated_by',
         'validated_at',
+        'must_change_password',
     ];
 
     /**
@@ -51,9 +53,10 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'validated_at' => 'datetime',
+            'email_verified_at'    => 'datetime',
+            'password'             => 'hashed',
+            'validated_at'         => 'datetime',
+            'must_change_password' => 'boolean',
         ];
     }
 
@@ -86,21 +89,20 @@ class User extends Authenticatable
             ->with('permisos:id,nombre')
             ->get()
             ->flatMap(fn (Role $role) => $role->permisos->pluck('nombre'))
-            ->unique()
-            ->values()
             ->all();
 
-        if (! empty($dynamicPermissions)) {
-            return $dynamicPermissions;
-        }
+        $configPermissions = config('permissions.roles', [])[$this->role] ?? [];
 
-        $rolePermissions = config('permissions.roles', []);
-
-        return $rolePermissions[$this->role] ?? [];
+        return array_values(array_unique(array_merge($dynamicPermissions, $configPermissions)));
     }
 
     public function hasPermission(string $permission): bool
     {
         return in_array($permission, $this->permissions(), true);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { Card, CardContent, CardHeader, CardTitle } from "../Components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../Components/ui/card";
 import { Button } from "../Components/ui/button";
 import { Badge } from "../Components/ui/badge";
 import { Input } from "../Components/ui/input";
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
 import { Checkbox } from "../Components/ui/checkbox";
 import { Switch } from "../Components/ui/switch";
-import { FileText, Download, AlertCircle, Info, CheckCircle, Filter, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, X, CalendarDays } from "lucide-react";
+import { FileText, Download, AlertCircle, Info, CheckCircle, Filter, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, X, CalendarDays, TriangleAlert } from "lucide-react";
 import { PageTitle } from "../Layouts/PageTitle";
 import { ScrollText } from "lucide-react";
 import { toast } from "sonner";
@@ -51,13 +51,13 @@ const prioridadColors: Record<string, { bg: string; text: string; icon: any }> =
 };
 
 const categoriaColors: Record<string, string> = {
-  "Académico":          "bg-[#DBEAFE] text-[#1D4ED8]",
-  "Administrativo":     "bg-[#F3E8FF] text-[#7C3AED]",
-  "Becas y Apoyos":     "bg-yellow-100 text-yellow-700",
+  "Académico": "bg-[#DBEAFE] text-[#1D4ED8]",
+  "Administrativo": "bg-[#F3E8FF] text-[#7C3AED]",
+  "Becas y Apoyos": "bg-yellow-100 text-yellow-700",
   "Eventos y Actividades": "bg-[#ECFDF5] text-[#059669]",
-  "Salud y Bienestar":  "bg-pink-100 text-pink-700",
+  "Salud y Bienestar": "bg-pink-100 text-pink-700",
   "Seguridad y Convivencia": "bg-[#FEE2E2] text-[#E11D48]",
-  "General":            "bg-[#F3F4F6] text-[#6B7280]",
+  "General": "bg-[#F3F4F6] text-[#6B7280]",
 };
 
 const ROLES_DESTINATARIOS = ["Tutor", "Profesor", "Trabajador Social"];
@@ -279,7 +279,7 @@ export function Circulares({ permissions }: CircularesProps) {
         <PageTitle
           icon={ScrollText}
           title="Circulares"
-          description="Documentos oficiales y avisos de la escuela"
+          description="Publica y administra las circulares oficiales de la institución"
           color="bg-[#1D4ED8]"
         />
       </div>
@@ -294,7 +294,7 @@ export function Circulares({ permissions }: CircularesProps) {
         description={
           esPublicador
             ? "Publica y administra las circulares oficiales de la institución"
-            : "Documentos oficiales y avisos de la escuela"
+            : "Información oficial y avisos de la escuela"
         }
         color="bg-[#1D4ED8]"
       >
@@ -315,7 +315,7 @@ export function Circulares({ permissions }: CircularesProps) {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
-                <FileText className="h-6 w-6 text-[#7C3AED]" />
+                <ScrollText className="h-6 w-6 text-[#7C3AED]" />
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">
@@ -347,7 +347,7 @@ export function Circulares({ permissions }: CircularesProps) {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
-                <AlertCircle className="h-6 w-6 text-[#E11D48]" />
+                <TriangleAlert className="h-6 w-6 text-[#E11D48]" />
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">Prioridad alta</p>
@@ -362,13 +362,7 @@ export function Circulares({ permissions }: CircularesProps) {
 
       {/* Filtros */}
       <Card className="border-[#E5E7EB]">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5 text-[#6B7280]" />
-            <CardTitle>Filtros de Búsqueda</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="text-sm text-[#6B7280] mb-2 block">Buscar</label>
@@ -413,142 +407,150 @@ export function Circulares({ permissions }: CircularesProps) {
       </Card>
 
       {/* Lista de circulares */}
-      <div className="grid grid-cols-1 gap-4">
-        {circularesFiltradas.length === 0 ? (
-          <Card className="border-[#E5E7EB]">
-            <CardContent className="py-12">
-              <div className="text-center text-[#6B7280]">
-                <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No se encontraron circulares con los filtros seleccionados</p>
-                {esPublicador && (
-                  <Button className="mt-4 bg-[#1D4ED8] hover:bg-[#1E40AF] rounded-lg" onClick={abrirNueva}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Publicar primera circular
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          circularesFiltradas.map((circular) => {
-            const PrioridadIcon = prioridadColors[circular.prioridad].icon;
-
-            return (
-              <Card
-                key={circular.id}
-                className={`border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer ${
-                  !circular.leida && !esPublicador ? "border-l-4 border-l-[#1D4ED8]" : ""
-                }`}
-                onClick={() => {
-                  setCircularSeleccionada(circular);
-                  if (!esPublicador && !circular.leida) void marcarComoLeida(circular.id);
-                }}
-              >
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    {/* Icono de prioridad */}
-                    <div className="shrink-0">
-                      <div className={`p-3 rounded-xl ${prioridadColors[circular.prioridad].bg}`}>
-                        <PrioridadIcon className={`h-6 w-6 ${prioridadColors[circular.prioridad].text}`} />
-                      </div>
-                    </div>
-
-                    {/* Contenido */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-[#111827] mb-1">
-                            {circular.titulo}
-                            {!circular.leida && !esPublicador && (
-                              <span className="ml-2 inline-block w-2 h-2 bg-[#1D4ED8] rounded-full" />
-                            )}
-                          </h3>
-                          <p className="text-sm text-[#6B7280] line-clamp-2">{circular.descripcion}</p>
-                        </div>
-
-                        {/* Acciones para PA */}
-                        {esPublicador && (
-                          <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-[#6B7280] hover:text-[#111827] h-8 w-8 p-0"
-                              onClick={() => { setCircularSeleccionada(circular); }}
-                              title="Ver detalle"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-[#1D4ED8] hover:text-[#1E40AF] h-8 w-8 p-0"
-                              onClick={(e) => abrirEditar(circular, e)}
-                              title="Editar"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-[#E11D48] hover:text-[#BE123C] h-8 w-8 p-0"
-                              onClick={(e) => { e.stopPropagation(); setEliminarId(circular.id); }}
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Metadatos */}
-                      <div className="flex flex-wrap items-center gap-2 mt-3">
-                        <Badge className={categoriaColors[circular.categoria]}>
-                          <Tag className="h-3 w-3 mr-1" />
-                          {circular.categoria}
-                        </Badge>
-                        <Badge className={`${prioridadColors[circular.prioridad].bg} ${prioridadColors[circular.prioridad].text}`}>
-                          Prioridad {circular.prioridad}
-                        </Badge>
-                        <div className="flex items-center text-xs text-[#6B7280] gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {circular.fechaPublicacion}
-                        </div>
-                        {circular.adjuntos.length > 0 && (
-                          <Badge variant="outline" className="text-xs">
-                            <Download className="h-3 w-3 mr-1" />
-                            {circular.adjuntos.length} adjunto{circular.adjuntos.length > 1 ? "s" : ""}
-                          </Badge>
-                        )}
-                        {circular.evento && (
-                          <Badge className="bg-[#ECFDF5] text-[#059669] text-xs">
-                            <CalendarDays className="h-3 w-3 mr-1" />
-                            En agenda · {circular.evento.fecha}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between mt-2">
-                        <p className="text-xs text-[#6B7280]">
-                          Publicado por: {circular.publicadoPorNombre || "Personal Administrativo"}
-                        </p>
-                        {esPublicador && (
-                          <div className="flex flex-wrap gap-1">
-                            {circular.destinatarios.map((dest, i) => (
-                              <Badge key={i} className="text-xs bg-gray-100 text-[#6B7280] border-0">
-                                {dest}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+      <Card className="border-[#E5E7EB]">
+        <CardHeader>
+          <CardTitle>Historial de Circulares</CardTitle>
+          <CardDescription>Últimas circulares publicadas</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4">
+            {circularesFiltradas.length === 0 ? (
+              <Card className="border-[#E5E7EB]">
+                <CardContent className="py-12">
+                  <div className="text-center text-[#6B7280]">
+                    <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No se encontraron circulares con los filtros seleccionados</p>
+                    {esPublicador && (
+                      <Button className="mt-4 bg-[#1D4ED8] hover:bg-[#1E40AF] rounded-lg" onClick={abrirNueva}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Publicar primera circular
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            );
-          })
-        )}
-      </div>
+            ) : (
+              circularesFiltradas.map((circular) => {
+                const PrioridadIcon = prioridadColors[circular.prioridad].icon;
+
+                return (
+                  <Card
+                    key={circular.id}
+                    className={`border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer ${!circular.leida && !esPublicador ? "border-l-4 border-l-[#1D4ED8]" : ""
+                      }`}
+                    onClick={() => {
+                      setCircularSeleccionada(circular);
+                      if (!esPublicador && !circular.leida) void marcarComoLeida(circular.id);
+                    }}
+                  >
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        {/* Icono de prioridad */}
+                        <div className="shrink-0">
+                          <div className={`p-3 rounded-xl ${prioridadColors[circular.prioridad].bg}`}>
+                            <PrioridadIcon className={`h-6 w-6 ${prioridadColors[circular.prioridad].text}`} />
+                          </div>
+                        </div>
+
+                        {/* Contenido */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-[#111827] mb-1">
+                                {circular.titulo}
+                                {!circular.leida && !esPublicador && (
+                                  <span className="ml-2 inline-block w-2 h-2 bg-[#1D4ED8] rounded-full" />
+                                )}
+                              </h3>
+                              <p className="text-sm text-[#6B7280] line-clamp-2">{circular.descripcion}</p>
+                            </div>
+
+                            {/* Acciones para PA */}
+                            {esPublicador && (
+                              <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-[#6B7280] hover:text-[#111827] h-8 w-8 p-0"
+                                  onClick={() => { setCircularSeleccionada(circular); }}
+                                  title="Ver detalle"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-[#1D4ED8] hover:text-[#1E40AF] h-8 w-8 p-0"
+                                  onClick={(e) => abrirEditar(circular, e)}
+                                  title="Editar"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-[#E11D48] hover:text-[#BE123C] h-8 w-8 p-0"
+                                  onClick={(e) => { e.stopPropagation(); setEliminarId(circular.id); }}
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Metadatos */}
+                          <div className="flex flex-wrap items-center gap-2 mt-3">
+                            <Badge className={categoriaColors[circular.categoria]}>
+                              <Tag className="h-3 w-3 mr-1" />
+                              {circular.categoria}
+                            </Badge>
+                            <Badge className={`${prioridadColors[circular.prioridad].bg} ${prioridadColors[circular.prioridad].text}`}>
+                              Prioridad {circular.prioridad}
+                            </Badge>
+                            <div className="flex items-center text-xs text-[#6B7280] gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {circular.fechaPublicacion}
+                            </div>
+                            {circular.adjuntos.length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                <Download className="h-3 w-3 mr-1" />
+                                {circular.adjuntos.length} adjunto{circular.adjuntos.length > 1 ? "s" : ""}
+                              </Badge>
+                            )}
+                            {circular.evento && (
+                              <Badge className="bg-[#ECFDF5] text-[#059669] text-xs">
+                                <CalendarDays className="h-3 w-3 mr-1" />
+                                En agenda · {circular.evento.fecha}
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between mt-2">
+                            <p className="text-xs text-[#6B7280]">
+                              Publicado por: {circular.publicadoPorNombre || "Personal Administrativo"}
+                            </p>
+                            {esPublicador && (
+                              <div className="flex flex-wrap gap-1">
+                                {circular.destinatarios.map((dest, i) => (
+                                  <Badge key={i} className="text-xs bg-gray-100 text-[#6B7280] border-0">
+                                    {dest}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
 
       {/* Dialog detalle */}
       <Dialog open={!!circularSeleccionada} onOpenChange={() => setCircularSeleccionada(null)}>

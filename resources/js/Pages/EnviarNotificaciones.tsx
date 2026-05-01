@@ -37,6 +37,7 @@ interface DestinatarioSeleccionado {
   nombre: string;
   alumnoId?: number;
   alumnoNombre?: string;
+  grupoId?: number;
 }
 
 interface AlumnoItem {
@@ -117,11 +118,12 @@ export function Notificaciones() {
     tutores: TutorDestinatario[],
     alumnoId?: number,
     alumnoNombre?: string,
+    grupoId?: number,
   ) => {
     setSeleccionados((prev) => {
       const next = new Map(prev);
       tutores.forEach((t) =>
-        next.set(t.userId, { nombre: t.nombre, alumnoId, alumnoNombre })
+        next.set(t.userId, { nombre: t.nombre, alumnoId, alumnoNombre, grupoId })
       );
       return next;
     });
@@ -156,6 +158,7 @@ export function Notificaciones() {
         destinatarios: Array.from(seleccionados.entries()).map(([userId, d]) => ({
           userId,
           alumnoId: d.alumnoId ?? null,
+          grupoId: d.grupoId ?? null,
         })),
         titulo,
         mensaje,
@@ -205,7 +208,7 @@ export function Notificaciones() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Bell} title="Notificaciones" description="Gestiona las notificaciones enviadas a tutores" color="bg-[#059669]">
+      <PageTitle icon={Send} title="Enviar Notificaciones" description="Gestiona las notificaciones enviadas a tutores" color="bg-[#059669]">
         <Dialog open={modalEnviar} onOpenChange={(open) => { setModalEnviar(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
@@ -321,7 +324,7 @@ export function Notificaciones() {
                             size="sm"
                             variant="outline"
                             className="text-xs h-7"
-                            onClick={() => addTutores(grupo.tutores)}
+                            onClick={() => addTutores(grupo.tutores, undefined, undefined, grupo.id)}
                           >
                             Agregar todos
                           </Button>
@@ -471,7 +474,7 @@ export function Notificaciones() {
                 <AlertCircle className="h-6 w-6 text-[#D97706]" />
               </div>
               <div>
-                <p className="text-sm text-[#6B7280]">Sin leer</p>
+                <p className="text-sm text-[#6B7280]">No leídas</p>
                 <p className="text-2xl font-bold text-[#D97706]">{pendientes}</p>
               </div>
             </div>

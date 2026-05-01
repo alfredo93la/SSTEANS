@@ -165,57 +165,6 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
         </Card>
       )}
 
-      {/* Filtros */}
-      <Card className="border-[#E5E7EB]">
-        <CardHeader>
-          <CardTitle>Filtros de Consulta</CardTitle>
-          <CardDescription>Filtra por materia y rango de fechas</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm text-[#6B7280] mb-2 block">Materia</label>
-              <Select value={materiaSeleccionada} onValueChange={setMateriaSeleccionada}>
-                <SelectTrigger className="rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas las materias</SelectItem>
-                  {materiasUnicas.map((materia) => (
-                    <SelectItem key={materia.id} value={materia.id.toString()}>
-                      {materia.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm text-[#6B7280] mb-2 block">Fecha inicio</label>
-              <Input
-                type="date"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-                className="rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-[#6B7280] mb-2 block">Fecha fin</label>
-              <Input
-                type="date"
-                value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
-                className="rounded-lg"
-              />
-            </div>
-          </div>
-          {(fechaInicio || fechaFin || materiaSeleccionada !== "todas") && (
-            <Button variant="outline" onClick={limpiarFiltros} className="mt-4">
-              Limpiar filtros
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Estadísticas generales */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100">
@@ -272,7 +221,7 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
         </Card>
       </div>
 
-      {/* Porcentaje general */}
+      {/* Porcentaje general
       <Card className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-blue-50">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -296,6 +245,53 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card> */}
+
+      {/* Filtros */}
+      <Card className="border-[#E5E7EB]">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm text-[#6B7280] mb-2 block">Materia</label>
+              <Select value={materiaSeleccionada} onValueChange={setMateriaSeleccionada}>
+                <SelectTrigger className="rounded-lg">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas las materias</SelectItem>
+                  {materiasUnicas.map((materia) => (
+                    <SelectItem key={materia.id} value={materia.id.toString()}>
+                      {materia.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm text-[#6B7280] mb-2 block">Fecha inicio</label>
+              <Input
+                type="date"
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+                className="rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-[#6B7280] mb-2 block">Fecha fin</label>
+              <Input
+                type="date"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+                className="rounded-lg"
+              />
+            </div>
+          </div>
+          {(fechaInicio || fechaFin || materiaSeleccionada !== "todas") && (
+            <Button variant="outline" onClick={limpiarFiltros} className="mt-4">
+              Limpiar filtros
+            </Button>
+          )}
         </CardContent>
       </Card>
 
