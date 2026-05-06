@@ -1,4 +1,4 @@
-import { Home, ScrollText, ClipboardList, GraduationCap, CheckCircle2, AlertTriangle, Inbox, Users, BookMarked, Clock, CalendarRange, BookKey, Settings2, ClipboardCheck, CalendarDays, ChevronRight, ChevronDown, Send, BookA, ShieldUser, Shield, UserPen, UserCheck } from "lucide-react";
+import { Home, ScrollText, ClipboardList, GraduationCap, CheckCircle2, AlertTriangle, Inbox, Users, BookMarked, Clock, CalendarRange, BookKey, Settings2, ClipboardCheck, CalendarDays, ChevronRight, ChevronDown, Send, BookA, ShieldUser, Shield, UserPen, UserCheck, UserPlus } from "lucide-react";
 import { cn } from "../Components/ui/utils";
 import { useState } from "react";
 
@@ -35,7 +35,7 @@ const hasAny = (userPermissions: string[], required: string | string[]): boolean
     ? required.some(p => userPermissions.includes(p))
     : userPermissions.includes(required);
 
-const allMenuItems: MenuItem[] = [
+export const allMenuItems: MenuItem[] = [
   // ── Compartido ────────────────────────────────────────────────────────────────
   { id: "general",        label: "Inicio",                icon: Home,           route: "#/dashboard",    permission: "dashboard.view" },
   { id: "agenda",         label: "Agenda Escolar",        icon: CalendarDays,  route: "#/agenda",       permission: ["agenda.view", "agenda.manage"] },
@@ -61,10 +61,11 @@ const allMenuItems: MenuItem[] = [
   { id: "alumnos",        label: "Listado de Alumnos",    icon: Users,  route: "#/alumnos",    permission: ["alumnos.view"] },
 
   // ── Gestión escolar ───────────────────────────────────────────────────────────
-  { id: "alumnos",        label: "Gestión de Alumnos",    icon: GraduationCap,  route: "#/alumnos",    permission: ["alumnos.manage"] },
-  { id: "tutores",        label: "Gestión de Tutores",    icon: ShieldUser,          route: "#/tutores",    permission: "tutores.manage" },
-  { id: "grupos",         label: "Gestión de Grupos",     icon: Users,          route: "#/grupos",     permission: "grupos.manage" },
-  { id: "horarios",       label: "Asignación de Horarios",   icon: Clock,          route: "#/horarios",   permission: "horarios.manage" },
+  { id: "alumnos",         label: "Gestión de Alumnos",       icon: GraduationCap, route: "#/alumnos",          permission: ["alumnos.manage"] },
+  { id: "asignar-alumnos", label: "Asignar Alumnos a Grupos", icon: UserPlus,      route: "#/asignar-alumnos",  permission: ["alumnos.manage"] },
+  { id: "tutores",         label: "Gestión de Tutores",       icon: ShieldUser,    route: "#/tutores",          permission: "tutores.manage" },
+  { id: "grupos",          label: "Gestión de Grupos",        icon: Users,         route: "#/grupos",           permission: "grupos.manage" },
+  { id: "horarios",        label: "Asignación de Horarios",   icon: Clock,         route: "#/horarios",         permission: "horarios.manage" },
 
   // ── Administración ────────────────────────────────────────────────────────────
   { id: "validacion",     label: "Validación de Cuentas", icon: UserCheck,        route: "#/validacion",       permission: "usuarios.validate" },

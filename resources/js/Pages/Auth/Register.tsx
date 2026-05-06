@@ -16,11 +16,7 @@ interface Hijo {
   parentesco: string;
 }
 
-function parentescoOpciones(sexo: string): string[] {
-  if (sexo === "Masculino") return ["Hijo", "Nieto", "Sobrino", "Hermano", "Tutelado", "Otro"];
-  if (sexo === "Femenino")  return ["Hija", "Nieta", "Sobrina", "Hermana", "Tutelada", "Otro"];
-  return ["Hijo/a", "Nieto/a", "Sobrino/a", "Hermano/a", "Tutelado/a", "Otro"];
-}
+const PARENTESCO_OPCIONES = ["Padre", "Madre", "Abuelo", "Abuela", "Tío", "Tía", "Hermano", "Hermana", "Tutor legal", "Otro"];
 
 const emptyHijo = (): Hijo => ({
   nombre: "",
@@ -346,13 +342,12 @@ export default function Register() {
                           <Select
                             value={hijo.parentesco}
                             onValueChange={(v) => updateHijo(idx, "parentesco", v)}
-                            disabled={!hijo.sexo}
                           >
                             <SelectTrigger className={`h-11 rounded-xl ${fieldError(`hijos.${idx}.parentesco`) ? "border-red-500" : ""}`}>
-                              <SelectValue placeholder={hijo.sexo ? "Seleccionar…" : "Primero selecciona el sexo"} />
+                              <SelectValue placeholder="Seleccionar…" />
                             </SelectTrigger>
                             <SelectContent>
-                              {parentescoOpciones(hijo.sexo).map((op) => (
+                              {PARENTESCO_OPCIONES.map((op) => (
                                 <SelectItem key={op} value={op}>{op}</SelectItem>
                               ))}
                             </SelectContent>

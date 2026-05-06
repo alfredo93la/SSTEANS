@@ -24,6 +24,7 @@ import { ValidacionUsuarios } from "./Admin/ValidacionUsuarios";
 import { Usuarios } from "./Admin/Usuarios";
 import { Roles } from "./Admin/Roles";
 import { Grupos } from "./Administrativo/Grupos";
+import { AsignarAlumnosGrupo } from "./Administrativo/AsignarAlumnosGrupo";
 import { Materias } from "./Admin/Materias";
 import { Horarios } from "./Administrativo/Horarios";
 import { AlumnosAdmin } from "./Administrativo/AlumnosAdmin";
@@ -113,6 +114,7 @@ export default function App() {
     "#/alumnos/perfil/":  "Perfil Alumno",
     "#/tutores":          "Tutores",
     "#/grupos":           "Grupos",
+    "#/asignar-alumnos":  "Asignar Alumnos",
     "#/materias":         "Materias",
     "#/horarios":         "Horarios",
     "#/validacion":       "Validación de Cuentas",
@@ -217,6 +219,7 @@ export default function App() {
         {/* Gestión escolar */}
         {currentRoute === "#/tutores" && <TutoresAdmin />}
         {currentRoute === "#/grupos" && <Grupos />}
+        {currentRoute === "#/asignar-alumnos" && <AsignarAlumnosGrupo />}
         {currentRoute === "#/materias" && <Materias />}
         {currentRoute === "#/horarios" && <Horarios />}
 

@@ -3,6 +3,7 @@ import { usePage } from "@inertiajs/react";
 import { useEcho } from "@laravel/echo-react";
 import { Menu, X, Bell, User, ChevronDown, Users, IdCard, LogOut, ArrowLeft, Mail, MailOpen, ChevronRight } from "lucide-react";
 import { Sidebar } from "./Sidebar";
+import { canAccessRoute } from "../data/auth";
 import { Button } from "../Components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../Components/ui/popover";
@@ -475,13 +476,15 @@ export function ResponsiveLayout({
                       <p className="text-sm font-medium text-[#111827]">{userName}</p>
                       <p className="text-xs text-[#6B7280]">{userRole}</p>
                     </div>
-                    <button
-                      onClick={handleProfileClick}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-[#111827] transition-colors hover:bg-blue-50"
-                    >
-                      <IdCard className="h-4 w-4 text-[#1D4ED8]" />
-                      Mi perfil
-                    </button>
+                    {canAccessRoute("#/perfil", permissions) && userRole !== "Administrador" && (
+                      <button
+                        onClick={handleProfileClick}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-[#111827] transition-colors hover:bg-blue-50"
+                      >
+                        <IdCard className="h-4 w-4 text-[#1D4ED8]" />
+                        Mi perfil
+                      </button>
+                    )}
                     <button
                       onClick={handleLogoutClick}
                       className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-[#E11D48] transition-colors hover:bg-red-50"

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Administrativo;
 
+use App\Enums\Parentesco;
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
 use App\Models\Tutor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class TutorAdminController extends Controller
 {
@@ -34,7 +36,7 @@ class TutorAdminController extends Controller
     {
         $validated = $request->validate([
             'alumno_id'         => ['required', 'exists:alumnos,id'],
-            'parentesco'        => ['nullable', 'string', 'max:50'],
+            'parentesco'        => ['required', Rule::in(Parentesco::values())],
             'fecha_vinculacion' => ['nullable', 'date'],
         ]);
 
@@ -54,6 +56,24 @@ class TutorAdminController extends Controller
         ]);
 
         return response()->json(['message' => 'Tutor vinculado al alumno correctamente.']);
+    }
+
+    public function actualizarParentesco(Request $request, Tutor $tutor): JsonResponse
+    {
+        $validated = $request->validate([
+            'alumno_id'  => ['required', 'exists:alumnos,id'],
+            'parentesco' => ['required', Rule::in(Parentesco::values())],
+        ]);
+
+        $updated = $tutor->alumnos()->updateExistingPivot($validated['alumno_id'], [
+            'parentesco' => $validated['parentesco'],
+        ]);
+
+        if (! $updated) {
+            return response()->json(['message' => 'Vínculo no encontrado.'], 404);
+        }
+
+        return response()->json(['message' => 'Parentesco actualizado correctamente.']);
     }
 
     public function desvincular(Request $request, Tutor $tutor): JsonResponse

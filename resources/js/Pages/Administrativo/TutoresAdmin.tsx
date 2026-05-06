@@ -19,6 +19,9 @@ import {
   ShieldUser,
   UserX,
   CheckCircle2,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
@@ -37,22 +40,6 @@ interface Tutor {
 
 const PARENTESCO_OPCIONES = ["Padre", "Madre", "Abuelo", "Abuela", "Tío", "Tía", "Hermano", "Hermana", "Tutor legal", "Otro"];
 
-// Convierte el parentesco del tutor al rol del alumno según su sexo
-function rolAlumno(parentesco: string | null, sexo: string | null): string {
-  const f = sexo === "Femenino";
-  switch (parentesco) {
-    case "Padre":
-    case "Madre":       return f ? "Hija"      : "Hijo";
-    case "Abuelo":
-    case "Abuela":      return f ? "Nieta"     : "Nieto";
-    case "Tío":
-    case "Tía":         return f ? "Sobrina"   : "Sobrino";
-    case "Hermano":
-    case "Hermana":     return f ? "Hermana"   : "Hermano";
-    case "Tutor legal": return f ? "Tutelada"  : "Tutelado";
-    default:            return parentesco ?? "—";
-  }
-}
 
 export function TutoresAdmin() {
   const [tutores, setTutores] = useState<Tutor[]>([]);
@@ -66,6 +53,7 @@ export function TutoresAdmin() {
   const [parentescoVincular, setParentescoVincular] = useState("");
   const [saving, setSaving] = useState(false);
   const [alumnoSearchText, setAlumnoSearchText] = useState("");
+  const [editandoParentesco, setEditandoParentesco] = useState<{ alumnoId: number; valor: string } | null>(null);
 
   const cargar = () => {
     setLoading(true);
@@ -108,6 +96,31 @@ export function TutoresAdmin() {
         toast.success("Alumno vinculado al tutor.");
       })
       .catch((err) => toast.error(err.response?.data?.message ?? "Error al vincular."))
+      .finally(() => setSaving(false));
+  };
+
+  const handleActualizarParentesco = () => {
+    if (!tutorSel || !editandoParentesco) return;
+    setSaving(true);
+    axios.patch(`/api/administrativo/tutores/${tutorSel.id}/parentesco`, {
+      alumno_id: editandoParentesco.alumnoId,
+      parentesco: editandoParentesco.valor,
+    })
+      .then(() => {
+        const actualizar = (t: Tutor) => ({
+          ...t,
+          alumnos: t.alumnos.map((a) =>
+            a.id === editandoParentesco.alumnoId
+              ? { ...a, pivot: { ...a.pivot, parentesco: editandoParentesco.valor } }
+              : a
+          ),
+        });
+        setTutores((prev) => prev.map((t) => t.id === tutorSel.id ? actualizar(t) : t));
+        setTutorSel((prev) => prev ? actualizar(prev) : prev);
+        setEditandoParentesco(null);
+        toast.success("Parentesco actualizado.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al actualizar."))
       .finally(() => setSaving(false));
   };
 
@@ -276,26 +289,52 @@ export function TutoresAdmin() {
                 {tutorSel.alumnos.length === 0 ? (
                   <p className="text-xs text-[#6B7280]">Sin alumnos vinculados.</p>
                 ) : (
-                  tutorSel.alumnos.map((a) => (
-                    <div key={a.id} className="flex items-center justify-between p-2 bg-blue-50 rounded-lg mb-1">
-                      <div className="flex items-center gap-2">
-                        <GraduationCap className="h-4 w-4 text-[#1D4ED8]" />
-                        <div>
-                          <span>{a.persona.nombre} {a.persona.apellidos}</span>
-                          {a.pivot?.parentesco && <span className="ml-2 text-xs text-[#6B7280]">({rolAlumno(a.pivot.parentesco, a.sexo)})</span>}
+                  tutorSel.alumnos.map((a) => {
+                    const editando = editandoParentesco?.alumnoId === a.id;
+                    return (
+                      <div key={a.id} className="p-2 bg-blue-50 rounded-lg mb-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <GraduationCap className="h-4 w-4 text-[#1D4ED8] shrink-0" />
+                            <span className="text-sm">{a.persona.nombre} {a.persona.apellidos}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {!editando && (
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-blue-100" title="Editar parentesco"
+                                onClick={() => setEditandoParentesco({ alumnoId: a.id, valor: a.pivot?.parentesco ?? "" })}>
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-red-50 hover:text-red-600" title="Desvincular"
+                              onClick={() => handleDesvincular(tutorSel, a)}>
+                              <Unlink className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
+                        {editando && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <Select value={editandoParentesco.valor} onValueChange={(v) => setEditandoParentesco({ alumnoId: a.id, valor: v })}>
+                              <SelectTrigger className="h-8 text-xs flex-1">
+                                <SelectValue placeholder="Seleccionar…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PARENTESCO_OPCIONES.map((op) => (
+                                  <SelectItem key={op} value={op}>{op}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700" disabled={saving || !editandoParentesco.valor}
+                              onClick={handleActualizarParentesco}>
+                              <Check className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setEditandoParentesco(null)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 hover:bg-red-50 hover:text-red-600"
-                        title="Desvincular"
-                        onClick={() => handleDesvincular(tutorSel, a)}
-                      >
-                        <Unlink className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

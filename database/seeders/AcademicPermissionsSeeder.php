@@ -34,7 +34,6 @@ class AcademicPermissionsSeeder extends Seeder
                 'ciclos.manage',
                 'materias.manage',
                 'grupos.manage',
-                'alumnos.manage',
                 'salones.manage',
             ])->pluck('id');
 
@@ -45,11 +44,9 @@ class AcademicPermissionsSeeder extends Seeder
         $administrativo = Role::where('nombre', 'Personal Administrativo')->first();
         if ($administrativo) {
             $adminPermisos = Permiso::whereIn('nombre', [
-                'grupos.manage',
                 'horarios.manage',
                 'alumnos.manage',
                 'tutores.manage',
-                'salones.manage',
             ])->pluck('id');
 
             $administrativo->permisos()->syncWithoutDetaching($adminPermisos);

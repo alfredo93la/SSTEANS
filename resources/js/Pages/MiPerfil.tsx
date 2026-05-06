@@ -61,17 +61,6 @@ function getRoleSummary(role: string): string {
   }
 }
 
-function rolAlumno(parentesco: string | null | undefined, sexo: string | null | undefined): string {
-  const f = sexo === "Femenino";
-  switch (parentesco) {
-    case "Padre": case "Madre":     return f ? "Hija"     : "Hijo";
-    case "Abuelo": case "Abuela":   return f ? "Nieta"    : "Nieto";
-    case "Tío": case "Tía":         return f ? "Sobrina"  : "Sobrino";
-    case "Hermano": case "Hermana": return f ? "Hermana"  : "Hermano";
-    case "Tutor legal":             return f ? "Tutelada" : "Tutelado";
-    default: return parentesco ?? "—";
-  }
-}
 
 function EmptyValue({ label }: { label: string }) {
   return <span className="text-[#9CA3AF]">{label}</span>;
@@ -213,7 +202,7 @@ export function MyProfile({ user }: MyProfileProps) {
                         <span className="text-sm font-medium">{alumno.nombre || `Alumno ${alumno.id}`}</span>
                         {alumno.parentesco && (
                           <Badge variant="outline" className="text-xs text-[#6B7280]">
-                            {rolAlumno(alumno.parentesco, alumno.sexo)}
+                            {alumno.parentesco}
                           </Badge>
                         )}
                       </div>

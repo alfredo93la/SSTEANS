@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use App\Enums\Parentesco;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -62,7 +63,7 @@ class RegisterTutorController extends Controller
             'hijos.*.curp'             => ['required', 'string', 'size:18', 'unique:personas,curp', 'distinct'],
             'hijos.*.fecha_nacimiento' => ['required', 'date', 'before:today'],
             'hijos.*.sexo'             => ['required', Rule::in(['Masculino', 'Femenino', 'No especificado'])],
-            'hijos.*.parentesco'       => ['required', 'string', 'max:50'],
+            'hijos.*.parentesco'       => ['required', Rule::in(Parentesco::values())],
         ], [
             'curp.unique'                       => 'Este CURP ya está registrado en el sistema.',
             'curp.size'                         => 'El CURP debe tener exactamente 18 caracteres.',

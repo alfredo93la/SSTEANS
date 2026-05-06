@@ -6,13 +6,14 @@ import { Badge } from "../../Components/ui/badge";
 import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { PageTitle } from "../../Layouts/PageTitle";
-import { Users, Search, Edit, Trash2, Plus, GraduationCap, Loader2, SquareSigma } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
+import { Users, Search, GraduationCap, Loader2, UserPlus, Trash2, SquareSigma } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { toast } from "sonner";
 
 interface Grado { id: number; numero: number; descripcion: string; }
 interface Ciclo { id: number; nombre: string; activo: boolean; cerrado: boolean; }
+interface AlumnoAsignado { id: number; estado: string; alumno: { id: number; persona: { nombre: string; apellidos: string; curp: string } }; }
 interface Grupo {
   id: number;
   ciclo_escolar_id: number;
@@ -25,22 +26,19 @@ interface Grupo {
   ciclo_escolar?: Ciclo;
 }
 
-const formVacio = { grado_id: "", nombre: "", turno: "matutino", capacidad_maxima: "40" };
-
-export function Grupos() {
+export function AsignarAlumnosGrupo() {
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [grados, setGrados] = useState<Grado[]>([]);
   const [ciclos, setCiclos] = useState<Ciclo[]>([]);
   const [cicloActualId, setCicloActualId] = useState<number | null>(null);
-  const [turnosPermitidos, setTurnosPermitidos] = useState<string[]>(["matutino"]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroGrado, setFiltroGrado] = useState("todos");
-  const [modalNuevo, setModalNuevo] = useState(false);
-  const [modalEditar, setModalEditar] = useState(false);
+  const [modalAlumnos, setModalAlumnos] = useState(false);
   const [grupoSel, setGrupoSel] = useState<Grupo | null>(null);
-  const [form, setForm] = useState(formVacio);
-  const [saving, setSaving] = useState(false);
+  const [asignaciones, setAsignaciones] = useState<AlumnoAsignado[]>([]);
+  const [alumnosDisp, setAlumnosDisp] = useState<{ id: number; persona: { nombre: string; apellidos: string; curp: string }; asignaciones?: { id: number }[] }[]>([]);
+  const [busquedaAlumno, setBusquedaAlumno] = useState("");
 
   const cargar = (cicloId?: number) => {
     setLoading(true);
@@ -51,10 +49,6 @@ export function Grupos() {
         setGrados(data.grados ?? []);
         setCiclos(data.ciclos ?? []);
         setCicloActualId(data.ciclo_actual_id ?? null);
-        const disp: string = data.turnos_disponibles ?? "matutino";
-        const turnos = disp === "ambos" ? ["matutino", "vespertino"] : [disp];
-        setTurnosPermitidos(turnos);
-        setForm((prev) => ({ ...prev, turno: turnos[0] }));
       })
       .catch(() => toast.error("No se pudieron cargar los grupos."))
       .finally(() => setLoading(false));
@@ -62,48 +56,39 @@ export function Grupos() {
 
   useEffect(() => { cargar(); }, []);
 
-  const handleGuardar = () => {
-    if (!form.grado_id || !form.nombre) { toast.error("Grado y nombre son obligatorios."); return; }
-    setSaving(true);
-    axios.post("/api/administrativo/grupos", form)
-      .then(({ data }) => {
-        setGrupos((prev) => [...prev, data.grupo]);
-        setModalNuevo(false);
-        setForm(formVacio);
-        toast.success("Grupo creado correctamente.");
-      })
-      .catch((err) => toast.error(err.response?.data?.message ?? "Error al crear el grupo."))
-      .finally(() => setSaving(false));
-  };
-
-  const handleEditar = () => {
-    if (!grupoSel) return;
-    setSaving(true);
-    axios.put(`/api/administrativo/grupos/${grupoSel.id}`, form)
-      .then(({ data }) => {
-        setGrupos((prev) => prev.map((g) => g.id === data.grupo.id ? data.grupo : g));
-        setModalEditar(false);
-        setGrupoSel(null);
-        toast.success("Grupo actualizado.");
-      })
-      .catch((err) => toast.error(err.response?.data?.message ?? "Error al actualizar."))
-      .finally(() => setSaving(false));
-  };
-
-  const handleEliminar = (grupo: Grupo) => {
-    if (!confirm(`¿Eliminar el grupo ${grupo.grado?.numero ?? ""}°${grupo.nombre}?`)) return;
-    axios.delete(`/api/administrativo/grupos/${grupo.id}`)
-      .then(() => {
-        setGrupos((prev) => prev.filter((g) => g.id !== grupo.id));
-        toast.success("Grupo eliminado.");
-      })
-      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."));
-  };
-
-  const abrirEditar = (grupo: Grupo) => {
+  const abrirAlumnos = (grupo: Grupo) => {
     setGrupoSel(grupo);
-    setForm({ grado_id: grupo.grado_id.toString(), nombre: grupo.nombre, turno: grupo.turno, capacidad_maxima: grupo.capacidad_maxima.toString() });
-    setModalEditar(true);
+    setModalAlumnos(true);
+    Promise.all([
+      axios.get("/api/administrativo/asignaciones", { params: { grupo_id: grupo.id } }),
+      axios.get("/api/administrativo/alumnos", { params: { estado: "Activo" } }),
+    ]).then(([aRes, alRes]) => {
+      setAsignaciones(aRes.data.asignaciones);
+      setAlumnosDisp(alRes.data.alumnos);
+    }).catch(() => toast.error("Error al cargar alumnos."));
+  };
+
+  const handleAsignarDirecto = (alumnoId: number) => {
+    if (!grupoSel) return;
+    axios.post("/api/administrativo/asignaciones", { alumno_id: alumnoId, grupo_id: grupoSel.id })
+      .then(({ data }) => {
+        setAsignaciones((prev) => [...prev, data.asignacion]);
+        setAlumnosDisp((prev) => prev.filter((a) => a.id !== alumnoId));
+        setGrupos((prev) => prev.map((g) => g.id === grupoSel.id ? { ...g, asignaciones_count: (g.asignaciones_count ?? 0) + 1 } : g));
+        setBusquedaAlumno("");
+        toast.success("Alumno asignado al grupo.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al asignar."));
+  };
+
+  const handleDarBaja = (asignacionId: number) => {
+    axios.delete(`/api/administrativo/asignaciones/${asignacionId}`)
+      .then(() => {
+        setAsignaciones((prev) => prev.filter((a) => a.id !== asignacionId));
+        if (grupoSel) setGrupos((prev) => prev.map((g) => g.id === grupoSel.id ? { ...g, asignaciones_count: Math.max(0, (g.asignaciones_count ?? 1) - 1) } : g));
+        toast.success("Alumno dado de baja del grupo.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error."));
   };
 
   const filtered = grupos.filter((g) => {
@@ -115,66 +100,9 @@ export function Grupos() {
 
   const cicloActivo = ciclos.find((c) => c.activo);
 
-  const TurnoSelect = () => (
-    <Select value={form.turno} onValueChange={(v) => setForm({ ...form, turno: v })}>
-      <SelectTrigger><SelectValue /></SelectTrigger>
-      <SelectContent>
-        {turnosPermitidos.includes("matutino") && <SelectItem value="matutino">Matutino</SelectItem>}
-        {turnosPermitidos.includes("vespertino") && <SelectItem value="vespertino">Vespertino</SelectItem>}
-      </SelectContent>
-    </Select>
-  );
-
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Users} title="Gestión de Grupos" description="Grupos del ciclo escolar activo" color="bg-[#7C3AED]">
-        <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]" disabled={!cicloActivo}>
-              <Plus className="h-4 w-4 mr-2" />Nuevo Grupo
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Nuevo Grupo</DialogTitle>
-              <DialogDescription>Ciclo activo: {cicloActivo?.nombre ?? "—"}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Grado *</Label>
-                  <Select value={form.grado_id} onValueChange={(v) => setForm({ ...form, grado_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {grados.map((g) => (
-                        <SelectItem key={g.id} value={g.id.toString()}>{g.numero}° — {g.descripcion}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Nombre (letra) *</Label>
-                  <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value.toUpperCase() })} maxLength={3} placeholder="A" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Turno *</Label>
-                  <TurnoSelect />
-                </div>
-                <div className="space-y-2">
-                  <Label>Capacidad máx.</Label>
-                  <Input type="number" min="1" max="60" value={form.capacidad_maxima} onChange={(e) => setForm({ ...form, capacidad_maxima: e.target.value })} />
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setModalNuevo(false)}>Cancelar</Button>
-              <Button onClick={handleGuardar} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear Grupo"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </PageTitle>
+      <PageTitle icon={UserPlus} title="Asignar Alumnos a Grupos" description="Asigna alumnos a los grupos del ciclo escolar activo" color="bg-[#7C3AED]" />
 
       {/* Selector de ciclo */}
       {ciclos.length > 0 && (
@@ -195,7 +123,7 @@ export function Grupos() {
                 </SelectContent>
               </Select>
               {!cicloActivo && (
-                <p className="text-xs text-amber-600">No hay ciclo activo. Activa uno para crear grupos.</p>
+                <p className="text-xs text-amber-600">No hay ciclo activo.</p>
               )}
             </div>
           </CardContent>
@@ -271,45 +199,83 @@ export function Grupos() {
                   <span className="text-[#6B7280]">Alumnos:</span>
                   <span className="font-semibold">{grupo.asignaciones_count ?? 0} / {grupo.capacidad_maxima}</span>
                 </div>
-                <div className="flex gap-2 pt-1 justify-end">
-                  <Button variant="outline" size="sm" onClick={() => abrirEditar(grupo)}>
-                    <Edit className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-[#E11D48] border-[#E11D48] hover:bg-red-50" onClick={() => handleEliminar(grupo)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => abrirAlumnos(grupo)}>
+                  <UserPlus className="h-3.5 w-3.5 mr-1" />Asignar Alumnos
+                </Button>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      {/* Modal editar */}
-      <Dialog open={modalEditar} onOpenChange={(open) => { setModalEditar(open); if (!open) { setGrupoSel(null); setForm(formVacio); } }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Editar Grupo</DialogTitle><DialogDescription>Modifica los datos del grupo.</DialogDescription></DialogHeader>
+      {/* Modal asignación de alumnos */}
+      <Dialog open={modalAlumnos} onOpenChange={(open) => { setModalAlumnos(open); if (!open) { setGrupoSel(null); setAsignaciones([]); setBusquedaAlumno(""); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Alumnos — {grupoSel?.grado?.numero ?? ""}°{grupoSel?.nombre}</DialogTitle>
+            <DialogDescription>Busca y asigna alumnos al grupo.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Nombre (letra)</Label>
-                <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value.toUpperCase() })} maxLength={3} />
+            <div className="border border-[#E5E7EB] rounded-xl overflow-hidden">
+              <div className="relative border-b border-[#E5E7EB]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+                <Input
+                  placeholder="Buscar alumno por nombre o CURP..."
+                  value={busquedaAlumno}
+                  onChange={(e) => setBusquedaAlumno(e.target.value)}
+                  className="border-0 pl-9 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
               </div>
-              <div className="space-y-2">
-                <Label>Turno</Label>
-                <TurnoSelect />
+              <div className="max-h-48 overflow-y-auto">
+                {(() => {
+                  const q = busquedaAlumno.trim().toLowerCase();
+                  const disponibles = alumnosDisp.filter((a) => {
+                    if (asignaciones.some((as) => as.alumno.id === a.id)) return false;
+                    if (a.asignaciones && a.asignaciones.length > 0) return false;
+                    if (!q) return true;
+                    const n1 = `${a.persona.nombre} ${a.persona.apellidos}`.toLowerCase();
+                    const n2 = `${a.persona.apellidos} ${a.persona.nombre}`.toLowerCase();
+                    return n1.includes(q) || n2.includes(q) || (a.persona.curp ?? "").toLowerCase().includes(q);
+                  });
+                  if (disponibles.length === 0) return (
+                    <p className="text-sm text-[#6B7280] text-center py-4">
+                      {q ? "Sin resultados." : "No hay alumnos disponibles."}
+                    </p>
+                  );
+                  return disponibles.map((a) => (
+                    <div key={a.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 border-b border-[#F3F4F6] last:border-0">
+                      <div>
+                        <p className="text-sm font-semibold text-[#111827]">{a.persona.apellidos} {a.persona.nombre}</p>
+                        <p className="text-xs text-[#6B7280] mt-0.5">{a.persona.curp ?? "Sin CURP"}</p>
+                      </div>
+                      <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={() => handleAsignarDirecto(a.id)}>
+                        <UserPlus className="h-3.5 w-3.5 mr-1" />Asignar
+                      </Button>
+                    </div>
+                  ));
+                })()}
               </div>
-              <div className="col-span-2 space-y-2">
-                <Label>Capacidad máxima</Label>
-                <Input type="number" min="1" max="60" value={form.capacidad_maxima} onChange={(e) => setForm({ ...form, capacidad_maxima: e.target.value })} />
-              </div>
+            </div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {asignaciones.length === 0 ? (
+                <p className="text-sm text-[#6B7280] text-center py-4">Sin alumnos asignados.</p>
+              ) : (
+                asignaciones.map((a) => (
+                  <div key={a.id} className="flex items-center justify-between p-2 rounded-lg border border-[#E5E7EB]">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4 text-[#7C3AED]" />
+                      <span className="text-sm">{a.alumno.persona.apellidos} {a.alumno.persona.nombre}</span>
+                    </div>
+                    <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" onClick={() => handleDarBaja(a.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModalEditar(false)}>Cancelar</Button>
-            <Button onClick={handleEditar} disabled={saving} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
-            </Button>
+            <Button variant="outline" onClick={() => setModalAlumnos(false)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

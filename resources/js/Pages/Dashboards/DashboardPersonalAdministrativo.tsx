@@ -128,7 +128,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
 
         <Card
           className="border-[#E5E7EB] bg-linear-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-all cursor-pointer"
-          onClick={() => onNavigate("#/grupos")}
+          onClick={() => onNavigate("#/asignar-alumnos")}
         >
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -181,7 +181,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
                 variant="outline"
                 size="sm"
                 className="rounded-lg"
-                onClick={() => onNavigate("#/grupos")}
+                onClick={() => onNavigate("#/asignar-alumnos")}
               >
                 Ver todos
               </Button>

@@ -130,28 +130,35 @@ Route::middleware(['auth', 'verified', 'permission:configuracion.manage'])
         Route::get('/grados', fn () => response()->json(['grados' => Grado::with('materias')->orderBy('numero')->get()]));
     });
 
-// ─── Administrativo: gestión operativa ───────────────────────────────────────
+// ─── Lectura compartida: grupos y salones (Administrador + Personal Admvo) ────
+Route::middleware(['auth', 'verified', 'permission:grupos.manage|horarios.manage|alumnos.manage'])
+    ->prefix('api/administrativo')
+    ->group(function () {
+        Route::get('/grupos',  [GrupoController::class, 'index']);
+        Route::get('/salones', [SalonController::class, 'index']);
+    });
+
+// ─── Administrador: crear y gestionar grupos y salones ────────────────────────
 Route::middleware(['auth', 'verified', 'permission:grupos.manage'])
     ->prefix('api/administrativo')
     ->group(function () {
-        Route::get('/grupos',              [GrupoController::class, 'index']);
-        Route::post('/grupos',             [GrupoController::class, 'store']);
-        Route::put('/grupos/{grupo}',      [GrupoController::class, 'update']);
-        Route::delete('/grupos/{grupo}',   [GrupoController::class, 'destroy']);
+        Route::post('/grupos',           [GrupoController::class, 'store']);
+        Route::put('/grupos/{grupo}',    [GrupoController::class, 'update']);
+        Route::delete('/grupos/{grupo}', [GrupoController::class, 'destroy']);
 
+        Route::post('/salones',           [SalonController::class, 'store']);
+        Route::put('/salones/{salon}',    [SalonController::class, 'update']);
+        Route::delete('/salones/{salon}', [SalonController::class, 'destroy']);
+    });
+
+// ─── Personal Administrativo: clases y horarios ───────────────────────────────
+Route::middleware(['auth', 'verified', 'permission:horarios.manage'])
+    ->prefix('api/administrativo')
+    ->group(function () {
         Route::get('/clases',              [ClaseController::class, 'index']);
         Route::post('/clases',             [ClaseController::class, 'store']);
         Route::put('/clases/{clase}',      [ClaseController::class, 'update']);
         Route::delete('/clases/{clase}',   [ClaseController::class, 'destroy']);
-
-        Route::get('/asignaciones',                            [AsignacionGrupoController::class, 'index']);
-        Route::post('/asignaciones',                           [AsignacionGrupoController::class, 'store']);
-        Route::delete('/asignaciones/{asignacionGrupo}',       [AsignacionGrupoController::class, 'destroy']);
-
-        Route::get('/salones',             [SalonController::class, 'index']);
-        Route::post('/salones',            [SalonController::class, 'store']);
-        Route::put('/salones/{salon}',     [SalonController::class, 'update']);
-        Route::delete('/salones/{salon}',  [SalonController::class, 'destroy']);
 
         Route::get('/materias',            [MateriaController::class, 'index']);
     });
@@ -165,14 +172,19 @@ Route::middleware(['auth', 'verified', 'permission:alumnos.manage'])
         Route::delete('/alumnos/{alumno}',              [AlumnoAdminController::class, 'destroy']);
         Route::post('/alumnos/{alumno}/aprobar',        [AlumnoAdminController::class, 'aprobar']);
         Route::post('/alumnos/{alumno}/rechazar',       [AlumnoAdminController::class, 'rechazar']);
+
+        Route::get('/asignaciones',                      [AsignacionGrupoController::class, 'index']);
+        Route::post('/asignaciones',                     [AsignacionGrupoController::class, 'store']);
+        Route::delete('/asignaciones/{asignacionGrupo}', [AsignacionGrupoController::class, 'destroy']);
     });
 
 Route::middleware(['auth', 'verified', 'permission:tutores.manage'])
     ->prefix('api/administrativo')
     ->group(function () {
-        Route::get('/tutores',                           [TutorAdminController::class, 'index']);
-        Route::post('/tutores/{tutor}/vincular',         [TutorAdminController::class, 'vincular']);
-        Route::delete('/tutores/{tutor}/desvincular',    [TutorAdminController::class, 'desvincular']);
+        Route::get('/tutores',                               [TutorAdminController::class, 'index']);
+        Route::post('/tutores/{tutor}/vincular',             [TutorAdminController::class, 'vincular']);
+        Route::patch('/tutores/{tutor}/parentesco',          [TutorAdminController::class, 'actualizarParentesco']);
+        Route::delete('/tutores/{tutor}/desvincular',        [TutorAdminController::class, 'desvincular']);
     });
 
 // ─── Materias: lectura para cualquier rol autenticado ─────────────────────────

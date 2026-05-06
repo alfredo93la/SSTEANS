@@ -205,7 +205,7 @@ function FormUsuario({ form, setForm, roles, isEdit = false }: {
           </div>
         )}
         <div className="space-y-1.5">
-          <Label>CURP</Label>
+          <Label>CURP {rolNombre === "Tutor" && <span className="text-red-500">*</span>}</Label>
           <Input value={form.curp} onChange={(e) => setForm({ ...form, curp: e.target.value.toUpperCase() })} placeholder="18 caracteres" maxLength={18} className="uppercase" />
         </div>
         <div className="space-y-1.5">
@@ -227,18 +227,20 @@ function FormUsuario({ form, setForm, roles, isEdit = false }: {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1.5">
-          <Label>Estado</Label>
-          <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as UsuarioItem["status"] })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Activo">Activo</SelectItem>
-              <SelectItem value="Pendiente">Pendiente</SelectItem>
-              <SelectItem value="Rechazado">Rechazado</SelectItem>
-              <SelectItem value="Inactivo">Inactivo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {isEdit && (
+          <div className="space-y-1.5">
+            <Label>Estado</Label>
+            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as UsuarioItem["status"] })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Activo">Activo</SelectItem>
+                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                <SelectItem value="Rechazado">Rechazado</SelectItem>
+                <SelectItem value="Inactivo">Inactivo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Campos específicos por rol */}
         <CamposEspecificosRol rolNombre={rolNombre} form={form} setForm={setForm} />

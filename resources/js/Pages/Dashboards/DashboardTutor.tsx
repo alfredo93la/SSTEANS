@@ -28,11 +28,7 @@ const TIPOS_EXAMEN = ["Parcial", "Final", "Extraordinario", "Examen"];
 
 type CurpStatus = "idle" | "checking" | "exists" | "ok";
 
-function parentescoOpciones(sexo: string): string[] {
-  if (sexo === "Masculino") return ["Hijo", "Nieto", "Sobrino", "Hermano", "Tutelado", "Otro"];
-  if (sexo === "Femenino")  return ["Hija", "Nieta", "Sobrina", "Hermana", "Tutelada", "Otro"];
-  return ["Hijo/a", "Nieto/a", "Sobrino/a", "Hermano/a", "Tutelado/a", "Otro"];
-}
+const PARENTESCO_OPCIONES = ["Padre", "Madre", "Abuelo", "Abuela", "Tío", "Tía", "Hermano", "Hermana", "Tutor legal", "Otro"];
 
 const formAlumnoVacio = { nombre: "", apellidos: "", curp: "", fecha_nacimiento: "", sexo: "", parentesco: "" };
 
@@ -483,12 +479,12 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado }: DashboardTutorP
 
             <div className="space-y-1.5">
               <Label>Parentesco *</Label>
-              <Select value={formAlumno.parentesco} onValueChange={(v) => setFormAlumno({ ...formAlumno, parentesco: v })} disabled={!formAlumno.sexo}>
+              <Select value={formAlumno.parentesco} onValueChange={(v) => setFormAlumno({ ...formAlumno, parentesco: v })}>
                 <SelectTrigger className="h-10 rounded-lg">
-                  <SelectValue placeholder={formAlumno.sexo ? "Seleccionar…" : "Primero selecciona el sexo"} />
+                  <SelectValue placeholder="Seleccionar…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {parentescoOpciones(formAlumno.sexo).map((op) => (
+                  {PARENTESCO_OPCIONES.map((op) => (
                     <SelectItem key={op} value={op}>{op}</SelectItem>
                   ))}
                 </SelectContent>

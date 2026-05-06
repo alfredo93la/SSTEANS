@@ -39,6 +39,7 @@ class UserManagementController extends Controller
                 'persona.trabSocial:id,persona_id,horario,extension',
                 'persona.persAdmin:id,persona_id,cargo,departamento,extension',
             ])
+            ->where('role', '!=', 'Administrador')
             ->orderBy('name');
 
         if ($request->filled('search')) {
@@ -88,11 +89,14 @@ class UserManagementController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $primaryRoleId = $request->input('roles.0');
+        $esTutor = $primaryRoleId && Role::query()->find($primaryRoleId)?->nombre === 'Tutor';
+
         $validated = $request->validate([
             'nombre'       => ['required', 'string', 'max:100'],
             'apellidos'    => ['required', 'string', 'max:100'],
             'email'        => ['required', 'email', 'max:255', 'unique:users,email'],
-            'curp'         => ['nullable', 'string', 'size:18', 'unique:personas,curp'],
+            'curp'         => [$esTutor ? 'required' : 'nullable', 'string', 'size:18', 'unique:personas,curp'],
             'telefono'     => ['nullable', 'string', 'max:20'],
             'direccion'    => ['nullable', 'string', 'max:255'],
             'status'       => ['nullable', Rule::in(['Pendiente', 'Activo', 'Rechazado', 'Inactivo'])],
@@ -166,11 +170,14 @@ class UserManagementController extends Controller
 
     public function update(Request $request, User $user): JsonResponse
     {
+        $primaryRoleId = $request->input('roles.0');
+        $esTutor = $primaryRoleId && Role::query()->find($primaryRoleId)?->nombre === 'Tutor';
+
         $validated = $request->validate([
             'nombre'       => ['required', 'string', 'max:100'],
             'apellidos'    => ['required', 'string', 'max:100'],
             'email'        => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-            'curp'         => ['nullable', 'string', 'size:18',
+            'curp'         => [$esTutor ? 'required' : 'nullable', 'string', 'size:18',
                 Rule::unique('personas', 'curp')->ignore($user->persona_id),
             ],
             'telefono'     => ['nullable', 'string', 'max:20'],

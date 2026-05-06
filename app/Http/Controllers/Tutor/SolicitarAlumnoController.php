@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tutor;
 
+use App\Enums\Parentesco;
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
 use App\Models\ConfiguracionEscuela;
@@ -32,7 +33,7 @@ class SolicitarAlumnoController extends Controller
             'curp'             => ['required', 'string', 'size:18', 'unique:personas,curp'],
             'fecha_nacimiento' => ['required', 'date', 'before:today'],
             'sexo'             => ['required', Rule::in(['Masculino', 'Femenino', 'No especificado'])],
-            'parentesco'       => ['required', 'string', 'max:50'],
+            'parentesco'       => ['required', Rule::in(Parentesco::values())],
         ], [
             'curp.unique'                     => 'Este CURP ya está registrado en el sistema.',
             'curp.size'                       => 'El CURP debe tener exactamente 18 caracteres.',

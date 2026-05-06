@@ -8,6 +8,7 @@ import { Label } from "../../Components/ui/label";
 import {
   GraduationCap,
   Link as LinkIcon,
+  Unlink,
   Search,
   Filter,
   Eye,
@@ -22,6 +23,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  ShieldUser,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
 import { PageTitle } from "../../Layouts/PageTitle";
@@ -30,7 +32,7 @@ import { toast } from "sonner";
 
 interface Persona { id: number; nombre: string; apellidos: string; curp: string; telefono: string | null; direccion: string | null; }
 interface AsignacionGrupo { estado: string; grupo?: { id: number; nombre: string; turno: string; grado?: { numero: number } }; }
-interface TutorPivot { persona: { nombre: string; apellidos: string }; pivot: { parentesco: string | null } }
+interface TutorPivot { id: number; persona: { nombre: string; apellidos: string }; pivot: { parentesco: string | null } }
 interface Alumno {
   id: number;
   estado: string;
@@ -124,6 +126,12 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   const [tutorBusq, setTutorBusq] = useState("");
   const [tutorSelId, setTutorSelId] = useState<number | null>(null);
   const [parentescoNuevo, setParentescoNuevo] = useState("");
+
+  const [modalTutor, setModalTutor] = useState(false);
+  const [tutorVincBusq, setTutorVincBusq] = useState("");
+  const [tutorVincSelId, setTutorVincSelId] = useState<number | null>(null);
+  const [parentescoVinc, setParentescoVinc] = useState("");
+  const [savingTutor, setSavingTutor] = useState(false);
 
   const cargar = (q?: string) => {
     setLoading(true);
@@ -263,6 +271,53 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   };
 
   const abrirDetalle = (alumno: Alumno) => { setAlumnoSel(alumno); setModalDetalle(true); };
+
+  const cargarTutores = () => {
+    if (tutoresList.length > 0) return;
+    setLoadingTutores(true);
+    axios.get("/api/administrativo/tutores")
+      .then(({ data }) => setTutoresList(
+        data.tutores.map((t: { id: number; persona: { nombre: string; apellidos: string } }) => ({
+          id: t.id, nombre: t.persona.nombre, apellidos: t.persona.apellidos,
+        }))
+      ))
+      .catch(() => toast.error("No se pudieron cargar los tutores."))
+      .finally(() => setLoadingTutores(false));
+  };
+
+  const abrirModalTutor = (alumno: Alumno) => {
+    setAlumnoSel(alumno);
+    setModalTutor(true);
+    cargarTutores();
+  };
+
+  const handleVincularTutor = () => {
+    if (!alumnoSel || !tutorVincSelId) return;
+    setSavingTutor(true);
+    axios.post(`/api/administrativo/tutores/${tutorVincSelId}/vincular`, {
+      alumno_id: alumnoSel.id,
+      parentesco: parentescoVinc || undefined,
+    })
+      .then(() => {
+        cargar();
+        setModalTutor(false);
+        setTutorVincBusq(""); setTutorVincSelId(null); setParentescoVinc("");
+        toast.success("Tutor vinculado correctamente.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al vincular."))
+      .finally(() => setSavingTutor(false));
+  };
+
+  const handleDesvincularTutor = (tutorId: number) => {
+    if (!alumnoSel || !confirm("¿Desvincular el tutor de este alumno?")) return;
+    axios.delete(`/api/administrativo/tutores/${tutorId}/desvincular`, { data: { alumno_id: alumnoSel.id } })
+      .then(() => {
+        cargar();
+        setAlumnoSel((prev) => prev ? { ...prev, tutores: [] } : prev);
+        toast.success("Tutor desvinculado.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al desvincular."));
+  };
 
   const grupoActual = (alumno: Alumno) => {
     const a = alumno.asignaciones?.find((x) => x.estado === "activo");
@@ -528,6 +583,9 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
                             <Button variant="ghost" size="sm" onClick={() => abrirEditar(alumno)}>
                               <Edit className="h-4 w-4" />
                             </Button>
+                            <Button variant="ghost" size="sm" title="Gestionar tutor" onClick={() => abrirModalTutor(alumno)}>
+                              <LinkIcon className="h-4 w-4" />
+                            </Button>
                             {permissions.includes("alumnos.manage") && (
                               <Button variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600" onClick={() => handleEliminar(alumno)}>
                                 <Trash2 className="h-4 w-4" />
@@ -572,24 +630,138 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
                 <div><p className="text-[#6B7280]">Fecha de nacimiento</p><p className="font-medium">{alumnoSel.fecha_nacimiento}</p></div>
                 {alumnoSel.persona.telefono && <div><p className="text-[#6B7280]">Teléfono</p><p className="font-medium">{alumnoSel.persona.telefono}</p></div>}
                 {alumnoSel.persona.direccion && <div className="col-span-2"><p className="text-[#6B7280]">Dirección</p><p className="font-medium">{alumnoSel.persona.direccion}</p></div>}
-                {alumnoSel.tutores?.[0] && (
-                  <div className="col-span-2 border-t pt-3">
-                    <p className="text-[#6B7280]">Tutor</p>
-                    <p className="font-medium">
-                      {alumnoSel.tutores[0].persona.nombre} {alumnoSel.tutores[0].persona.apellidos}
-                      {alumnoSel.tutores[0].pivot.parentesco && (
-                        <span className="ml-2 text-sm text-[#6B7280] font-normal">
-                          ({alumnoSel.tutores[0].pivot.parentesco})
-                        </span>
-                      )}
-                    </p>
-                  </div>
+              </div>
+
+              <div className="border-t pt-3 space-y-2">
+                <p className="text-sm font-semibold text-[#111827]">Tutor responsable</p>
+                {alumnoSel.tutores && alumnoSel.tutores.length > 0 ? (
+                  alumnoSel.tutores.map((t) => (
+                    <div key={t.id} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-purple-100 rounded-lg">
+                          <ShieldUser className="h-4 w-4 text-[#7C3AED]" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">{t.persona.nombre} {t.persona.apellidos}</p>
+                          {t.pivot.parentesco && <p className="text-xs text-[#6B7280]">{t.pivot.parentesco}</p>}
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 hover:text-red-600" title="Desvincular"
+                        onClick={() => handleDesvincularTutor(t.id)}>
+                        <Unlink className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-[#6B7280]">Sin tutor asignado.</p>
                 )}
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalDetalle(false)}>Cerrar</Button>
+            <Button onClick={() => { setModalDetalle(false); setModalTutor(true); cargarTutores(); }}
+              className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
+              <LinkIcon className="h-4 w-4 mr-2" />
+              {alumnoSel?.tutores && alumnoSel.tutores.length > 0 ? "Cambiar tutor" : "Vincular tutor"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal gestión de tutor */}
+      <Dialog open={modalTutor} onOpenChange={(open) => { setModalTutor(open); if (!open) { setTutorVincBusq(""); setTutorVincSelId(null); setParentescoVinc(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tutor de {alumnoSel?.persona.nombre} {alumnoSel?.persona.apellidos}</DialogTitle>
+            <DialogDescription>Vincula o desvincula el tutor responsable de este alumno.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-1">
+            {alumnoSel?.tutores && alumnoSel.tutores.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-[#374151]">Tutor actual</p>
+                {alumnoSel.tutores.map((t) => (
+                  <div key={t.persona.nombre} className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+                    <div className="flex items-center gap-2">
+                      <ShieldUser className="h-4 w-4 text-[#7C3AED]" />
+                      <div>
+                        <p className="text-sm font-semibold">{t.persona.nombre} {t.persona.apellidos}</p>
+                        {t.pivot.parentesco && <p className="text-xs text-[#6B7280]">{t.pivot.parentesco}</p>}
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                      onClick={() => handleDesvincularTutor(t.id)}>
+                      <Unlink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <p className="text-xs text-[#6B7280]">O vincula un tutor diferente:</p>
+              </div>
+            ) : (
+              <p className="text-sm text-[#6B7280]">Este alumno no tiene tutor asignado.</p>
+            )}
+
+            <div className="space-y-1.5">
+              <Label>Buscar tutor</Label>
+              {loadingTutores ? (
+                <div className="flex justify-center py-2"><Loader2 className="h-4 w-4 animate-spin text-[#1D4ED8]" /></div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+                    <Input
+                      placeholder="Nombre del tutor..."
+                      value={tutorVincBusq}
+                      onChange={(e) => { setTutorVincBusq(e.target.value); setTutorVincSelId(null); setParentescoVinc(""); }}
+                      className="pl-10"
+                    />
+                  </div>
+                  {tutorVincBusq.length >= 2 && (
+                    <div className="border rounded-md max-h-40 overflow-y-auto">
+                      {(() => {
+                        const resultados = tutoresList.filter((t) =>
+                          `${t.nombre} ${t.apellidos}`.toLowerCase().includes(tutorVincBusq.toLowerCase())
+                        );
+                        return resultados.length === 0 ? (
+                          <p className="text-sm text-[#6B7280] px-3 py-2">Sin resultados.</p>
+                        ) : resultados.slice(0, 8).map((t) => (
+                          <button key={t.id} type="button"
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors ${tutorVincSelId === t.id ? "bg-blue-100 font-medium" : ""}`}
+                            onClick={() => { setTutorVincSelId(t.id); setTutorVincBusq(`${t.nombre} ${t.apellidos}`); }}>
+                            {t.nombre} {t.apellidos}
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  )}
+                  {tutorVincSelId && (
+                    <p className="text-xs text-green-700 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" /> Tutor seleccionado
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+
+            {tutorVincSelId && (
+              <div className="space-y-1.5">
+                <Label>Parentesco</Label>
+                <Select value={parentescoVinc} onValueChange={setParentescoVinc}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar parentesco" /></SelectTrigger>
+                  <SelectContent>
+                    {PARENTESCO_OPCIONES.map((p) => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalTutor(false)}>Cerrar</Button>
+            <Button onClick={handleVincularTutor} disabled={savingTutor || !tutorVincSelId} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
+              {savingTutor ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vincular"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
