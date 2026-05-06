@@ -208,7 +208,7 @@ export function Notificaciones() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Send} title="Enviar Notificaciones" description="Gestiona las notificaciones enviadas a tutores" color="bg-[#059669]">
+      <PageTitle icon={Send} title="Enviar Notificaciones" description="Gestiona las notificaciones enviadas a tutores" color="bg-[#7C3AED]">
         <Dialog open={modalEnviar} onOpenChange={(open) => { setModalEnviar(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">

@@ -278,7 +278,7 @@ export function Agenda({ permissions }: AgendaProps) {
           icon={CalendarDays}
           title="Agenda Escolar"
           description="Calendario de eventos"
-          color="bg-[#1D4ED8]"
+          color="bg-[#4F46E5]"
         ></PageTitle>
       </div>
     );

@@ -42,16 +42,9 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        User::query()->updateOrCreate(
-            ['email' => 'admin@ejemplo.com'],
-            [
-                'name' => 'Administrador',
-                'password' => 'password',
-                'role' => 'Administrador',
-            ]
-        );
+        // El administrador se configura con: php artisan admin:configurar
 
-        User::query()->updateOrCreate(
+User::query()->updateOrCreate(
             ['email' => 'administrativo@ejemplo.com'],
             [
                 'name' => 'Lic. Fernández',
@@ -62,5 +55,6 @@ class DatabaseSeeder extends Seeder
 
         $this->call(RolesAndPermissionsSeeder::class);
         $this->call(TestDataSeeder::class);
+        $this->call(PoblarCiclosEscolaresSeeder::class);
     }
 }

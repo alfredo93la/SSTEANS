@@ -26,6 +26,7 @@ import { Roles } from "./Admin/Roles";
 import { Grupos } from "./Administrativo/Grupos";
 import { AsignarAlumnosGrupo } from "./Administrativo/AsignarAlumnosGrupo";
 import { Materias } from "./Admin/Materias";
+import { Salones } from "./Admin/Salones";
 import { Horarios } from "./Administrativo/Horarios";
 import { AlumnosAdmin } from "./Administrativo/AlumnosAdmin";
 import { TutoresAdmin } from "./Administrativo/TutoresAdmin";
@@ -115,6 +116,7 @@ export default function App() {
     "#/tutores":          "Tutores",
     "#/grupos":           "Grupos",
     "#/asignar-alumnos":  "Asignar Alumnos",
+    "#/salones":          "Salones",
     "#/materias":         "Materias",
     "#/horarios":         "Horarios",
     "#/validacion":       "Validación de Cuentas",
@@ -220,6 +222,7 @@ export default function App() {
         {currentRoute === "#/tutores" && <TutoresAdmin />}
         {currentRoute === "#/grupos" && <Grupos />}
         {currentRoute === "#/asignar-alumnos" && <AsignarAlumnosGrupo />}
+        {currentRoute === "#/salones" && <Salones />}
         {currentRoute === "#/materias" && <Materias />}
         {currentRoute === "#/horarios" && <Horarios />}
 

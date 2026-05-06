@@ -31,7 +31,10 @@ export function PageTitle({
                 color === "bg-[#7C3AED]" && "bg-purple-100",
                 color === "bg-[#059669]" && "bg-green-100",
                 color === "bg-[#D97706]" && "bg-amber-100",
-                color === "bg-[#E11D48]" && "bg-red-100"
+                color === "bg-[#E11D48]" && "bg-red-100",
+                color === "bg-[#0891B2]" && "bg-cyan-100",
+                color === "bg-[#EA580C]" && "bg-orange-100",
+                color === "bg-[#4F46E5]" && "bg-indigo-100"
               )}>
                 <Icon className={cn(
                   "h-5 w-5",
@@ -39,7 +42,10 @@ export function PageTitle({
                   color === "bg-[#7C3AED]" && "text-[#7C3AED]",
                   color === "bg-[#059669]" && "text-[#059669]",
                   color === "bg-[#D97706]" && "text-[#D97706]",
-                  color === "bg-[#E11D48]" && "text-[#E11D48]"
+                  color === "bg-[#E11D48]" && "text-[#E11D48]",
+                  color === "bg-[#0891B2]" && "text-[#0891B2]",
+                  color === "bg-[#EA580C]" && "text-[#EA580C]",
+                  color === "bg-[#4F46E5]" && "text-[#4F46E5]"
                 )} />
               </div>
             )}

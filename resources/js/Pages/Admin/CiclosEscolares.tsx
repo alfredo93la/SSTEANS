@@ -129,7 +129,7 @@ export function CiclosEscolares() {
 
   return (
     <div className="space-y-6">
-      <PageTitle icon={CalendarRange} title="Ciclos Escolares" description="Gestiona los ciclos escolares del plantel" color="bg-[#1D4ED8]" />
+      <PageTitle icon={CalendarRange} title="Ciclos Escolares" description="Gestiona los ciclos escolares del plantel" color="bg-[#D97706]" />
 
       {/* Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

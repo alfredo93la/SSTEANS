@@ -131,21 +131,26 @@ Route::middleware(['auth', 'verified', 'permission:configuracion.manage'])
     });
 
 // ─── Lectura compartida: grupos y salones (Administrador + Personal Admvo) ────
-Route::middleware(['auth', 'verified', 'permission:grupos.manage|horarios.manage|alumnos.manage'])
+Route::middleware(['auth', 'verified', 'permission:grupos.manage|horarios.manage|alumnos.manage|salones.manage'])
     ->prefix('api/administrativo')
     ->group(function () {
         Route::get('/grupos',  [GrupoController::class, 'index']);
         Route::get('/salones', [SalonController::class, 'index']);
     });
 
-// ─── Administrador: crear y gestionar grupos y salones ────────────────────────
+// ─── Administrador: crear y gestionar grupos ──────────────────────────────────
 Route::middleware(['auth', 'verified', 'permission:grupos.manage'])
     ->prefix('api/administrativo')
     ->group(function () {
         Route::post('/grupos',           [GrupoController::class, 'store']);
         Route::put('/grupos/{grupo}',    [GrupoController::class, 'update']);
         Route::delete('/grupos/{grupo}', [GrupoController::class, 'destroy']);
+    });
 
+// ─── Administrador: crear y gestionar salones ─────────────────────────────────
+Route::middleware(['auth', 'verified', 'permission:salones.manage'])
+    ->prefix('api/administrativo')
+    ->group(function () {
         Route::post('/salones',           [SalonController::class, 'store']);
         Route::put('/salones/{salon}',    [SalonController::class, 'update']);
         Route::delete('/salones/{salon}', [SalonController::class, 'destroy']);

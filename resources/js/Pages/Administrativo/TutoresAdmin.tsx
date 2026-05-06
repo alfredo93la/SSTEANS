@@ -158,7 +158,7 @@ export function TutoresAdmin() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={ShieldUser} title="Gestión de Tutores" description="Vincula tutores con alumnos" color="bg-[#7C3AED]" />
+      <PageTitle icon={ShieldUser} title="Gestión de Tutores" description="Vincula tutores con alumnos" color="bg-[#059669]" />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

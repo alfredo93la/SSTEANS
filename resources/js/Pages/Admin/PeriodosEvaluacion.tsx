@@ -110,7 +110,7 @@ export function PeriodosEvaluacion() {
 
   return (
     <div className="space-y-6">
-      <PageTitle icon={BookKey} title="Periodos de Evaluación" description="Gestiona parciales y calificación final por ciclo escolar" color="bg-[#D97706]" />
+      <PageTitle icon={BookKey} title="Periodos de Evaluación" description="Gestiona parciales y calificación final por ciclo escolar" color="bg-[#EA580C]" />
 
       {/* Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

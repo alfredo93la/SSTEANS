@@ -248,7 +248,7 @@ export function PerfilAlumnoTS({ alumnoId, onNavigate }: PerfilAlumnoTSProps) {
         icon={User}
         title="Perfil del Alumno"
         description="Información general, calificaciones y reportes de conducta"
-        color="bg-[#1D4ED8]"
+        color="bg-[#059669]"
       />
 
       {/* Datos básicos — recarga con el ciclo */}

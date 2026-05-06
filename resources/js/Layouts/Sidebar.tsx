@@ -1,4 +1,4 @@
-import { Home, ScrollText, ClipboardList, GraduationCap, CheckCircle2, AlertTriangle, Inbox, Users, BookMarked, Clock, CalendarRange, BookKey, Settings2, ClipboardCheck, CalendarDays, ChevronRight, ChevronDown, Send, BookA, ShieldUser, Shield, UserPen, UserCheck, UserPlus } from "lucide-react";
+import { Home, ScrollText, ClipboardList, GraduationCap, CheckCircle2, AlertTriangle, Inbox, Users, BookMarked, Clock, CalendarRange, BookKey, Settings2, ClipboardCheck, CalendarDays, ChevronRight, ChevronDown, Send, BookA, ShieldUser, Shield, UserPen, UserCheck, UserPlus, DoorOpen } from "lucide-react";
 import { cn } from "../Components/ui/utils";
 import { useState } from "react";
 
@@ -71,6 +71,7 @@ export const allMenuItems: MenuItem[] = [
   { id: "validacion",     label: "Validación de Cuentas", icon: UserCheck,        route: "#/validacion",       permission: "usuarios.validate" },
   { id: "usuarios",       label: "Gestión de Usuarios",   icon: UserPen,          route: "#/usuarios",         permission: "usuarios.manage" },
   { id: "roles",          label: "Roles y Permisos",      icon: Shield,       route: "#/roles",            permission: "roles.manage" },
+  { id: "salones",         label: "Gestión de Salones",    icon: DoorOpen,       route: "#/salones",    permission: "salones.manage" },
   { id: "materias",       label: "Gestión de Materias",   icon: BookMarked,     route: "#/materias",   permission: "materias.manage" },
   { id: "ciclos",         label: "Ciclos Escolares",      icon: CalendarRange,  route: "#/ciclos",           permission: "ciclos.manage" },
   { id: "periodos",       label: "Periodos de Evaluación",icon: BookKey,        route: "#/periodos",         permission: "periodos.manage" },

@@ -160,7 +160,7 @@ export function ControlAsistencia() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={Calendar} title="Control de Asistencia" description="Registra la asistencia de tus alumnos por clase" color="bg-[#059669]" />
+      <PageTitle icon={Calendar} title="Control de Asistencia" description="Registra la asistencia de tus alumnos por clase" color="bg-[#4F46E5]" />
 
       {/* Selectores */}
       <Card className="border-[#E5E7EB]">

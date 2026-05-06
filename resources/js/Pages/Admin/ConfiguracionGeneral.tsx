@@ -93,7 +93,7 @@ export function ConfiguracionGeneral() {
 
   return (
     <div className="space-y-6">
-      <PageTitle icon={Settings2} title="Configuración General" description="Datos del plantel, parámetros académicos y ajustes del sistema" color="bg-[#1D4ED8]" />
+      <PageTitle icon={Settings2} title="Configuración General" description="Datos del plantel, parámetros académicos y ajustes del sistema" color="bg-[#4F46E5]" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Datos del plantel */}

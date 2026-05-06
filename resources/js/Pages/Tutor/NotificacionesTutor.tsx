@@ -110,7 +110,7 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
         icon={Inbox}
         title="Bandeja de Notificaciones"
         description="Buzón de entrada de mensajes y avisos relacionados con el alumno"
-        color="bg-[#059669]"
+        color="bg-[#0891B2]"
       >
         {noLeidas > 0 && (
           <Button variant="outline" onClick={marcarTodasComoLeidas}>

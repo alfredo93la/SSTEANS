@@ -255,7 +255,7 @@ export function ValidacionUsuarios() {
         icon={UserCheck}
         title="Validación de Cuentas"
         description="Aprueba o rechaza las solicitudes de registro de nuevos usuarios"
-        color="bg-[#D97706]"
+        color="bg-[#E11D48]"
       />
 
       {/* Contador */}

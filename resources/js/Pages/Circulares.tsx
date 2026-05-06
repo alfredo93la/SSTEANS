@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
 import { Checkbox } from "../Components/ui/checkbox";
 import { Switch } from "../Components/ui/switch";
-import { FileText, Download, AlertCircle, Info, CheckCircle, Filter, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, X, CalendarDays, TriangleAlert } from "lucide-react";
+import { FileText, Download, AlertCircle, Info, CheckCircle, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, X, CalendarDays, TriangleAlert } from "lucide-react";
 import { PageTitle } from "../Layouts/PageTitle";
 import { ScrollText } from "lucide-react";
 import { toast } from "sonner";
@@ -273,18 +273,7 @@ export function Circulares({ permissions }: CircularesProps) {
   const categorias = ["Académico", "Administrativo", "Becas y Apoyos", "Eventos y Actividades", "Salud y Bienestar", "Seguridad y Convivencia", "General"];
   const prioridades = ["Alta", "Media", "Baja"];
 
-  if (loading) {
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <PageTitle
-          icon={ScrollText}
-          title="Circulares"
-          description="Publica y administra las circulares oficiales de la institución"
-          color="bg-[#1D4ED8]"
-        />
-      </div>
-    );
-  }
+  
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -296,7 +285,7 @@ export function Circulares({ permissions }: CircularesProps) {
             ? "Publica y administra las circulares oficiales de la institución"
             : "Información oficial y avisos de la escuela"
         }
-        color="bg-[#1D4ED8]"
+        color="bg-[#EA580C]"
       >
         {esPublicador && (
           <Button

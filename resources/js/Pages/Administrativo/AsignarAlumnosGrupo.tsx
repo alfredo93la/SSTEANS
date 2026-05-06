@@ -102,7 +102,7 @@ export function AsignarAlumnosGrupo() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={UserPlus} title="Asignar Alumnos a Grupos" description="Asigna alumnos a los grupos del ciclo escolar activo" color="bg-[#7C3AED]" />
+      <PageTitle icon={UserPlus} title="Asignar Alumnos a Grupos" description="Asigna alumnos a los grupos del ciclo escolar activo" color="bg-[#EA580C]" />
 
       {/* Selector de ciclo */}
       {ciclos.length > 0 && (

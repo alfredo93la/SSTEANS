@@ -117,6 +117,22 @@ class ClaseController extends Controller
             return response()->json(['message' => 'El profesor ya tiene una clase asignada en ese horario.'], 422);
         }
 
+        // Conflicto salón (excluyendo la clase actual)
+        if ($validated['salon_id']) {
+            $conflictoSalon = Clase::where('ciclo_escolar_id', $clase->ciclo_escolar_id)
+                ->where('id', '!=', $clase->id)
+                ->where('salon_id', $validated['salon_id'])
+                ->where('dia_semana', $validated['dia_semana'])
+                ->where(function ($q) use ($validated): void {
+                    $q->where('hora_inicio', '<', $validated['hora_fin'])
+                        ->where('hora_fin', '>', $validated['hora_inicio']);
+                })->exists();
+
+            if ($conflictoSalon) {
+                return response()->json(['message' => 'El salón ya está ocupado en ese horario.'], 422);
+            }
+        }
+
         $clase->update($validated);
 
         return response()->json([
