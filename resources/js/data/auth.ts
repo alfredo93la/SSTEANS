@@ -14,7 +14,7 @@ for (const item of allMenuItems) {
   }
 }
 
-// Rutas que no aparecen en el Sidebar (acceso directo por URL o menú de usuario)
+// Rutas que no aparecen en el Sidebar
 const EXTRA_PERMISSIONS: Record<string, string[]> = {
   "#/perfil":           ["dashboard.view"],
   "#/alumnos/perfil/":  ["alumnos.view"],

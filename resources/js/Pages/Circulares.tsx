@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
 import { Checkbox } from "../Components/ui/checkbox";
 import { Switch } from "../Components/ui/switch";
-import { FileText, Download, AlertCircle, Info, CheckCircle, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, X, CalendarDays, TriangleAlert } from "lucide-react";
+import { FileText, Download, AlertCircle, Info, CheckCircle, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, EyeOff, X, CalendarDays, TriangleAlert } from "lucide-react";
 import { PageTitle } from "../Layouts/PageTitle";
 import { ScrollText } from "lucide-react";
 import { toast } from "sonner";
@@ -110,6 +110,9 @@ export function Circulares({ permissions }: CircularesProps) {
 
   // Estado de eliminar
   const [eliminarId, setEliminarId] = useState<number | null>(null);
+
+  // Estado del visor de adjunto PDF
+  const [adjuntoExpandido, setAdjuntoExpandido] = useState<string | null>(null);
 
   const cargarCirculares = async () => {
     try {
@@ -542,7 +545,7 @@ export function Circulares({ permissions }: CircularesProps) {
 
 
       {/* Dialog detalle */}
-      <Dialog open={!!circularSeleccionada} onOpenChange={() => setCircularSeleccionada(null)}>
+      <Dialog open={!!circularSeleccionada} onOpenChange={() => { setCircularSeleccionada(null); setAdjuntoExpandido(null); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -636,20 +639,47 @@ export function Circulares({ permissions }: CircularesProps) {
                       {circularSeleccionada.adjuntos.map((adjunto, index) => {
                         const nombre = nombreArchivo(adjunto);
                         const url = `/api/circulares/${circularSeleccionada.id}/adjuntos/${nombre}`;
+                        const esPdf = nombre.toLowerCase().endsWith(".pdf");
+                        const estaExpandido = adjuntoExpandido === url;
                         return (
-                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-[#E5E7EB]">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-red-50 rounded-lg">
-                                <FileText className="h-4 w-4 text-[#E11D48]" />
+                          <div key={index} className="bg-gray-50 rounded-lg border border-[#E5E7EB] overflow-hidden">
+                            <div className="flex items-center justify-between p-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="p-2 bg-red-50 rounded-lg shrink-0">
+                                  <FileText className="h-4 w-4 text-[#E11D48]" />
+                                </div>
+                                <p className="text-sm font-medium text-[#111827] break-all">{nombre}</p>
                               </div>
-                              <p className="text-sm font-medium text-[#111827] break-all">{nombre}</p>
+                              <div className="flex items-center gap-2 shrink-0 ml-3">
+                                {esPdf && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className={`gap-2 ${estaExpandido ? "bg-blue-50 border-[#1D4ED8] text-[#1D4ED8]" : ""}`}
+                                    onClick={() => setAdjuntoExpandido(estaExpandido ? null : url)}
+                                  >
+                                    {estaExpandido ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    {estaExpandido ? "Ocultar" : "Visualizar"}
+                                  </Button>
+                                )}
+                                <a href={url} download>
+                                  <Button size="sm" variant="outline" className="gap-2">
+                                    <Download className="h-4 w-4" />
+                                    Descargar
+                                  </Button>
+                                </a>
+                              </div>
                             </div>
-                            <a href={url} download>
-                              <Button size="sm" variant="outline" className="gap-2 shrink-0">
-                                <Download className="h-4 w-4" />
-                                Descargar
-                              </Button>
-                            </a>
+                            {esPdf && estaExpandido && (
+                              <div className="border-t border-[#E5E7EB]">
+                                <iframe
+                                  src={url}
+                                  className="w-full"
+                                  style={{ height: "500px" }}
+                                  title={nombre}
+                                />
+                              </div>
+                            )}
                           </div>
                         );
                       })}

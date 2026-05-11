@@ -293,11 +293,11 @@ class UserManagementController extends Controller
     private function tipoPersona(string $roleName): string
     {
         return match ($roleName) {
-            'Profesor'                => 'profesor',
-            'Trabajador Social'       => 'trabajador_social',
-            'Tutor'                   => 'tutor',
-            'Personal Administrativo' => 'administrativo',
-            default                   => 'administrativo',
+            'Profesor'                => 'Profesor',
+            'Trabajador Social'       => 'Trabajador Social',
+            'Tutor'                   => 'Tutor',
+            'Personal Administrativo' => 'Personal Administrativo',
+            default                   => 'Personal Administrativo',
         };
     }
 

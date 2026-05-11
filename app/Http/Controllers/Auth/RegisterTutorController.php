@@ -86,7 +86,7 @@ class RegisterTutorController extends Controller
 
         DB::transaction(function () use ($validated): void {
             $personaTutor = Persona::query()->create([
-                'tipo_persona' => 'tutor',
+                'tipo_persona' => 'Tutor',
                 'nombre'       => $validated['nombre'],
                 'apellidos'    => $validated['apellidos'],
                 'curp'         => strtoupper($validated['curp']),

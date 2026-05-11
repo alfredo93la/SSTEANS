@@ -263,11 +263,17 @@ export function AsignarAlumnosGrupo() {
               {asignaciones.length === 0 ? (
                 <p className="text-sm text-[#6B7280] text-center py-4">Sin alumnos asignados.</p>
               ) : (
-                asignaciones.map((a) => (
+                [...asignaciones].sort((a, b) => {
+                  const ap = a.alumno.persona.apellidos.localeCompare(b.alumno.persona.apellidos, "es");
+                  return ap !== 0 ? ap : a.alumno.persona.nombre.localeCompare(b.alumno.persona.nombre, "es");
+                }).map((a) => (
                   <div key={a.id} className="flex items-center justify-between p-2 rounded-lg border border-[#E5E7EB]">
                     <div className="flex items-center gap-2">
                       <GraduationCap className="h-4 w-4 text-[#7C3AED]" />
-                      <span className="text-sm">{a.alumno.persona.apellidos} {a.alumno.persona.nombre}</span>
+                      <div>
+                        <p className="text-sm font-medium">{a.alumno.persona.apellidos} {a.alumno.persona.nombre}</p>
+                        <p className="text-xs text-[#6B7280]">{a.alumno.persona.curp ?? "Sin CURP"}</p>
+                      </div>
                     </div>
                     <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" onClick={() => handleDarBaja(a.id)}>
                       <Trash2 className="h-3.5 w-3.5" />

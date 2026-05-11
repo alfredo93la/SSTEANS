@@ -110,7 +110,7 @@ export function ResponsiveLayout({
 
   const fetchAgenda = useCallback(() => {
     if (currentRoute === "#/agenda") return;
-    const hasAgenda = permissions.includes("agenda.view") || permissions.includes("agenda.manage");
+    const hasAgenda = permissions.includes("agenda.view");
     if (!hasAgenda) return;
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const next7 = new Date(today); next7.setDate(today.getDate() + 7);
@@ -139,14 +139,6 @@ export function ResponsiveLayout({
           setTareasSinLeer(prev => { if (badge > prev) playBeep(); return badge; });
         })
         .catch(() => {});
-    } else if (permissions.includes("tareas.manage")) {
-      axios.get<{ tareas: { entregadasCount: number; totalAlumnos: number }[] }>("/api/tareas")
-        .then(({ data }) => {
-          const count = (data.tareas ?? []).filter(t => t.entregadasCount < t.totalAlumnos).length;
-          const badge = count > getSeenCount("badge_tareas_seen") ? count : 0;
-          setTareasSinLeer(prev => { if (badge > prev) playBeep(); return badge; });
-        })
-        .catch(() => {});
     }
   }, [currentRoute, userRole, hijoSeleccionado, permissions, playBeep]);
 
@@ -155,19 +147,6 @@ export function ResponsiveLayout({
     if (userRole === "Tutor") {
       if (!hijoSeleccionado) return;
       axios.get<{ reportes: { estatus: string }[] }>(`/api/tutor/reportes-conducta/${hijoSeleccionado}`)
-        .then(({ data }) => {
-          const count = (data.reportes ?? []).filter(r => r.estatus === "Abierto").length;
-          if (onPage) {
-            markAsSeen("badge_reportes_seen", count);
-          } else {
-            const seen = getSeenCount("badge_reportes_seen");
-            const badge = count > seen ? count - seen : 0;
-            setReportesSinLeer(prev => { if (badge > prev) playBeep(); return badge; });
-          }
-        })
-        .catch(() => {});
-    } else if (permissions.includes("reportes.manage") && userRole !== "Trabajador Social") {
-      axios.get<{ reportes: { estatus: string }[] }>("/api/reportes-conducta")
         .then(({ data }) => {
           const count = (data.reportes ?? []).filter(r => r.estatus === "Abierto").length;
           if (onPage) {
@@ -217,10 +196,6 @@ export function ResponsiveLayout({
       if (userRole === "Tutor" && hijoSeleccionado) {
         axios.get<{ tareas: { estadoEntrega: string }[] }>(`/api/tutor/tareas/${hijoSeleccionado}`)
           .then(({ data }) => markAsSeen("badge_tareas_seen", (data.tareas ?? []).filter(t => t.estadoEntrega === "Pendiente").length))
-          .catch(() => {});
-      } else if (permissions.includes("tareas.manage")) {
-        axios.get<{ tareas: { entregadasCount: number; totalAlumnos: number }[] }>("/api/tareas")
-          .then(({ data }) => markAsSeen("badge_tareas_seen", (data.tareas ?? []).filter(t => t.entregadasCount < t.totalAlumnos).length))
           .catch(() => {});
       }
       setTareasSinLeer(0);
@@ -593,8 +568,6 @@ export function ResponsiveLayout({
           </div>
         </main>
       </div>
-
-      {/* <BottomNav currentRoute={currentRoute} onNavigate={onNavigate} userRole={userRole} /> */}
     </div>
   );
 }

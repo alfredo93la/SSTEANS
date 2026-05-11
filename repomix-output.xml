@@ -22128,7 +22128,7 @@ class RegisterTutorController extends Controller
 
         DB::transaction(function () use ($validated): void {
             $personaTutor = Persona::query()->create([
-                'tipo_persona' => 'tutor',
+                'tipo_persona' => 'Tutor',
                 'nombre'       => $validated['nombre'],
                 'apellidos'    => $validated['apellidos'],
                 'curp'         => strtoupper($validated['curp']),
@@ -33021,11 +33021,17 @@ export function AsignarAlumnosGrupo() {
               {asignaciones.length === 0 ? (
                 <p className="text-sm text-[#6B7280] text-center py-4">Sin alumnos asignados.</p>
               ) : (
-                asignaciones.map((a) => (
+                [...asignaciones].sort((a, b) => {
+                  const ap = a.alumno.persona.apellidos.localeCompare(b.alumno.persona.apellidos, "es");
+                  return ap !== 0 ? ap : a.alumno.persona.nombre.localeCompare(b.alumno.persona.nombre, "es");
+                }).map((a) => (
                   <div key={a.id} className="flex items-center justify-between p-2 rounded-lg border border-[#E5E7EB]">
                     <div className="flex items-center gap-2">
                       <GraduationCap className="h-4 w-4 text-[#7C3AED]" />
-                      <span className="text-sm">{a.alumno.persona.apellidos} {a.alumno.persona.nombre}</span>
+                      <div>
+                        <p className="text-sm font-medium">{a.alumno.persona.apellidos} {a.alumno.persona.nombre}</p>
+                        <p className="text-xs text-[#6B7280]">{a.alumno.persona.curp ?? "Sin CURP"}</p>
+                      </div>
                     </div>
                     <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" onClick={() => handleDarBaja(a.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
@@ -34948,7 +34954,7 @@ test('tutor can fetch only assigned students', function () {
     ]);
 
     $personaTutor = Persona::query()->create([
-        'tipo_persona' => 'TUTOR',
+        'tipo_persona' => 'Tutor',
         'nombre' => 'Maria',
         'apellidos' => 'Lopez',
     ]);
@@ -34961,7 +34967,7 @@ test('tutor can fetch only assigned students', function () {
     ]);
 
     $personaAlumno = Persona::query()->create([
-        'tipo_persona' => 'ALUMNO',
+        'tipo_persona' => 'Alumno',
         'nombre' => 'Juan',
         'apellidos' => 'Perez',
     ]);
@@ -43578,7 +43584,7 @@ for (const item of allMenuItems) {
   }
 }
 
-// Rutas que no aparecen en el Sidebar (acceso directo por URL o menú de usuario)
+// Rutas que no aparecen en el Sidebar
 const EXTRA_PERMISSIONS: Record<string, string[]> = {
   "#/perfil":           ["dashboard.view"],
   "#/alumnos/perfil/":  ["alumnos.view"],
@@ -46226,7 +46232,7 @@ export function ResponsiveLayout({
 
   const fetchAgenda = useCallback(() => {
     if (currentRoute === "#/agenda") return;
-    const hasAgenda = permissions.includes("agenda.view") || permissions.includes("agenda.manage");
+    const hasAgenda = permissions.includes("agenda.view");
     if (!hasAgenda) return;
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const next7 = new Date(today); next7.setDate(today.getDate() + 7);
@@ -46255,14 +46261,6 @@ export function ResponsiveLayout({
           setTareasSinLeer(prev => { if (badge > prev) playBeep(); return badge; });
         })
         .catch(() => {});
-    } else if (permissions.includes("tareas.manage")) {
-      axios.get<{ tareas: { entregadasCount: number; totalAlumnos: number }[] }>("/api/tareas")
-        .then(({ data }) => {
-          const count = (data.tareas ?? []).filter(t => t.entregadasCount < t.totalAlumnos).length;
-          const badge = count > getSeenCount("badge_tareas_seen") ? count : 0;
-          setTareasSinLeer(prev => { if (badge > prev) playBeep(); return badge; });
-        })
-        .catch(() => {});
     }
   }, [currentRoute, userRole, hijoSeleccionado, permissions, playBeep]);
 
@@ -46271,19 +46269,6 @@ export function ResponsiveLayout({
     if (userRole === "Tutor") {
       if (!hijoSeleccionado) return;
       axios.get<{ reportes: { estatus: string }[] }>(`/api/tutor/reportes-conducta/${hijoSeleccionado}`)
-        .then(({ data }) => {
-          const count = (data.reportes ?? []).filter(r => r.estatus === "Abierto").length;
-          if (onPage) {
-            markAsSeen("badge_reportes_seen", count);
-          } else {
-            const seen = getSeenCount("badge_reportes_seen");
-            const badge = count > seen ? count - seen : 0;
-            setReportesSinLeer(prev => { if (badge > prev) playBeep(); return badge; });
-          }
-        })
-        .catch(() => {});
-    } else if (permissions.includes("reportes.manage") && userRole !== "Trabajador Social") {
-      axios.get<{ reportes: { estatus: string }[] }>("/api/reportes-conducta")
         .then(({ data }) => {
           const count = (data.reportes ?? []).filter(r => r.estatus === "Abierto").length;
           if (onPage) {
@@ -46333,10 +46318,6 @@ export function ResponsiveLayout({
       if (userRole === "Tutor" && hijoSeleccionado) {
         axios.get<{ tareas: { estadoEntrega: string }[] }>(`/api/tutor/tareas/${hijoSeleccionado}`)
           .then(({ data }) => markAsSeen("badge_tareas_seen", (data.tareas ?? []).filter(t => t.estadoEntrega === "Pendiente").length))
-          .catch(() => {});
-      } else if (permissions.includes("tareas.manage")) {
-        axios.get<{ tareas: { entregadasCount: number; totalAlumnos: number }[] }>("/api/tareas")
-          .then(({ data }) => markAsSeen("badge_tareas_seen", (data.tareas ?? []).filter(t => t.entregadasCount < t.totalAlumnos).length))
           .catch(() => {});
       }
       setTareasSinLeer(0);
@@ -46709,8 +46690,6 @@ export function ResponsiveLayout({
           </div>
         </main>
       </div>
-
-      {/* <BottomNav currentRoute={currentRoute} onNavigate={onNavigate} userRole={userRole} /> */}
     </div>
   );
 }
@@ -47579,11 +47558,11 @@ class UserManagementController extends Controller
     private function tipoPersona(string $roleName): string
     {
         return match ($roleName) {
-            'Profesor'                => 'profesor',
-            'Trabajador Social'       => 'trabajador_social',
-            'Tutor'                   => 'tutor',
-            'Personal Administrativo' => 'administrativo',
-            default                   => 'administrativo',
+            'Profesor'                => 'Profesor',
+            'Trabajador Social'       => 'Trabajador Social',
+            'Tutor'                   => 'Tutor',
+            'Personal Administrativo' => 'Personal Administrativo',
+            default                   => 'Personal Administrativo',
         };
     }
 
@@ -48871,7 +48850,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
 import { Checkbox } from "../Components/ui/checkbox";
 import { Switch } from "../Components/ui/switch";
-import { FileText, Download, AlertCircle, Info, CheckCircle, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, X, CalendarDays, TriangleAlert } from "lucide-react";
+import { FileText, Download, AlertCircle, Info, CheckCircle, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, EyeOff, X, CalendarDays, TriangleAlert } from "lucide-react";
 import { PageTitle } from "../Layouts/PageTitle";
 import { ScrollText } from "lucide-react";
 import { toast } from "sonner";
@@ -48970,6 +48949,9 @@ export function Circulares({ permissions }: CircularesProps) {
 
   // Estado de eliminar
   const [eliminarId, setEliminarId] = useState<number | null>(null);
+
+  // Estado del visor de adjunto PDF
+  const [adjuntoExpandido, setAdjuntoExpandido] = useState<string | null>(null);
 
   const cargarCirculares = async () => {
     try {
@@ -49402,7 +49384,7 @@ export function Circulares({ permissions }: CircularesProps) {
 
 
       {/* Dialog detalle */}
-      <Dialog open={!!circularSeleccionada} onOpenChange={() => setCircularSeleccionada(null)}>
+      <Dialog open={!!circularSeleccionada} onOpenChange={() => { setCircularSeleccionada(null); setAdjuntoExpandido(null); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -49496,20 +49478,47 @@ export function Circulares({ permissions }: CircularesProps) {
                       {circularSeleccionada.adjuntos.map((adjunto, index) => {
                         const nombre = nombreArchivo(adjunto);
                         const url = `/api/circulares/${circularSeleccionada.id}/adjuntos/${nombre}`;
+                        const esPdf = nombre.toLowerCase().endsWith(".pdf");
+                        const estaExpandido = adjuntoExpandido === url;
                         return (
-                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-[#E5E7EB]">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-red-50 rounded-lg">
-                                <FileText className="h-4 w-4 text-[#E11D48]" />
+                          <div key={index} className="bg-gray-50 rounded-lg border border-[#E5E7EB] overflow-hidden">
+                            <div className="flex items-center justify-between p-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="p-2 bg-red-50 rounded-lg shrink-0">
+                                  <FileText className="h-4 w-4 text-[#E11D48]" />
+                                </div>
+                                <p className="text-sm font-medium text-[#111827] break-all">{nombre}</p>
                               </div>
-                              <p className="text-sm font-medium text-[#111827] break-all">{nombre}</p>
+                              <div className="flex items-center gap-2 shrink-0 ml-3">
+                                {esPdf && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className={`gap-2 ${estaExpandido ? "bg-blue-50 border-[#1D4ED8] text-[#1D4ED8]" : ""}`}
+                                    onClick={() => setAdjuntoExpandido(estaExpandido ? null : url)}
+                                  >
+                                    {estaExpandido ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    {estaExpandido ? "Ocultar" : "Visualizar"}
+                                  </Button>
+                                )}
+                                <a href={url} download>
+                                  <Button size="sm" variant="outline" className="gap-2">
+                                    <Download className="h-4 w-4" />
+                                    Descargar
+                                  </Button>
+                                </a>
+                              </div>
                             </div>
-                            <a href={url} download>
-                              <Button size="sm" variant="outline" className="gap-2 shrink-0">
-                                <Download className="h-4 w-4" />
-                                Descargar
-                              </Button>
-                            </a>
+                            {esPdf && estaExpandido && (
+                              <div className="border-t border-[#E5E7EB]">
+                                <iframe
+                                  src={url}
+                                  className="w-full"
+                                  style={{ height: "500px" }}
+                                  title={nombre}
+                                />
+                              </div>
+                            )}
                           </div>
                         );
                       })}

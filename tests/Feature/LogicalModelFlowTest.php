@@ -13,7 +13,7 @@ test('tutor can fetch only assigned students', function () {
     ]);
 
     $personaTutor = Persona::query()->create([
-        'tipo_persona' => 'TUTOR',
+        'tipo_persona' => 'Tutor',
         'nombre' => 'Maria',
         'apellidos' => 'Lopez',
     ]);
@@ -26,7 +26,7 @@ test('tutor can fetch only assigned students', function () {
     ]);
 
     $personaAlumno = Persona::query()->create([
-        'tipo_persona' => 'ALUMNO',
+        'tipo_persona' => 'Alumno',
         'nombre' => 'Juan',
         'apellidos' => 'Perez',
     ]);
