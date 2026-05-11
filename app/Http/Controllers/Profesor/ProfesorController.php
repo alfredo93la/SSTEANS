@@ -86,7 +86,7 @@ class ProfesorController extends Controller
 
         $clases = Clase::where('profesor_user_id', $userId)
             ->when($cicloId, fn ($q) => $q->where('ciclo_escolar_id', $cicloId))
-            ->with(['materia:id,nombre', 'grupo:id,nombre,grado_id', 'grupo.grado:id,numero', 'salon:id,nombre'])
+            ->with(['materia:id,nombre', 'grupo:id,nombre,grado_id', 'grupo.grado:id,numero', 'salon:id,nombre,edificio'])
             ->get()
             ->map(fn ($c) => [
                 'id'         => $c->id,
@@ -99,6 +99,7 @@ class ProfesorController extends Controller
                 'horaInicio' => substr($c->hora_inicio, 0, 5),
                 'horaFin'    => substr($c->hora_fin, 0, 5),
                 'salon'      => $c->salon?->nombre ?? '',
+                'edificio'   => $c->salon?->edificio ?? '',
             ]);
 
         return response()->json(['horario' => $clases]);

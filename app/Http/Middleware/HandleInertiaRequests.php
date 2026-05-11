@@ -37,7 +37,9 @@ class HandleInertiaRequests extends Middleware
 
         if ($user) {
             $user->loadMissing([
-                'persona',
+                'persona.profesor',
+                'persona.trabSocial',
+                'persona.persAdmin',
                 'tutorProfile.alumnos' => fn ($q) => $q->with('persona')->withPivot('parentesco'),
             ]);
         }
@@ -80,11 +82,33 @@ class HandleInertiaRequests extends Middleware
                                 ])->values()->all(),
                             ]
                             : null,
+                        'profesor_profile' => $user->persona?->profesor
+                            ? [
+                                'academia'    => $user->persona->profesor->academia,
+                                'cubiculo'    => $user->persona->profesor->cubiculo,
+                                'hora_entrada' => $user->persona->profesor->hora_entrada,
+                                'hora_salida'  => $user->persona->profesor->hora_salida,
+                            ]
+                            : null,
+                        'trab_social_profile' => $user->persona?->trabSocial
+                            ? [
+                                'hora_entrada' => $user->persona->trabSocial->hora_entrada,
+                                'hora_salida'  => $user->persona->trabSocial->hora_salida,
+                                'extension'    => $user->persona->trabSocial->extension,
+                            ]
+                            : null,
+                        'pers_admin_profile' => $user->persona?->persAdmin
+                            ? [
+                                'cargo'        => $user->persona->persAdmin->cargo,
+                                'departamento' => $user->persona->persAdmin->departamento,
+                                'extension'    => $user->persona->persAdmin->extension,
+                            ]
+                            : null,
                         'permissions' => $user->permissions(),
                     ]
                     : null,
             ],
-            'escuela' => fn () => ConfiguracionEscuela::first()?->only('nombre', 'numero', 'servicio_educativo', 'registro_tutores_activo') ?? ['nombre' => '', 'numero' => '', 'servicio_educativo' => '', 'registro_tutores_activo' => false],
+            'escuela' => fn () => ConfiguracionEscuela::first()?->only('nombre', 'numero', 'servicio_educativo', 'registro_tutores_activo', 'logo_url') ?? ['nombre' => '', 'numero' => '', 'servicio_educativo' => '', 'registro_tutores_activo' => false, 'logo_url' => null],
             'cicloActivo' => fn () => ($c = CicloEscolar::where('activo', true)->first())
                 ? ['id' => $c->id, 'nombre' => $c->nombre, 'fecha_inicio' => $c->fecha_inicio->format('Y-m-d'), 'fecha_fin' => $c->fecha_fin->format('Y-m-d')]
                 : null,

@@ -66,6 +66,17 @@ export default function App() {
   }, [permissions, user, userRole]);
 
   useEffect(() => {
+    const handleClickDismissToast = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-sonner-toast]")) {
+        toast.dismiss();
+      }
+    };
+    document.addEventListener("click", handleClickDismissToast);
+    return () => document.removeEventListener("click", handleClickDismissToast);
+  }, []);
+
+  useEffect(() => {
     const handleHashChange = () => {
       const routeToNavigate = window.location.hash || "#/dashboard";
 

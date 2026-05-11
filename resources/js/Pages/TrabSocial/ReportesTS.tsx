@@ -214,7 +214,7 @@ export function ReportesTS() {
       a.nombre.toLowerCase().includes(q) ||
       a.grupo.toLowerCase().includes(q) ||
       a.curp.toLowerCase().includes(q)
-    );
+    ).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [alumnos, busquedaAlumnoModal]);
 
   const alumnoSeleccionado = useMemo(() =>

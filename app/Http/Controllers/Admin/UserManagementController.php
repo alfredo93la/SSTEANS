@@ -35,8 +35,11 @@ class UserManagementController extends Controller
                 'roles:id,nombre',
                 'persona:id,nombre,apellidos,curp,telefono,direccion,tipo_persona',
                 'persona.tutor:id,persona_id,ocupacion',
+                'persona.tutor.alumnos' => fn ($q) => $q
+                    ->where('estado', 'Pendiente')
+                    ->with('persona:id,nombre,apellidos,curp,fecha_nacimiento,sexo'),
                 'persona.profesor:id,persona_id,academia,cubiculo,hora_entrada,hora_salida',
-                'persona.trabSocial:id,persona_id,horario,extension',
+                'persona.trabSocial:id,persona_id,hora_entrada,hora_salida,extension',
                 'persona.persAdmin:id,persona_id,cargo,departamento,extension',
             ])
             ->where('role', '!=', 'Administrador')
@@ -78,6 +81,20 @@ class UserManagementController extends Controller
                 $user->setAttribute('validated_at', null);
             }
 
+            $alumnosPendientes = [];
+            if ($user->role === 'Tutor' && $user->persona?->tutor) {
+                $alumnosPendientes = $user->persona->tutor->alumnos->map(fn ($a) => [
+                    'id'               => $a->id,
+                    'nombre'           => $a->persona?->nombre,
+                    'apellidos'        => $a->persona?->apellidos,
+                    'curp'             => $a->persona?->curp,
+                    'fecha_nacimiento' => $a->fecha_nacimiento,
+                    'sexo'             => $a->sexo,
+                    'parentesco'       => $a->pivot->parentesco,
+                ])->values()->all();
+            }
+            $user->setAttribute('alumnos_pendientes', $alumnosPendientes);
+
             return $user;
         });
 
@@ -110,7 +127,6 @@ class UserManagementController extends Controller
             'hora_entrada' => ['nullable', 'string', 'max:10'],
             'hora_salida'  => ['nullable', 'string', 'max:10'],
             // Trabajador Social
-            'horario'      => ['nullable', 'string', 'max:100'],
             'extension'    => ['nullable', 'string', 'max:20'],
             // Personal Administrativo
             'cargo'        => ['nullable', 'string', 'max:100'],
@@ -193,7 +209,6 @@ class UserManagementController extends Controller
             'hora_entrada' => ['nullable', 'string', 'max:10'],
             'hora_salida'  => ['nullable', 'string', 'max:10'],
             // Trabajador Social
-            'horario'      => ['nullable', 'string', 'max:100'],
             'extension'    => ['nullable', 'string', 'max:20'],
             // Personal Administrativo
             'cargo'        => ['nullable', 'string', 'max:100'],
@@ -297,7 +312,7 @@ class UserManagementController extends Controller
         $roleMap = [
             'Tutor'                   => [Tutor::class,      ['ocupacion' => $data['ocupacion'] ?? null]],
             'Profesor'                => [Profesor::class,   ['academia' => $data['academia'] ?? null, 'cubiculo' => $data['cubiculo'] ?? null, 'hora_entrada' => $data['hora_entrada'] ?? null, 'hora_salida' => $data['hora_salida'] ?? null]],
-            'Trabajador Social'       => [TrabSocial::class, ['horario' => $data['horario'] ?? null, 'extension' => $data['extension'] ?? null]],
+            'Trabajador Social'       => [TrabSocial::class, ['hora_entrada' => $data['hora_entrada'] ?? null, 'hora_salida' => $data['hora_salida'] ?? null, 'extension' => $data['extension'] ?? null]],
             'Personal Administrativo' => [PersAdmin::class,  ['cargo' => $data['cargo'] ?? null, 'departamento' => $data['departamento'] ?? null, 'extension' => $data['extension'] ?? null]],
         ];
 
@@ -333,7 +348,7 @@ class UserManagementController extends Controller
             'persona:id,nombre,apellidos,curp,telefono,direccion,tipo_persona',
             'persona.tutor:id,persona_id,ocupacion',
             'persona.profesor:id,persona_id,academia,cubiculo,hora_entrada,hora_salida',
-            'persona.trabSocial:id,persona_id,horario,extension',
+            'persona.trabSocial:id,persona_id,hora_entrada,hora_salida,extension',
             'persona.persAdmin:id,persona_id,cargo,departamento,extension',
         ];
     }

@@ -7,7 +7,7 @@ import { Badge } from "../../Components/ui/badge";
 import { Label } from "../../Components/ui/label";
 import { Textarea } from "../../Components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
-import { UserCheck, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Mail, Phone, MapPin, IdCard, Clock } from "lucide-react";
+import { UserCheck, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Mail, Phone, MapPin, IdCard, Clock, GraduationCap } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 
 interface Persona {
@@ -18,8 +18,18 @@ interface Persona {
   direccion: string | null;
   tutor?: { ocupacion: string | null } | null;
   profesor?: { academia: string | null; cubiculo: string | null; hora_entrada: string | null; hora_salida: string | null } | null;
-  trab_social?: { horario: string | null; extension: string | null } | null;
+  trab_social?: { hora_entrada: string | null; hora_salida: string | null; extension: string | null } | null;
   pers_admin?: { cargo: string | null; departamento: string | null; extension: string | null } | null;
+}
+
+interface AlumnoPendiente {
+  id: number;
+  nombre: string | null;
+  apellidos: string | null;
+  curp: string | null;
+  fecha_nacimiento: string | null;
+  sexo: string | null;
+  parentesco: string;
 }
 
 interface UsuarioPendiente {
@@ -29,6 +39,7 @@ interface UsuarioPendiente {
   role: string;
   created_at: string;
   persona: Persona | null;
+  alumnos_pendientes: AlumnoPendiente[];
 }
 
 function formatFecha(dateStr: string): string {
@@ -58,8 +69,9 @@ function DetalleExtra({ persona, role }: { persona: Persona; role: string }) {
 
   if (role === "Trabajador Social" && persona.trab_social) {
     items.push(
-      { label: "Horario",   value: persona.trab_social.horario },
-      { label: "Extensión", value: persona.trab_social.extension },
+      { label: "Hora entrada", value: persona.trab_social.hora_entrada },
+      { label: "Hora salida",  value: persona.trab_social.hora_salida },
+      { label: "Extensión",    value: persona.trab_social.extension },
     );
   }
 
@@ -186,6 +198,34 @@ function TarjetaUsuario({
                 </button>
                 {expandido && <DetalleExtra persona={p} role={usuario.role} />}
               </>
+            )}
+
+            {/* Alumnos vinculados (solo tutores con hijos pendientes) */}
+            {usuario.role === "Tutor" && usuario.alumnos_pendientes?.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-dashed border-[#D1D5DB]">
+                <p className="text-xs font-semibold text-[#374151] flex items-center gap-1.5 mb-2">
+                  <GraduationCap className="h-3.5 w-3.5 text-[#1D4ED8]" />
+                  Alumnos a registrar ({usuario.alumnos_pendientes.length})
+                </p>
+                <div className="space-y-1.5">
+                  {usuario.alumnos_pendientes.map((a) => (
+                    <div key={a.id} className="flex items-center justify-between rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 text-sm">
+                      <div>
+                        <span className="font-medium text-[#111827]">
+                          {a.apellidos} {a.nombre}
+                        </span>
+                        {a.curp && (
+                          <span className="ml-2 text-xs text-[#6B7280] font-mono">{a.curp}</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-[#6B7280] shrink-0 ml-3">{a.parentesco}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-[#6B7280]">
+                  Al aprobar esta cuenta los alumnos quedarán activos automáticamente.
+                </p>
+              </div>
             )}
           </div>
         </div>

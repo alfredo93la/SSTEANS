@@ -62,6 +62,16 @@ class PeriodoEvaluacionController extends Controller
             'fechaFin'    => ['required', 'date', 'after:fechaInicio'],
         ]);
 
+        $ciclo = CicloEscolar::findOrFail($validated['cicloId']);
+
+        if ($validated['fechaInicio'] < $ciclo->fecha_inicio->format('Y-m-d') ||
+            $validated['fechaFin'] > $ciclo->fecha_fin->format('Y-m-d')) {
+            return response()->json([
+                'message' => 'Las fechas del periodo deben estar dentro del ciclo escolar (' .
+                    $ciclo->fecha_inicio->format('d/m/Y') . ' — ' . $ciclo->fecha_fin->format('d/m/Y') . ').',
+            ], 422);
+        }
+
         $periodo = PeriodoEvaluacion::create([
             'ciclo_escolar_id' => $validated['cicloId'],
             'nombre'           => $validated['nombre'],
@@ -82,10 +92,27 @@ class PeriodoEvaluacionController extends Controller
             'fechaFin'    => ['sometimes', 'date'],
         ]);
 
+        $newInicio = $validated['fechaInicio'] ?? $periodo->fecha_inicio->format('Y-m-d');
+        $newFin    = $validated['fechaFin']    ?? $periodo->fecha_fin->format('Y-m-d');
+
+        if ($newFin <= $newInicio) {
+            return response()->json(['message' => 'La fecha de fin debe ser posterior a la fecha de inicio.'], 422);
+        }
+
+        $ciclo = $periodo->cicloEscolar;
+
+        if ($newInicio < $ciclo->fecha_inicio->format('Y-m-d') ||
+            $newFin > $ciclo->fecha_fin->format('Y-m-d')) {
+            return response()->json([
+                'message' => 'Las fechas del periodo deben estar dentro del ciclo escolar (' .
+                    $ciclo->fecha_inicio->format('d/m/Y') . ' — ' . $ciclo->fecha_fin->format('d/m/Y') . ').',
+            ], 422);
+        }
+
         $periodo->update([
             'nombre'       => $validated['nombre'] ?? $periodo->nombre,
-            'fecha_inicio' => $validated['fechaInicio'] ?? $periodo->fecha_inicio,
-            'fecha_fin'    => $validated['fechaFin'] ?? $periodo->fecha_fin,
+            'fecha_inicio' => $newInicio,
+            'fecha_fin'    => $newFin,
         ]);
 
         return response()->json(['periodo' => $this->format($periodo->fresh())]);

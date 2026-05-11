@@ -4,16 +4,10 @@ namespace App\Enums;
 
 enum Parentesco: string
 {
-    case Padre      = 'Padre';
-    case Madre      = 'Madre';
-    case Abuelo     = 'Abuelo';
-    case Abuela     = 'Abuela';
-    case Tio        = 'Tío';
-    case Tia        = 'Tía';
-    case Hermano    = 'Hermano';
-    case Hermana    = 'Hermana';
-    case TutorLegal = 'Tutor legal';
-    case Otro       = 'Otro';
+    case Madre   = 'Madre';
+    case Padre   = 'Padre';
+    case Tutor   = 'Tutor';
+    case Tutora  = 'Tutora';
 
     public static function values(): array
     {

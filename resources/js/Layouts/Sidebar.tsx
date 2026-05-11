@@ -1,4 +1,4 @@
-import { Home, ScrollText, ClipboardList, GraduationCap, CheckCircle2, AlertTriangle, Inbox, Users, BookMarked, Clock, CalendarRange, BookKey, Settings2, ClipboardCheck, CalendarDays, ChevronRight, ChevronDown, Send, BookA, ShieldUser, Shield, UserPen, UserCheck, UserPlus, DoorOpen } from "lucide-react";
+import { Home, ScrollText, ClipboardList, GraduationCap, CheckCircle2, AlertTriangle, Inbox, Users, BookMarked, Clock, CalendarRange, BookKey, Settings2, ClipboardCheck, CalendarDays, ChevronRight, ChevronDown, Send, BookA, ShieldUser, Shield, UserPen, UserCheck, UserPlus, DoorOpen, FilePenLine } from "lucide-react";
 import { cn } from "../Components/ui/utils";
 import { useState } from "react";
 
@@ -6,6 +6,8 @@ interface SidebarProps {
   currentRoute: string;
   onNavigate: (route: string) => void;
   permissions: string[];
+  logoUrl?: string | null;
+  registroTutoresActivo?: boolean;
   circularesSinLeer?: number;
   notifsSinLeer?: number;
   agendaSinLeer?: number;
@@ -54,32 +56,35 @@ export const allMenuItems: MenuItem[] = [
   { id: "calificaciones", label: "Registro de Calificaciones",            icon: BookA,  route: "#/calificaciones", permission: ["calificaciones.manage"] },
   { id: "tareas",         label: "Gestión de Tareas",                    icon: ClipboardList,  route: "#/tareas",         permission: ["tareas.manage"] },
   { id: "asistencia",     label: "Control de Asistencia",                icon: CheckCircle2,   route: "#/asistencia",     permission: ["asistencia.manage"] },
-  { id: "examenes",       label: "Exámenes Programados",      icon: ClipboardCheck, route: "#/examenes",       permission: ["examenes.manage"] },
-  //{ id: "horario",        label: "Horario de Clases",         icon: CalendarRange,   route: "#/horario",        permission: "horario.view" },
+  { id: "examenes",       label: "Programar Exámenes",      icon: ClipboardCheck, route: "#/examenes",       permission: ["examenes.manage"] },
   { id: "reportes",       label: "Reportes de Conducta",      icon: AlertTriangle,  route: "#/reportes",       permission: ["reportes.manage"] },
   { id: "notificaciones", label: "Enviar Notificaciones",     icon: Send,           route: "#/notificaciones", permission: ["notificaciones.manage"] },
   { id: "alumnos",        label: "Listado de Alumnos",    icon: Users,  route: "#/alumnos",    permission: ["alumnos.view"] },
 
   // ── Gestión escolar ───────────────────────────────────────────────────────────
-  { id: "alumnos",         label: "Gestión de Alumnos",       icon: GraduationCap, route: "#/alumnos",          permission: ["alumnos.manage"] },
   { id: "asignar-alumnos", label: "Asignar Alumnos a Grupos", icon: UserPlus,      route: "#/asignar-alumnos",  permission: ["alumnos.manage"] },
+  { id: "alumnos",         label: "Gestión de Alumnos",       icon: GraduationCap, route: "#/alumnos",          permission: ["alumnos.manage"] },
   { id: "tutores",         label: "Gestión de Tutores",       icon: ShieldUser,    route: "#/tutores",          permission: "tutores.manage" },
-  { id: "grupos",          label: "Gestión de Grupos",        icon: Users,         route: "#/grupos",           permission: "grupos.manage" },
   { id: "horarios",        label: "Asignación de Horarios",   icon: Clock,         route: "#/horarios",         permission: "horarios.manage" },
-
+  
+  
   // ── Administración ────────────────────────────────────────────────────────────
   { id: "validacion",     label: "Validación de Cuentas", icon: UserCheck,        route: "#/validacion",       permission: "usuarios.validate" },
-  { id: "usuarios",       label: "Gestión de Usuarios",   icon: UserPen,          route: "#/usuarios",         permission: "usuarios.manage" },
+  { id: "usuarios",       label: "Usuarios",   icon: UserPen,          route: "#/usuarios",         permission: "usuarios.manage" },
   { id: "roles",          label: "Roles y Permisos",      icon: Shield,       route: "#/roles",            permission: "roles.manage" },
-  { id: "salones",         label: "Gestión de Salones",    icon: DoorOpen,       route: "#/salones",    permission: "salones.manage" },
-  { id: "materias",       label: "Gestión de Materias",   icon: BookMarked,     route: "#/materias",   permission: "materias.manage" },
   { id: "ciclos",         label: "Ciclos Escolares",      icon: CalendarRange,  route: "#/ciclos",           permission: "ciclos.manage" },
   { id: "periodos",       label: "Periodos de Evaluación",icon: BookKey,        route: "#/periodos",         permission: "periodos.manage" },
+  { id: "grupos",          label: "Grupos",        icon: Users,         route: "#/grupos",           permission: "grupos.manage" },
+  { id: "materias",       label: "Materias",   icon: BookMarked,     route: "#/materias",   permission: "materias.manage" },
+  { id: "salones",         label: "Salones",    icon: DoorOpen,       route: "#/salones",    permission: "salones.manage" },
   { id: "configuracion",  label: "Configuración General", icon: Settings2,      route: "#/configuracion",    permission: "configuracion.manage" },
 ];
 
-export function Sidebar({ currentRoute, onNavigate, permissions, circularesSinLeer = 0, notifsSinLeer = 0, agendaSinLeer = 0, tareasSinLeer = 0, reportesSinLeer = 0, examenesSinLeer = 0 }: SidebarProps) {
-  const filteredItems = allMenuItems.filter(item => hasAny(permissions, item.permission));
+export function Sidebar({ currentRoute, onNavigate, permissions, logoUrl, registroTutoresActivo = false, circularesSinLeer = 0, notifsSinLeer = 0, agendaSinLeer = 0, tareasSinLeer = 0, reportesSinLeer = 0, examenesSinLeer = 0 }: SidebarProps) {
+  const filteredItems = allMenuItems.filter(item => {
+    if (item.id === "validacion" && !registroTutoresActivo) return false;
+    return hasAny(permissions, item.permission);
+  });
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
   const toggleMenu = (itemId: string) => {
@@ -93,6 +98,11 @@ export function Sidebar({ currentRoute, onNavigate, permissions, circularesSinLe
 
   return (
     <aside className="w-72 bg-linear-to-b from-white to-gray-50/50 border-r border-[#E5E7EB]/60 h-[calc(100vh-4rem)] sticky top-16 backdrop-blur-sm overflow-y-auto">
+      {logoUrl && (
+        <div className="px-4 pt-4 pb-2">
+          <img src={logoUrl} alt="Logo escuela" className="w-full max-h-28 object-contain" />
+        </div>
+      )}
       <nav className="p-4 space-y-2">
         {filteredItems.map((item, index) => {
           const Icon = item.icon;

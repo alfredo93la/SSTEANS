@@ -25,6 +25,7 @@ class ConfiguracionEscuela extends Model
         'acceso_trab_social',
         'acceso_administrativo',
         'registro_tutores_activo',
+        'logo_url',
     ];
 
     protected function casts(): array

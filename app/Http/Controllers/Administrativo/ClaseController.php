@@ -66,6 +66,19 @@ class ClaseController extends Controller
             return response()->json(['message' => 'El profesor ya tiene una clase asignada en ese horario.'], 422);
         }
 
+        // Conflicto: el grupo ya tiene otra clase en ese día/hora
+        $conflictoGrupo = Clase::where('ciclo_escolar_id', $grupo->ciclo_escolar_id)
+            ->where('grupo_id', $validated['grupo_id'])
+            ->where('dia_semana', $validated['dia_semana'])
+            ->where(function ($q) use ($validated): void {
+                $q->where('hora_inicio', '<', $validated['hora_fin'])
+                    ->where('hora_fin', '>', $validated['hora_inicio']);
+            })->exists();
+
+        if ($conflictoGrupo) {
+            return response()->json(['message' => 'El grupo ya tiene una clase asignada en ese horario.'], 422);
+        }
+
         // Conflicto: mismo salón ya ocupado (si se especificó salón)
         if ($validated['salon_id']) {
             $conflictoSalon = Clase::where('ciclo_escolar_id', $grupo->ciclo_escolar_id)
@@ -115,6 +128,20 @@ class ClaseController extends Controller
 
         if ($conflictoProfesor) {
             return response()->json(['message' => 'El profesor ya tiene una clase asignada en ese horario.'], 422);
+        }
+
+        // Conflicto: el grupo ya tiene otra clase en ese día/hora (excluyendo la clase actual)
+        $conflictoGrupo = Clase::where('ciclo_escolar_id', $clase->ciclo_escolar_id)
+            ->where('id', '!=', $clase->id)
+            ->where('grupo_id', $clase->grupo_id)
+            ->where('dia_semana', $validated['dia_semana'])
+            ->where(function ($q) use ($validated): void {
+                $q->where('hora_inicio', '<', $validated['hora_fin'])
+                    ->where('hora_fin', '>', $validated['hora_inicio']);
+            })->exists();
+
+        if ($conflictoGrupo) {
+            return response()->json(['message' => 'El grupo ya tiene una clase asignada en ese horario.'], 422);
         }
 
         // Conflicto salón (excluyendo la clase actual)

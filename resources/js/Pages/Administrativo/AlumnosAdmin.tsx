@@ -48,7 +48,7 @@ const formVacio = { nombre: "", apellidos: "", curp: "", fecha_nacimiento: "", s
 
 type AlumnoForm = typeof formVacio;
 
-const PARENTESCO_OPCIONES = ["Padre", "Madre", "Abuelo", "Abuela", "Tío", "Tía", "Hermano", "Hermana", "Tutor legal", "Otro"];
+const PARENTESCO_OPCIONES = ["Madre", "Padre", "Tutor", "Tutora"];
 
 interface TutorSimple { id: number; nombre: string; apellidos: string; }
 
@@ -337,6 +337,9 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
     const coincideBusqueda = !busqueda || nombre.includes(busqueda.toLowerCase()) || a.persona.curp?.toLowerCase().includes(busqueda.toLowerCase());
     const coincideEstado = filtroEstado === "todos" || a.estado.toLowerCase() === filtroEstado.toLowerCase();
     return coincideBusqueda && coincideEstado;
+  }).sort((a, b) => {
+    const ap = a.persona.apellidos.localeCompare(b.persona.apellidos, "es");
+    return ap !== 0 ? ap : a.persona.nombre.localeCompare(b.persona.nombre, "es");
   });
 
   return (
@@ -529,15 +532,15 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
               {filtered.map((alumno) => {
                 const grupo = grupoActual(alumno);
                 return (
-                  <div key={alumno.id} className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
+                  <div key={alumno.id} className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
-                          <div className="p-2 bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] rounded-lg">
+                          <div className="p-2 bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] rounded-lg shrink-0">
                             <GraduationCap className="h-4 w-4 text-white" />
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-[#111827]">{alumno.persona.nombre} {alumno.persona.apellidos}</h4>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-semibold text-[#111827] truncate">{alumno.persona.nombre} {alumno.persona.apellidos}</h4>
                             <div className="flex items-center gap-2 mt-1 flex-wrap">
                               {grupo && (
                                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{grupo}</Badge>
@@ -549,18 +552,15 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs text-[#6B7280] ml-12">
                           {alumno.persona.telefono && (
-                            <div className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" />{alumno.persona.telefono}
+                            <div className="flex items-center gap-1 min-w-0">
+                              <Phone className="h-3 w-3 shrink-0" /><span className="truncate">{alumno.persona.telefono}</span>
                             </div>
                           )}
                           <div>{alumno.sexo} · {alumno.fecha_nacimiento}</div>
                           {alumno.tutores?.[0] && (
-                            <div className="flex items-center gap-1 sm:col-span-2">
-                              <Users className="h-3 w-3" />
-                              {alumno.tutores[0].persona.nombre} {alumno.tutores[0].persona.apellidos}
-                              {alumno.tutores[0].pivot.parentesco && (
-                                <span className="text-[#9CA3AF]">· {alumno.tutores[0].pivot.parentesco}</span>
-                              )}
+                            <div className="flex items-center gap-1 min-w-0 sm:col-span-2">
+                              <Users className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{alumno.tutores[0].persona.nombre} {alumno.tutores[0].persona.apellidos}{alumno.tutores[0].pivot.parentesco ? ` · ${alumno.tutores[0].pivot.parentesco}` : ""}</span>
                             </div>
                           )}
                         </div>

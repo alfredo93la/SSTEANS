@@ -14,7 +14,8 @@ class TrabSocial extends Model
 
     protected $fillable = [
         'persona_id',
-        'horario',
+        'hora_entrada',
+        'hora_salida',
         'extension',
     ];
 

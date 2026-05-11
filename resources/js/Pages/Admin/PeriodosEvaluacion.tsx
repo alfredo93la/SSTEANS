@@ -13,7 +13,7 @@ import { Plus, BookKey, Pencil, Trash2, CheckCircle, CalendarRange } from "lucid
 import { PageTitle } from "../../Layouts/PageTitle";
 import { toast } from "sonner";
 
-interface CicloData { id: number; nombre: string; }
+interface CicloData { id: number; nombre: string; fecha_inicio: string; fecha_fin: string; }
 interface PeriodoData { id: number; cicloId: number; nombre: string; fechaInicio: string; fechaFin: string; capturaAbierta: boolean; }
 
 export function PeriodosEvaluacion() {
@@ -106,7 +106,14 @@ export function PeriodosEvaluacion() {
   };
 
   const periodosFiltrados = periodos.filter(p => p.cicloId === parseInt(filtroCiclo));
-  const cicloNombre = ciclos.find(c => c.id === parseInt(filtroCiclo))?.nombre ?? "";
+  const cicloSeleccionado = ciclos.find(c => c.id === parseInt(filtroCiclo));
+  const cicloNombre = cicloSeleccionado?.nombre ?? "";
+
+  const dialogCiclo = ciclos.find(c => c.id === parseInt(form.cicloId));
+  const cicloMin = dialogCiclo?.fecha_inicio?.slice(0, 10) ?? "";
+  const cicloMax = dialogCiclo?.fecha_fin?.slice(0, 10) ?? "";
+  const formatCicloFecha = (iso: string) =>
+    iso ? new Date(iso + "T00:00:00").toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) : "";
 
   return (
     <div className="space-y-6">
@@ -223,6 +230,8 @@ export function PeriodosEvaluacion() {
                           id="npFini"
                           type="date"
                           value={form.fechaInicio}
+                          min={cicloMin}
+                          max={form.fechaFin || cicloMax}
                           onChange={(e) => setForm({ ...form, fechaInicio: e.target.value })}
                           className="rounded-lg"
                         />
@@ -233,11 +242,21 @@ export function PeriodosEvaluacion() {
                           id="npFfin"
                           type="date"
                           value={form.fechaFin}
+                          min={form.fechaInicio || cicloMin}
+                          max={cicloMax}
                           onChange={(e) => setForm({ ...form, fechaFin: e.target.value })}
                           className="rounded-lg"
                         />
                       </div>
                     </div>
+                    {cicloMin && cicloMax && (
+                      <p className="text-xs text-[#6B7280]">
+                        Las fechas deben estar dentro del ciclo:{" "}
+                        <span className="font-medium text-[#374151]">
+                          {formatCicloFecha(cicloMin)} — {formatCicloFecha(cicloMax)}
+                        </span>
+                      </p>
+                    )}
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={resetForm} className="rounded-lg">Cancelar</Button>
@@ -260,8 +279,8 @@ export function PeriodosEvaluacion() {
               <p className="text-xs text-[#9CA3AF] mt-1">Crea el primer periodo con el botón "Nuevo periodo"</p>
             </div>
           ) : (
-            <div className="rounded-xl border border-[#E5E7EB] overflow-hidden">
-              <Table>
+            <div className="overflow-x-auto">
+            <Table>
                 <TableHeader>
                   <TableRow className="bg-[#F9FAFB]">
                     <TableHead>Periodo</TableHead>

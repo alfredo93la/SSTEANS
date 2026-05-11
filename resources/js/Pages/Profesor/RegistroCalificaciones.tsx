@@ -198,7 +198,7 @@ export function RegistroCalificaciones() {
       })
       .catch(() => {});
     axios.get("/api/profesor/alumnos", { params: { grupo_id: grupoSeleccionado } })
-      .then(({ data }) => setAlumnosDelGrupo(data.alumnos ?? []))
+      .then(({ data }) => setAlumnosDelGrupo((data.alumnos ?? []).sort((a: AlumnoData, b: AlumnoData) => a.nombre.localeCompare(b.nombre, "es"))))
       .catch(() => {});
   }, [grupoSeleccionado]);
 

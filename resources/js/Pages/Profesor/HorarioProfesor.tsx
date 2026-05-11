@@ -3,8 +3,9 @@ import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "../../Components/ui/card";
 import { Clock, Loader2 } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
+import { colorClase } from "../../lib/horarioColors";
 
-interface ClaseData { id: number; materiaId: number; materia: string | null; clave: string; grupoId: number; grupo: string | null; diaSemana: string; horaInicio: string; horaFin: string; salon: string; }
+interface ClaseData { id: number; materiaId: number; materia: string | null; clave: string; grupoId: number; grupo: string | null; diaSemana: string; horaInicio: string; horaFin: string; salon: string; edificio: string; }
 
 const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"] as const;
 
@@ -50,13 +51,21 @@ export function HorarioDocente() {
                   {clases.length === 0 ? (
                     <p className="text-xs text-[#9CA3AF] text-center py-2">—</p>
                   ) : (
-                    clases.map((clase) => (
-                      <div key={clase.id} className="p-2 bg-purple-50 rounded-lg border border-purple-100">
-                        <p className="text-xs font-semibold text-[#7C3AED] leading-tight">{clase.materia}</p>
-                        <p className="text-xs text-[#6B7280] mt-0.5">{clase.horaInicio}–{clase.horaFin}</p>
-                        {clase.salon && <p className="text-xs text-[#9CA3AF]">{clase.salon}</p>}
-                      </div>
-                    ))
+                    clases.map((clase) => {
+                      const color = colorClase(clase.materiaId, clase.grupoId);
+                      return (
+                        <div key={clase.id} className={`p-2 rounded-lg border ${color.bg} ${color.border}`}>
+                          <p className={`text-xs font-semibold leading-tight ${color.text}`}>{clase.materia}</p>
+                          {clase.grupo && <p className="text-xs text-[#6B7280] font-medium">{clase.grupo}</p>}
+                          <p className="text-xs text-[#6B7280] mt-0.5">{clase.horaInicio}–{clase.horaFin}</p>
+                          {clase.salon && (
+                            <p className="text-xs text-[#9CA3AF]">
+                              {clase.salon}{clase.edificio ? ` (${clase.edificio})` : ""}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
                 </CardContent>
               </Card>

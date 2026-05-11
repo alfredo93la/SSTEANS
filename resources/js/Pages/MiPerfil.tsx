@@ -1,4 +1,4 @@
-import { Briefcase, IdCard, Mail, MapPin, Phone, ShieldCheck, UserRound, Users } from "lucide-react";
+import { BookOpen, Briefcase, Building2, Clock, IdCard, Mail, MapPin, Phone, ShieldCheck, UserRound, Users } from "lucide-react";
 import { PageTitle } from "../Layouts/PageTitle";
 import type { User } from "../types";
 import { Badge } from "../Components/ui/badge";
@@ -197,7 +197,7 @@ export function MyProfile({ user }: MyProfileProps) {
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#6B7280]">Alumnos asignados</p>
                 {user.tutor_profile.alumnos && user.tutor_profile.alumnos.length > 0 ? (
                   <div className="mt-3 space-y-2">
-                    {user.tutor_profile.alumnos.map((alumno) => (
+                    {[...user.tutor_profile.alumnos].sort((a, b) => (a.nombre ?? "").localeCompare(b.nombre ?? "", "es")).map((alumno) => (
                       <div key={alumno.id} className="flex items-center justify-between rounded-xl border border-[#E5E7EB] bg-white px-3 py-2">
                         <span className="text-sm font-medium">{alumno.nombre || `Alumno ${alumno.id}`}</span>
                         {alumno.parentesco && (
@@ -213,12 +213,28 @@ export function MyProfile({ user }: MyProfileProps) {
                 )}
               </div>
             </div>
+          ) : user.role === "Profesor" && user.profesor_profile ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <InfoRow icon={BookOpen} label="Academia" value={user.profesor_profile.academia} />
+              <InfoRow icon={Building2} label="Cubiculo" value={user.profesor_profile.cubiculo} />
+              <InfoRow icon={Clock} label="Hora de entrada" value={user.profesor_profile.hora_entrada} />
+              <InfoRow icon={Clock} label="Hora de salida" value={user.profesor_profile.hora_salida} />
+            </div>
+          ) : user.role === "Trabajador Social" && user.trab_social_profile ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <InfoRow icon={Clock} label="Hora de entrada" value={user.trab_social_profile.hora_entrada} />
+              <InfoRow icon={Clock} label="Hora de salida" value={user.trab_social_profile.hora_salida} />
+              <InfoRow icon={Phone} label="Extension telefonica" value={user.trab_social_profile.extension} />
+            </div>
+          ) : user.pers_admin_profile ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <InfoRow icon={Briefcase} label="Cargo" value={user.pers_admin_profile.cargo} />
+              <InfoRow icon={Building2} label="Departamento" value={user.pers_admin_profile.departamento} />
+              <InfoRow icon={Phone} label="Extension telefonica" value={user.pers_admin_profile.extension} />
+            </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-[#CBD5E1] bg-slate-50 p-6 text-center">
               <p className="text-sm font-medium text-[#111827]">No hay informacion adicional registrada para este rol.</p>
-              <p className="mt-2 text-sm text-[#6B7280]">
-                La vista ya esta preparada para mostrar mas campos cuando el backend incorpore perfiles especificos.
-              </p>
             </div>
           )}
         </CardContent>

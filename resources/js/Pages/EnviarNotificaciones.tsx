@@ -142,7 +142,7 @@ export function Notificaciones() {
       !busquedaAlumno ||
       a.nombre.toLowerCase().includes(busquedaAlumno.toLowerCase()) ||
       (a.grupo ?? "").toLowerCase().includes(busquedaAlumno.toLowerCase())
-    ),
+    ).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     [alumnos, busquedaAlumno]
   );
 

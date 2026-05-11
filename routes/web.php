@@ -24,7 +24,6 @@ use App\Http\Controllers\Administrativo\GrupoController;
 use App\Http\Controllers\Administrativo\SalonController;
 use App\Http\Controllers\Administrativo\TutorAdminController;
 use App\Http\Controllers\Tutor\AssignedStudentsController;
-use App\Http\Controllers\Tutor\SolicitarAlumnoController;
 use App\Http\Controllers\Profesor\ProfesorController;
 use App\Http\Controllers\Profesor\RubroEvaluacionController;
 use App\Http\Controllers\TrabajadorSocial\WorkerSocialController;
@@ -58,8 +57,7 @@ Route::middleware(['auth', 'verified', 'permission:dashboard.view'])->group(func
 Route::middleware(['auth', 'verified', 'permission:dashboard.view'])
     ->prefix('api/tutor')
     ->group(function () {
-        Route::post('/solicitar-alumno',      [SolicitarAlumnoController::class, 'store']);
-        Route::get('/solicitudes-pendientes', [SolicitarAlumnoController::class, 'index']);
+        // solicitar-alumno eliminado: los alumnos se registran junto con el tutor al crear la cuenta
     });
 
 Route::middleware(['auth', 'verified', 'permission:usuarios.manage'])->prefix('admin')->group(function () {
@@ -110,8 +108,10 @@ Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
 Route::middleware(['auth', 'verified', 'permission:configuracion.manage'])
     ->prefix('api/admin')
     ->group(function () {
-        Route::get('/configuracion',  [ConfiguracionEscuelaController::class, 'index']);
-        Route::put('/configuracion',  [ConfiguracionEscuelaController::class, 'update']);
+        Route::get('/configuracion',        [ConfiguracionEscuelaController::class, 'index']);
+        Route::put('/configuracion',        [ConfiguracionEscuelaController::class, 'update']);
+        Route::post('/configuracion/logo',   [ConfiguracionEscuelaController::class, 'uploadLogo']);
+        Route::delete('/configuracion/logo', [ConfiguracionEscuelaController::class, 'deleteLogo']);
 
         Route::get('/ciclos',                         [CicloEscolarController::class, 'index']);
         Route::post('/ciclos',                        [CicloEscolarController::class, 'store']);

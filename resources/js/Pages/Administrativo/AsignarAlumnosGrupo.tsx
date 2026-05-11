@@ -236,6 +236,9 @@ export function AsignarAlumnosGrupo() {
                     const n1 = `${a.persona.nombre} ${a.persona.apellidos}`.toLowerCase();
                     const n2 = `${a.persona.apellidos} ${a.persona.nombre}`.toLowerCase();
                     return n1.includes(q) || n2.includes(q) || (a.persona.curp ?? "").toLowerCase().includes(q);
+                  }).sort((a, b) => {
+                    const ap = a.persona.apellidos.localeCompare(b.persona.apellidos, "es");
+                    return ap !== 0 ? ap : a.persona.nombre.localeCompare(b.persona.nombre, "es");
                   });
                   if (disponibles.length === 0) return (
                     <p className="text-sm text-[#6B7280] text-center py-4">

@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CicloEscolar;
+use App\Models\ConfiguracionEscuela;
+use App\Models\Grado;
+use App\Models\Grupo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +18,10 @@ class CicloEscolarController extends Controller
         $ciclos = CicloEscolar::where('archivado', false)->orderByDesc('fecha_inicio')->get();
 
         return response()->json([
-            'ciclos'       => $ciclos,
-            'ciclo_activo' => $ciclos->firstWhere('activo', true),
+            'ciclos'             => $ciclos,
+            'ciclo_activo'       => $ciclos->firstWhere('activo', true),
+            'grados'             => Grado::orderBy('numero')->get(['id', 'numero', 'descripcion']),
+            'turnos_disponibles' => ConfiguracionEscuela::value('turnos_disponibles') ?? 'matutino',
         ]);
     }
 
@@ -33,22 +38,84 @@ class CicloEscolarController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $turnosDisponibles = ConfiguracionEscuela::value('turnos_disponibles') ?? 'matutino';
+        $tieneAmbos        = $turnosDisponibles === 'ambos';
+
         $validated = $request->validate([
-            'nombre'      => ['required', 'string', 'max:20', 'unique:ciclos_escolares,nombre'],
-            'fecha_inicio' => ['required', 'date'],
-            'fecha_fin'   => ['required', 'date', 'after:fecha_inicio'],
+            'nombre'             => ['required', 'string', 'max:20', 'unique:ciclos_escolares,nombre'],
+            'fecha_inicio'       => ['required', 'date'],
+            'fecha_fin'          => ['required', 'date', 'after:fecha_inicio'],
+            'grupos_matutino'    => ['nullable', 'integer', 'min:0', 'max:13'],
+            'grupos_vespertino'  => ['nullable', 'integer', 'min:0', 'max:13'],
         ]);
 
         $ciclo = CicloEscolar::create([
-            ...$validated,
-            'activo'  => false,
-            'cerrado' => false,
+            'nombre'      => $validated['nombre'],
+            'fecha_inicio' => $validated['fecha_inicio'],
+            'fecha_fin'   => $validated['fecha_fin'],
+            'activo'      => false,
+            'cerrado'     => false,
         ]);
 
+        $cantMat  = ($turnosDisponibles !== 'vespertino') ? (int) ($validated['grupos_matutino'] ?? 0)   : 0;
+        $cantVesp = ($tieneAmbos)                        ? (int) ($validated['grupos_vespertino'] ?? 0) : 0;
+
+        // Si solo es vespertino, usar el campo matutino como cantidad única del turno disponible
+        if ($turnosDisponibles === 'vespertino') {
+            $cantVesp = (int) ($validated['grupos_matutino'] ?? 0);
+        }
+
+        $gruposCreados = 0;
+        if ($cantMat > 0 || $cantVesp > 0) {
+            $gruposCreados = $this->generarGrupos($ciclo, $cantMat, $cantVesp);
+        }
+
+        $msg = 'Ciclo escolar creado correctamente.';
+        if ($gruposCreados > 0) {
+            $msg .= " Se generaron {$gruposCreados} grupos.";
+        }
+
         return response()->json([
-            'message' => 'Ciclo escolar creado correctamente.',
+            'message' => $msg,
             'ciclo'   => $ciclo,
         ], 201);
+    }
+
+    private function generarGrupos(CicloEscolar $ciclo, int $cantMat, int $cantVesp): int
+    {
+        $grados  = Grado::orderBy('numero')->get();
+        $letras  = range('A', 'Z');
+        $creados = 0;
+
+        foreach ($grados as $grado) {
+            for ($i = 0; $i < $cantMat; $i++) {
+                Grupo::firstOrCreate(
+                    [
+                        'ciclo_escolar_id' => $ciclo->id,
+                        'grado_id'         => $grado->id,
+                        'nombre'           => $letras[$i],
+                        'turno'            => 'matutino',
+                    ],
+                    ['capacidad_maxima' => 40]
+                );
+                $creados++;
+            }
+
+            for ($i = 0; $i < $cantVesp; $i++) {
+                Grupo::firstOrCreate(
+                    [
+                        'ciclo_escolar_id' => $ciclo->id,
+                        'grado_id'         => $grado->id,
+                        'nombre'           => $letras[$cantMat + $i],
+                        'turno'            => 'vespertino',
+                    ],
+                    ['capacidad_maxima' => 40]
+                );
+                $creados++;
+            }
+        }
+
+        return $creados;
     }
 
     public function update(Request $request, CicloEscolar $ciclo): JsonResponse

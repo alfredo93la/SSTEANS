@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../Components/ui/ca
 import { CalendarDays, Loader2, Clock } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
+import { colorMateria } from "../../lib/horarioColors";
 
 interface ClaseData { id: number; materiaId: number; materia: string | null; clave: string; diaSemana: string; horaInicio: string; horaFin: string; salon: string; profesor: string; }
 
@@ -63,14 +64,17 @@ export function HorarioTutor({ alumnoId }: HorarioTutorProps) {
                   {clases.length === 0 ? (
                     <p className="text-xs text-[#9CA3AF] text-center py-2">—</p>
                   ) : (
-                    clases.map((clase) => (
-                      <div key={clase.id} className="p-2 bg-blue-50 rounded-lg border border-blue-100">
-                        <p className="text-xs font-semibold text-[#1D4ED8] leading-tight">{clase.materia}</p>
-                        <p className="text-xs text-[#6B7280] mt-0.5">{clase.horaInicio}–{clase.horaFin}</p>
-                        {clase.profesor && <p className="text-xs text-[#6B7280] truncate">{clase.profesor}</p>}
-                        {clase.salon && <p className="text-xs text-[#9CA3AF]">{clase.salon}</p>}
-                      </div>
-                    ))
+                    clases.map((clase) => {
+                      const color = colorMateria(clase.materiaId);
+                      return (
+                        <div key={clase.id} className={`p-2 rounded-lg border ${color.bg} ${color.border}`}>
+                          <p className={`text-xs font-semibold leading-tight ${color.text}`}>{clase.materia}</p>
+                          <p className="text-xs text-[#6B7280] mt-0.5">{clase.horaInicio}–{clase.horaFin}</p>
+                          {clase.profesor && <p className="text-xs text-[#6B7280] truncate">{clase.profesor}</p>}
+                          {clase.salon && <p className="text-xs text-[#9CA3AF]">{clase.salon}</p>}
+                        </div>
+                      );
+                    })
                   )}
                 </CardContent>
               </Card>

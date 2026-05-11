@@ -1,5 +1,6 @@
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { usePage } from "@inertiajs/react";
+import type { PageProps } from "../types";
 import { useEcho } from "@laravel/echo-react";
 import { Menu, X, Bell, User, ChevronDown, Users, IdCard, LogOut, ArrowLeft, Mail, MailOpen, ChevronRight } from "lucide-react";
 import { Sidebar } from "./Sidebar";
@@ -33,14 +34,12 @@ export function ResponsiveLayout({
   hijoSeleccionado,
   onHijoChange,
 }: ResponsiveLayoutProps) {
-  const { escuela, auth } = usePage().props as {
-    escuela: { nombre: string; servicio_educativo: string; numero: string };
-    auth: { user?: { id?: number; permissions?: string[] } };
-  };
+  const { escuela, auth } = usePage<PageProps>().props;
   const permissions = auth?.user?.permissions ?? [];
   const userId = auth?.user?.id ?? 0;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const [hijosDelTutor, setHijosDelTutor] = useState<Hijo[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
   const [circularesSinLeer, setCircularesSinLeer] = useState(0);
@@ -54,6 +53,17 @@ export function ResponsiveLayout({
     fecha: string; leida: boolean; categoria: string; alumno: string | null;
   }[]>([]);
 
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showUserMenu]);
+
   // Helpers para persistir conteos vistos
   const getSeenCount = (key: string) => parseInt(localStorage.getItem(key) ?? "0");
   const markAsSeen  = (key: string, count: number) => localStorage.setItem(key, String(count));
@@ -62,19 +72,41 @@ export function ResponsiveLayout({
 
   // ── Fetch callbacks (llamados por useEffect y por WebSocket) ──────────────
 
+  const playBeep = useCallback(() => {
+    if (userRole !== "Tutor") return;
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } catch {}
+  }, [userRole]);
+
   const fetchCirculares = useCallback(() => {
     if (userRole === "Administrador") return;
     axios.get<{ circulares: { leida: boolean }[] }>("/api/circulares")
-      .then(({ data }) => setCircularesSinLeer((data.circulares ?? []).filter(c => !c.leida).length))
+      .then(({ data }) => {
+        const newCount = (data.circulares ?? []).filter(c => !c.leida).length;
+        setCircularesSinLeer(prev => { if (newCount > prev) playBeep(); return newCount; });
+      })
       .catch(() => {});
-  }, [userRole]);
+  }, [userRole, playBeep]);
 
   const fetchNotificaciones = useCallback(() => {
     if (userRole !== "Tutor") return;
     axios.get<{ notificaciones: { leida: boolean }[] }>("/api/notificaciones")
-      .then(({ data }) => setNotifsSinLeer((data.notificaciones ?? []).filter(n => !n.leida).length))
+      .then(({ data }) => {
+        const newCount = (data.notificaciones ?? []).filter(n => !n.leida).length;
+        setNotifsSinLeer(prev => { if (newCount > prev) playBeep(); return newCount; });
+      })
       .catch(() => {});
-  }, [userRole]);
+  }, [userRole, playBeep]);
 
   const fetchAgenda = useCallback(() => {
     if (currentRoute === "#/agenda") return;
@@ -85,13 +117,16 @@ export function ResponsiveLayout({
     axios.get<{ eventos: { fecha: string; tipo: string }[] }>("/api/agenda/eventos")
       .then(({ data }) => {
         const eventos = data.eventos ?? [];
-        const agendaCount = eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7; }).length;
-        const examenCount = eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7 && TIPOS_EXAMEN.includes(e.tipo); }).length;
-        setAgendaSinLeer(agendaCount > getSeenCount("badge_agenda_seen") ? agendaCount : 0);
-        setExamenesSinLeer(examenCount > getSeenCount("badge_examenes_seen") ? examenCount : 0);
+        const agendaBadge = eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7; }).length > getSeenCount("badge_agenda_seen")
+          ? eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7; }).length : 0;
+        const examenBadge = eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7 && TIPOS_EXAMEN.includes(e.tipo); }).length > getSeenCount("badge_examenes_seen")
+          ? eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7 && TIPOS_EXAMEN.includes(e.tipo); }).length : 0;
+        let beepPlayed = false;
+        setAgendaSinLeer(prev => { if (agendaBadge > prev && !beepPlayed) { beepPlayed = true; playBeep(); } return agendaBadge; });
+        setExamenesSinLeer(prev => { if (examenBadge > prev && !beepPlayed) { beepPlayed = true; playBeep(); } return examenBadge; });
       })
       .catch(() => {});
-  }, [currentRoute, permissions]);
+  }, [currentRoute, permissions, playBeep]);
 
   const fetchTareas = useCallback(() => {
     if (currentRoute === "#/tareas") return;
@@ -100,18 +135,20 @@ export function ResponsiveLayout({
       axios.get<{ tareas: { estadoEntrega: string }[] }>(`/api/tutor/tareas/${hijoSeleccionado}`)
         .then(({ data }) => {
           const count = (data.tareas ?? []).filter(t => t.estadoEntrega === "Pendiente").length;
-          setTareasSinLeer(count > getSeenCount("badge_tareas_seen") ? count : 0);
+          const badge = count > getSeenCount("badge_tareas_seen") ? count : 0;
+          setTareasSinLeer(prev => { if (badge > prev) playBeep(); return badge; });
         })
         .catch(() => {});
     } else if (permissions.includes("tareas.manage")) {
       axios.get<{ tareas: { entregadasCount: number; totalAlumnos: number }[] }>("/api/tareas")
         .then(({ data }) => {
           const count = (data.tareas ?? []).filter(t => t.entregadasCount < t.totalAlumnos).length;
-          setTareasSinLeer(count > getSeenCount("badge_tareas_seen") ? count : 0);
+          const badge = count > getSeenCount("badge_tareas_seen") ? count : 0;
+          setTareasSinLeer(prev => { if (badge > prev) playBeep(); return badge; });
         })
         .catch(() => {});
     }
-  }, [currentRoute, userRole, hijoSeleccionado, permissions]);
+  }, [currentRoute, userRole, hijoSeleccionado, permissions, playBeep]);
 
   const fetchReportes = useCallback(() => {
     const onPage = currentRoute === "#/reportes";
@@ -124,7 +161,8 @@ export function ResponsiveLayout({
             markAsSeen("badge_reportes_seen", count);
           } else {
             const seen = getSeenCount("badge_reportes_seen");
-            setReportesSinLeer(count > seen ? count - seen : 0);
+            const badge = count > seen ? count - seen : 0;
+            setReportesSinLeer(prev => { if (badge > prev) playBeep(); return badge; });
           }
         })
         .catch(() => {});
@@ -136,12 +174,13 @@ export function ResponsiveLayout({
             markAsSeen("badge_reportes_seen", count);
           } else {
             const seen = getSeenCount("badge_reportes_seen");
-            setReportesSinLeer(count > seen ? count - seen : 0);
+            const badge = count > seen ? count - seen : 0;
+            setReportesSinLeer(prev => { if (badge > prev) playBeep(); return badge; });
           }
         })
         .catch(() => {});
     }
-  }, [currentRoute, userRole, hijoSeleccionado, permissions]);
+  }, [currentRoute, userRole, hijoSeleccionado, permissions, playBeep]);
 
   // ── useEffect: fetch en cada cambio de ruta ───────────────────────────────
   useEffect(() => { fetchCirculares(); },    [currentRoute, fetchCirculares]);
@@ -193,10 +232,26 @@ export function ResponsiveLayout({
   }, [currentRoute]);
 
   // ── WebSocket: actualizar badges al recibir evento ────────────────────────
+  const playNotificationSound = () => {
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } catch {}
+  };
+
   useEcho(
     `usuario.${userId}`,
     ".badge.actualizado",
     (data: { seccion: string }) => {
+      if (userRole === "Tutor") playNotificationSound();
       if (data.seccion === "circulares")     fetchCirculares();
       if (data.seccion === "notificaciones") fetchNotificaciones();
       if (data.seccion === "agenda")         fetchAgenda();
@@ -453,7 +508,7 @@ export function ResponsiveLayout({
               </Popover>
             )}
 
-            <div className="relative">
+            <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2 rounded-lg p-2 transition-colors hover:bg-gray-100 sm:gap-3"
@@ -469,9 +524,7 @@ export function ResponsiveLayout({
               </button>
 
               {showUserMenu && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
-                  <div className="absolute right-0 z-20 mt-2 w-48 rounded-xl border border-gray-200 bg-white py-2 shadow-lg">
+                  <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white py-2 shadow-lg">
                     <div className="border-b border-gray-100 px-4 py-2 sm:hidden">
                       <p className="text-sm font-medium text-[#111827]">{userName}</p>
                       <p className="text-xs text-[#6B7280]">{userRole}</p>
@@ -493,7 +546,6 @@ export function ResponsiveLayout({
                       Cerrar sesion
                     </button>
                   </div>
-                </>
               )}
             </div>
           </div>
@@ -502,7 +554,7 @@ export function ResponsiveLayout({
 
       <div className="flex">
         <div className="hidden lg:block">
-          <Sidebar currentRoute={currentRoute} onNavigate={onNavigate} permissions={permissions} circularesSinLeer={circularesSinLeer} notifsSinLeer={notifsSinLeer} agendaSinLeer={agendaSinLeer} tareasSinLeer={tareasSinLeer} reportesSinLeer={reportesSinLeer} examenesSinLeer={examenesSinLeer} />
+          <Sidebar currentRoute={currentRoute} onNavigate={onNavigate} permissions={permissions} logoUrl={escuela.logo_url} registroTutoresActivo={escuela.registro_tutores_activo} circularesSinLeer={circularesSinLeer} notifsSinLeer={notifsSinLeer} agendaSinLeer={agendaSinLeer} tareasSinLeer={tareasSinLeer} reportesSinLeer={reportesSinLeer} examenesSinLeer={examenesSinLeer} />
         </div>
 
         {isMobileMenuOpen && (
@@ -527,7 +579,7 @@ export function ResponsiveLayout({
           </>
         )}
 
-        <main className="flex-1 min-h-[calc(100vh-4rem)]">
+        <main className="flex-1 min-h-[calc(100vh-4rem)] overflow-x-hidden">
           <div className="container mx-auto max-w-7xl p-4 pb-20 sm:p-6 lg:p-8 lg:pb-8">
             {showPageNavigation && (
               <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-[#E5E7EB] bg-white/80 px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">

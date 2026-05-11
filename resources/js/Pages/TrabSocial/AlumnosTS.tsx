@@ -74,7 +74,7 @@ export function AlumnosTS({ onNavigate }: AlumnosTSProps) {
         a.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
         (a.tutor ?? "").toLowerCase().includes(busqueda.toLowerCase());
       return matchCard && matchSelect && matchSearch;
-    });
+    }).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [alumnos, grupoSeleccionadoId, filtroGrupoId, busqueda]);
 
   const verPerfilAlumno = (alumnoId: number) => {

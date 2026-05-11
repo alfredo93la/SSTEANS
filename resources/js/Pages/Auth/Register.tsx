@@ -16,7 +16,7 @@ interface Hijo {
   parentesco: string;
 }
 
-const PARENTESCO_OPCIONES = ["Padre", "Madre", "Abuelo", "Abuela", "Tío", "Tía", "Hermano", "Hermana", "Tutor legal", "Otro"];
+const PARENTESCO_OPCIONES = ["Madre", "Padre", "Tutor", "Tutora"];
 
 const emptyHijo = (): Hijo => ({
   nombre: "",

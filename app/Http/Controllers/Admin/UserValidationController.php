@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Mail\CredencialesUsuario;
+use App\Models\Alumno;
+use App\Models\Tutor;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -77,14 +79,30 @@ class UserValidationController extends Controller
             'must_change_password' => true,
         ]);
 
+        // Activar alumnos pendientes vinculados al tutor
+        $alumnosActivados = 0;
+        if ($user->role === 'Tutor' && $user->persona_id) {
+            $tutor = Tutor::where('persona_id', $user->persona_id)->first();
+            if ($tutor) {
+                $alumnosActivados = Alumno::whereHas('tutores', fn ($q) => $q->where('tutor_id', $tutor->id))
+                    ->where('estado', 'Pendiente')
+                    ->update(['estado' => 'Activo']);
+            }
+        }
+
         try {
             Mail::to($user->email)->send(new CredencialesUsuario($user, $tempPassword));
         } catch (\Throwable $e) {
             Log::error('Error enviando credenciales a ' . $user->email . ': ' . $e->getMessage());
         }
 
+        $msg = "Solicitud aprobada. Se han enviado las credenciales al correo {$user->email}.";
+        if ($alumnosActivados > 0) {
+            $msg .= " Se activaron {$alumnosActivados} alumno(s) vinculado(s).";
+        }
+
         return response()->json([
-            'message' => "Solicitud aprobada. Se han enviado las credenciales al correo {$user->email}.",
+            'message' => $msg,
             'user'    => $user,
         ]);
     }

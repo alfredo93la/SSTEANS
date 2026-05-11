@@ -35,7 +35,7 @@ interface Persona {
   tipo_persona: string | null;
   tutor?: { ocupacion: string | null } | null;
   profesor?: { academia: string | null; cubiculo: string | null; hora_entrada: string | null; hora_salida: string | null } | null;
-  trab_social?: { horario: string | null; extension: string | null } | null;
+  trab_social?: { hora_entrada: string | null; hora_salida: string | null; extension: string | null } | null;
   pers_admin?: { cargo: string | null; departamento: string | null; extension: string | null } | null;
 }
 
@@ -62,7 +62,7 @@ const formVacio = {
   // Profesor
   academia: "", cubiculo: "", hora_entrada: "", hora_salida: "",
   // Trabajador Social
-  horario: "", extension: "",
+  extension: "",
   // Personal Administrativo
   cargo: "", departamento: "",
 };
@@ -127,8 +127,12 @@ function CamposEspecificosRol({ rolNombre, form, setForm }: {
       <>
         {header("Trabajador Social")}
         <div className="space-y-1.5">
-          <Label>Horario</Label>
-          <Input value={form.horario} onChange={(e) => setForm({ ...form, horario: e.target.value })} placeholder="Ej. Lunes a Viernes 8:00-15:00" />
+          <Label>Hora de entrada</Label>
+          <Input type="time" value={form.hora_entrada} onChange={(e) => setForm({ ...form, hora_entrada: e.target.value })} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Hora de salida</Label>
+          <Input type="time" value={form.hora_salida} onChange={(e) => setForm({ ...form, hora_salida: e.target.value })} />
         </div>
         <div className="space-y-1.5">
           <Label>Extensión telefónica</Label>
@@ -179,7 +183,7 @@ function FormUsuario({ form, setForm, roles, isEdit = false }: {
       ...form, rolId,
       ocupacion: "",
       academia: "", cubiculo: "", hora_entrada: "", hora_salida: "",
-      horario: "", extension: "",
+      extension: "",
       cargo: "", departamento: "",
     });
 
@@ -274,7 +278,7 @@ function DetalleEspecificoRol({ usuario }: { usuario: UsuarioItem }) {
       row("Hora salida", p.profesor.hora_salida),
     ];
   } else if (usuario.role === "Trabajador Social" && p.trab_social) {
-    fields = [row("Horario", p.trab_social.horario), row("Extensión", p.trab_social.extension)];
+    fields = [row("Hora entrada", p.trab_social.hora_entrada), row("Hora salida", p.trab_social.hora_salida), row("Extensión", p.trab_social.extension)];
   } else if (usuario.role === "Personal Administrativo" && p.pers_admin) {
     fields = [
       row("Cargo", p.pers_admin.cargo),
@@ -352,7 +356,7 @@ export function Usuarios() {
       case "Profesor":
         return { academia: form.academia || undefined, cubiculo: form.cubiculo || undefined, hora_entrada: form.hora_entrada || undefined, hora_salida: form.hora_salida || undefined };
       case "Trabajador Social":
-        return { horario: form.horario || undefined, extension: form.extension || undefined };
+        return { hora_entrada: form.hora_entrada || undefined, hora_salida: form.hora_salida || undefined, extension: form.extension || undefined };
       case "Personal Administrativo":
         return { cargo: form.cargo || undefined, departamento: form.departamento || undefined, extension: form.extension || undefined };
       default:
@@ -418,9 +422,11 @@ export function Usuarios() {
       ocupacion: p?.tutor?.ocupacion ?? "",
       // Profesor
       academia: p?.profesor?.academia ?? "", cubiculo: p?.profesor?.cubiculo ?? "",
-      hora_entrada: p?.profesor?.hora_entrada ?? "", hora_salida: p?.profesor?.hora_salida ?? "",
+      // Hora entrada/salida compartida entre Profesor y Trabajador Social
+      hora_entrada: p?.profesor?.hora_entrada ?? p?.trab_social?.hora_entrada ?? "",
+      hora_salida: p?.profesor?.hora_salida ?? p?.trab_social?.hora_salida ?? "",
       // Trabajador Social
-      horario: p?.trab_social?.horario ?? "", extension: p?.trab_social?.extension ?? p?.pers_admin?.extension ?? "",
+      extension: p?.trab_social?.extension ?? p?.pers_admin?.extension ?? "",
       // Personal Administrativo
       cargo: p?.pers_admin?.cargo ?? "", departamento: p?.pers_admin?.departamento ?? "",
     });
@@ -532,7 +538,7 @@ export function Usuarios() {
       </Card>
 
       {/* Lista */}
-      <Card className="border-[#E5E7EB]">
+      <Card className="border-[#E5E7EB] overflow-hidden">
         <CardHeader>
           <CardTitle>Usuarios</CardTitle>
           <CardDescription>{users.length} registros</CardDescription>
@@ -552,17 +558,17 @@ export function Usuarios() {
                     <Users className="h-5 w-5 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                       <div>
                         <p className="font-semibold text-[#111827]">
                           {u.persona ? `${u.persona.nombre} ${u.persona.apellidos}` : u.name}
                         </p>
-                        <div className="flex gap-2 mt-1">
+                        <div className="flex flex-wrap gap-2 mt-1">
                           <Badge className={getBadgeRol(u.role)}>{u.role}</Badge>
                           <Badge className={getBadgeEstado(u.status)}>{u.status}</Badge>
                         </div>
                       </div>
-                      <div className="flex gap-1 shrink-0">
+                      <div className="flex flex-wrap gap-1">
                         <Button variant="outline" size="sm" onClick={() => abrirDetalle(u)}>
                           <Eye className="h-4 w-4" />Ver detalle
                         </Button>
@@ -582,14 +588,14 @@ export function Usuarios() {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 mt-2 text-sm text-[#6B7280]">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <Mail className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">{u.email}</span>
                       </div>
                       {u.persona?.telefono && (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <Phone className="h-3.5 w-3.5 shrink-0" />
-                          {u.persona.telefono}
+                          <span className="truncate">{u.persona.telefono}</span>
                         </div>
                       )}
                       <div className="text-xs mt-1">

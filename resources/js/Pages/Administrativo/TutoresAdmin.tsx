@@ -38,7 +38,7 @@ interface Tutor {
   alumnos: AlumnoVinculado[];
 }
 
-const PARENTESCO_OPCIONES = ["Padre", "Madre", "Abuelo", "Abuela", "Tío", "Tía", "Hermano", "Hermana", "Tutor legal", "Otro"];
+const PARENTESCO_OPCIONES = ["Madre", "Padre", "Tutor", "Tutora"];
 
 
 export function TutoresAdmin() {
@@ -202,7 +202,7 @@ export function TutoresAdmin() {
       <Card className="border-[#E5E7EB]">
         <CardHeader>
           <CardTitle>Lista de Tutores</CardTitle>
-          <CardDescription>Tutores y padres de familia registrados por el administrador</CardDescription>
+          <CardDescription>Madres, padres de familia y tutores registrados por el administrador</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -212,38 +212,41 @@ export function TutoresAdmin() {
           ) : (
             <div className="space-y-3">
               {filtered.map((tutor) => (
-                <div key={tutor.id} className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
+                <div key={tutor.id} className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all overflow-hidden">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-purple-100 rounded-lg">
+                        <div className="p-2 bg-purple-100 rounded-lg shrink-0">
                           <UserCircle className="h-4 w-4 text-[#7C3AED]" />
                         </div>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-semibold text-[#111827]">{tutor.persona.nombre} {tutor.persona.apellidos}</h4>
+                            <h4 className="font-semibold text-[#111827] truncate">{tutor.persona.nombre} {tutor.persona.apellidos}</h4>
                             {statusBadge(tutor.persona.user?.status)}
                           </div>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            {tutor.ocupacion && <span className="text-xs text-[#6B7280]">{tutor.ocupacion}</span>}
+                            {tutor.ocupacion && <span className="text-xs text-[#6B7280] truncate">{tutor.ocupacion}</span>}
                           </div>
                         </div>
                       </div>
                       <div className="ml-11 space-y-1">
                         {tutor.persona.user?.email && (
-                          <div className="flex items-center gap-1 text-xs text-[#6B7280]">
-                            <Mail className="h-3 w-3" />{tutor.persona.user.email}
+                          <div className="flex items-center gap-1 text-xs text-[#6B7280] min-w-0">
+                            <Mail className="h-3 w-3 shrink-0" /><span className="truncate">{tutor.persona.user.email}</span>
                           </div>
                         )}
                         {tutor.persona.telefono && (
-                          <div className="flex items-center gap-1 text-xs text-[#6B7280]">
-                            <Phone className="h-3 w-3" />{tutor.persona.telefono}
+                          <div className="flex items-center gap-1 text-xs text-[#6B7280] min-w-0">
+                            <Phone className="h-3 w-3 shrink-0" /><span className="truncate">{tutor.persona.telefono}</span>
                           </div>
                         )}
                         {tutor.alumnos.length > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-[#6B7280]">
-                            <GraduationCap className="h-3 w-3" />
-                            {tutor.alumnos.map((a) => `${a.persona.nombre} ${a.persona.apellidos}`).join(", ")}
+                          <div className="flex items-center gap-1 text-xs text-[#6B7280] min-w-0">
+                            <GraduationCap className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{[...tutor.alumnos].sort((a, b) => {
+                              const ap = a.persona.apellidos.localeCompare(b.persona.apellidos, "es");
+                              return ap !== 0 ? ap : a.persona.nombre.localeCompare(b.persona.nombre, "es");
+                            }).map((a) => `${a.persona.nombre} ${a.persona.apellidos}`).join(", ")}</span>
                           </div>
                         )}
                       </div>
@@ -289,7 +292,10 @@ export function TutoresAdmin() {
                 {tutorSel.alumnos.length === 0 ? (
                   <p className="text-xs text-[#6B7280]">Sin alumnos vinculados.</p>
                 ) : (
-                  tutorSel.alumnos.map((a) => {
+                  [...tutorSel.alumnos].sort((a, b) => {
+                    const ap = a.persona.apellidos.localeCompare(b.persona.apellidos, "es");
+                    return ap !== 0 ? ap : a.persona.nombre.localeCompare(b.persona.nombre, "es");
+                  }).map((a) => {
                     const editando = editandoParentesco?.alumnoId === a.id;
                     return (
                       <div key={a.id} className="p-2 bg-blue-50 rounded-lg mb-1">

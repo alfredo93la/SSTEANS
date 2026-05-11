@@ -1,10 +1,10 @@
-import { FormEventHandler } from "react";
+import { FormEventHandler, useState } from "react";
 import { Head, useForm, Link } from "@inertiajs/react";
 import { Button } from "../../Components/ui/button";
 import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { Alert, AlertDescription } from "../../Components/ui/alert";
-import { AlertCircle, GraduationCap, ArrowRight, CheckCircle2 } from "lucide-react";
+import { AlertCircle, GraduationCap, ArrowRight, CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 interface Props {
   canResetPassword: boolean;
@@ -13,6 +13,7 @@ interface Props {
 }
 
 export default function Login({ canResetPassword, status, canRegister }: Props) {
+  const [showPassword, setShowPassword] = useState(false);
   const { data, setData, post, processing, errors, reset } = useForm({
     email: "",
     password: "",
@@ -88,17 +89,27 @@ export default function Login({ canResetPassword, status, canRegister }: Props) 
 
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                name="password"
-                placeholder="Ingresa tu contraseña"
-                value={data.password}
-                onChange={(e) => setData("password", e.target.value)}
-                className={`h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all ${errors.password ? 'border-red-500' : ''}`}
-                disabled={processing}
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Ingresa tu contraseña"
+                  value={data.password}
+                  onChange={(e) => setData("password", e.target.value)}
+                  className={`h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all pr-12 ${errors.password ? 'border-red-500' : ''}`}
+                  disabled={processing}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
               {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
             </div>
 

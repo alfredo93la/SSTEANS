@@ -25,6 +25,22 @@ export interface User {
             parentesco?: string | null;
         }>;
     } | null;
+    profesor_profile?: {
+        academia?: string | null;
+        cubiculo?: string | null;
+        hora_entrada?: string | null;
+        hora_salida?: string | null;
+    } | null;
+    trab_social_profile?: {
+        hora_entrada?: string | null;
+        hora_salida?: string | null;
+        extension?: string | null;
+    } | null;
+    pers_admin_profile?: {
+        cargo?: string | null;
+        departamento?: string | null;
+        extension?: string | null;
+    } | null;
     permissions: string[];
     email_verified_at?: string;
 }
@@ -39,6 +55,8 @@ export type PageProps<
         nombre: string;
         servicio_educativo: string;
         numero: string;
+        logo_url: string | null;
+        registro_tutores_activo: boolean;
     };
     cicloActivo?: {
         id: number;

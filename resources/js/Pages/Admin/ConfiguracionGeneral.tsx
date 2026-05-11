@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { router } from "@inertiajs/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Input } from "../../Components/ui/input";
@@ -7,7 +8,7 @@ import { Label } from "../../Components/ui/label";
 import { Textarea } from "../../Components/ui/textarea";
 import { Switch } from "../../Components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
-import { School, Settings2, CheckCircle, Loader2 } from "lucide-react";
+import { School, Settings2, CheckCircle, Loader2, Upload, X } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { toast } from "sonner";
 
@@ -28,6 +29,7 @@ interface Config {
   acceso_trab_social: boolean;
   acceso_administrativo: boolean;
   registro_tutores_activo: boolean;
+  logo_url: string | null;
 }
 
 const defaults: Config = {
@@ -47,6 +49,7 @@ const defaults: Config = {
   acceso_trab_social: true,
   acceso_administrativo: true,
   registro_tutores_activo: false,
+  logo_url: null,
 };
 
 export function ConfiguracionGeneral() {
@@ -54,6 +57,7 @@ export function ConfiguracionGeneral() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [guardado, setGuardado] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     axios.get("/api/admin/configuracion")
@@ -80,8 +84,43 @@ export function ConfiguracionGeneral() {
       .finally(() => setSaving(false));
   };
 
-  const set = (field: keyof Config, value: string | boolean | number) =>
+  const set = (field: keyof Config, value: string | boolean | number | null) =>
     setConfig((prev) => ({ ...prev, [field]: value }));
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("logo", file);
+    setUploadingLogo(true);
+    try {
+      const { data } = await axios.post("/api/admin/configuracion/logo", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setConfig((prev) => ({ ...prev, logo_url: data.logo_url }));
+      toast.success("Logo actualizado correctamente.");
+      router.reload({ only: ["escuela"] });
+    } catch {
+      toast.error("No se pudo subir el logo.");
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleEliminarLogo = async () => {
+    setUploadingLogo(true);
+    try {
+      await axios.delete("/api/admin/configuracion/logo");
+      setConfig((prev) => ({ ...prev, logo_url: null }));
+      toast.success("Logo eliminado.");
+      router.reload({ only: ["escuela"] });
+    } catch {
+      toast.error("No se pudo eliminar el logo.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -110,6 +149,40 @@ export function ConfiguracionGeneral() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Logo */}
+            <div className="space-y-2">
+              <Label>Logo de la escuela</Label>
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#E5E7EB] bg-gray-50 overflow-hidden">
+                  {config.logo_url
+                    ? <img src={config.logo_url} alt="Logo" className="h-full w-full object-contain p-1" />
+                    : <span className="text-xs font-bold text-[#9CA3AF]">ESC</span>
+                  }
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} disabled={uploadingLogo} />
+                    <span className={`inline-flex items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-1.5 text-sm font-medium transition-colors ${uploadingLogo ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 cursor-pointer"}`}>
+                      {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      {config.logo_url ? "Cambiar logo" : "Subir logo"}
+                    </span>
+                  </label>
+                  {config.logo_url && (
+                    <button
+                      type="button"
+                      onClick={handleEliminarLogo}
+                      disabled={uploadingLogo}
+                      className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-[#E11D48] transition-colors hover:bg-red-50 disabled:opacity-50"
+                    >
+                      <X className="h-4 w-4" />
+                      Eliminar logo
+                    </button>
+                  )}
+                  <p className="text-xs text-[#9CA3AF]">PNG, JPG, WebP o SVG · máx. 2 MB</p>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="cfgNombre">Nombre de la escuela *</Label>
               <Input

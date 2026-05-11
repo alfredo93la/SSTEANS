@@ -58,7 +58,10 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
 
   const totalAlumnos = alumnos.length;
   const totalGrupos = grupos.length;
-  const sinTutor = alumnos.filter(a => !a.tiene_tutor);
+  const sinTutor = alumnos.filter(a => !a.tiene_tutor).sort((a, b) => {
+    const ap = (a.persona?.apellidos ?? "").localeCompare(b.persona?.apellidos ?? "", "es");
+    return ap !== 0 ? ap : (a.persona?.nombre ?? "").localeCompare(b.persona?.nombre ?? "", "es");
+  });
   const alumnosSinTutor = sinTutor.length;
 
   const pendientesList = [

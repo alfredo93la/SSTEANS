@@ -21,14 +21,22 @@ interface Ciclo {
   archivado: boolean;
 }
 
+interface Grado {
+  id: number;
+  numero: number;
+  descripcion: string;
+}
+
 const formatFecha = (fecha: string) =>
   new Date(fecha).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 
 export function CiclosEscolares() {
   const [ciclos, setCiclos] = useState<Ciclo[]>([]);
+  const [grados, setGrados] = useState<Grado[]>([]);
+  const [turnosDisponibles, setTurnosDisponibles] = useState<"matutino" | "vespertino" | "ambos">("matutino");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [nuevo, setNuevo] = useState({ nombre: "", fecha_inicio: "", fecha_fin: "" });
+  const [nuevo, setNuevo] = useState({ nombre: "", fecha_inicio: "", fecha_fin: "", grupos_matutino: "", grupos_vespertino: "" });
   const [saving, setSaving] = useState(false);
 
   const [modalCerrar, setModalCerrar] = useState(false);
@@ -40,10 +48,16 @@ export function CiclosEscolares() {
   const [cerrando, setCerrando] = useState(false);
   const [alertCerrar, setAlertCerrar] = useState(false);
 
+  const nuevoVacio = { nombre: "", fecha_inicio: "", fecha_fin: "", grupos_matutino: "", grupos_vespertino: "" };
+
   const cargar = () => {
     setLoading(true);
     axios.get("/api/admin/ciclos")
-      .then(({ data }) => setCiclos(data.ciclos))
+      .then(({ data }) => {
+        setCiclos(data.ciclos);
+        if (data.grados)             setGrados(data.grados);
+        if (data.turnos_disponibles) setTurnosDisponibles(data.turnos_disponibles);
+      })
       .catch(() => toast.error("No se pudieron cargar los ciclos."))
       .finally(() => setLoading(false));
   };
@@ -56,12 +70,18 @@ export function CiclosEscolares() {
       return;
     }
     setSaving(true);
-    axios.post("/api/admin/ciclos", nuevo)
+    axios.post("/api/admin/ciclos", {
+      nombre:            nuevo.nombre,
+      fecha_inicio:      nuevo.fecha_inicio,
+      fecha_fin:         nuevo.fecha_fin,
+      grupos_matutino:   nuevo.grupos_matutino   !== "" ? parseInt(nuevo.grupos_matutino)   : undefined,
+      grupos_vespertino: nuevo.grupos_vespertino !== "" ? parseInt(nuevo.grupos_vespertino) : undefined,
+    })
       .then(({ data }) => {
         setCiclos((prev) => [data.ciclo, ...prev]);
         setDialogOpen(false);
-        setNuevo({ nombre: "", fecha_inicio: "", fecha_fin: "" });
-        toast.success("Ciclo escolar creado exitosamente");
+        setNuevo(nuevoVacio);
+        toast.success(data.message ?? "Ciclo escolar creado exitosamente");
       })
       .catch((err) => toast.error(err.response?.data?.message ?? "Error al crear el ciclo."))
       .finally(() => setSaving(false));
@@ -187,7 +207,7 @@ export function CiclosEscolares() {
                 <CardDescription>Solo puede haber un ciclo activo a la vez</CardDescription>
               </div>
             </div>
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setNuevo({ nombre: "", fecha_inicio: "", fecha_fin: "" }); }}>
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setNuevo(nuevoVacio); }}>
               <DialogTrigger asChild>
                 <Button className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white rounded-xl">
                   <Plus className="h-4 w-4 mr-2" />Nuevo ciclo
@@ -232,6 +252,97 @@ export function CiclosEscolares() {
                         className="rounded-lg"
                       />
                     </div>
+                  </div>
+
+                  {/* ── Grupos iniciales ── */}
+                  <div className="border-t pt-4 space-y-3">
+                    <p className="text-sm font-medium text-[#374151]">Grupos iniciales <span className="text-[#9CA3AF] font-normal">(opcional)</span></p>
+                    {turnosDisponibles === "ambos" ? (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="ncGMat" className="text-xs">Grupos matutino</Label>
+                          <Input
+                            id="ncGMat"
+                            type="number"
+                            min={0}
+                            max={13}
+                            value={nuevo.grupos_matutino}
+                            onChange={(e) => setNuevo({ ...nuevo, grupos_matutino: e.target.value })}
+                            placeholder="0"
+                            className="rounded-lg"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="ncGVesp" className="text-xs">Grupos vespertino</Label>
+                          <Input
+                            id="ncGVesp"
+                            type="number"
+                            min={0}
+                            max={13}
+                            value={nuevo.grupos_vespertino}
+                            onChange={(e) => setNuevo({ ...nuevo, grupos_vespertino: e.target.value })}
+                            placeholder="0"
+                            className="rounded-lg"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="ncGGrupos" className="text-xs">
+                          Grupos por grado ({turnosDisponibles})
+                        </Label>
+                        <Input
+                          id="ncGGrupos"
+                          type="number"
+                          min={0}
+                          max={13}
+                          value={nuevo.grupos_matutino}
+                          onChange={(e) => setNuevo({ ...nuevo, grupos_matutino: e.target.value })}
+                          placeholder="0"
+                          className="rounded-lg"
+                        />
+                      </div>
+                    )}
+
+                    {/* Preview */}
+                    {(() => {
+                      const nMat  = parseInt(nuevo.grupos_matutino  || "0") || 0;
+                      const nVesp = parseInt(nuevo.grupos_vespertino || "0") || 0;
+                      const letras = (n: number, offset = 0) =>
+                        Array.from({ length: n }, (_, i) => String.fromCharCode(65 + offset + i));
+
+                      const hayVesp = turnosDisponibles === "ambos"
+                        ? nVesp > 0
+                        : turnosDisponibles === "vespertino" && nMat > 0;
+
+                      const matLetras  = letras(nMat);
+                      const vespLetras = turnosDisponibles === "ambos" ? letras(nVesp, nMat) : letras(nMat);
+                      const total      = (nMat + (turnosDisponibles === "ambos" ? nVesp : 0)) * grados.length;
+
+                      if (nMat === 0 && nVesp === 0) return null;
+
+                      return (
+                        <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs space-y-1.5">
+                          {turnosDisponibles !== "vespertino" && nMat > 0 && (
+                            <p className="text-[#1D4ED8]">
+                              <span className="font-semibold">Matutino:</span>{" "}
+                              {matLetras.join(", ")}
+                            </p>
+                          )}
+                          {hayVesp && (
+                            <p className="text-[#7C3AED]">
+                              <span className="font-semibold">Vespertino:</span>{" "}
+                              {vespLetras.join(", ")}
+                            </p>
+                          )}
+                          {grados.length > 0 && (
+                            <p className="text-[#6B7280] border-t border-blue-100 pt-1.5 mt-1">
+                              {grados.map(g => `${g.numero}°`).join(", ")} → <span className="font-semibold text-[#374151]">{total} grupos en total</span>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
                 <DialogFooter>

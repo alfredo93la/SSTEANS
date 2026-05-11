@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ConfiguracionEscuela;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ConfiguracionEscuelaController extends Controller
@@ -57,6 +58,43 @@ class ConfiguracionEscuelaController extends Controller
         return response()->json([
             'message' => 'Configuración guardada correctamente.',
             'data'    => $config->fresh(),
+        ]);
+    }
+
+    public function deleteLogo(): JsonResponse
+    {
+        $config = ConfiguracionEscuela::firstOrCreate(['id' => 1]);
+
+        if ($config->logo_url) {
+            $storagePath = ltrim(str_replace('/storage', '', $config->logo_url), '/');
+            Storage::disk('public')->delete($storagePath);
+            $config->update(['logo_url' => null]);
+        }
+
+        return response()->json(['message' => 'Logo eliminado correctamente.']);
+    }
+
+    public function uploadLogo(Request $request): JsonResponse
+    {
+        $request->validate([
+            'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
+        ]);
+
+        $config = ConfiguracionEscuela::firstOrCreate(['id' => 1]);
+
+        if ($config->logo_url) {
+            $storagePath = ltrim(str_replace('/storage', '', $config->logo_url), '/');
+            Storage::disk('public')->delete($storagePath);
+        }
+
+        $path = $request->file('logo')->store('logos', 'public');
+        $url  = Storage::disk('public')->url($path);
+
+        $config->update(['logo_url' => $url]);
+
+        return response()->json([
+            'message'  => 'Logo actualizado correctamente.',
+            'logo_url' => $url,
         ]);
     }
 }
