@@ -256,19 +256,6 @@ vite.config.js
 <files>
 This section contains the contents of the repository's files.
 
-<file path="repomix.config.json">
-{
-  "ignore": {
-    "customPatterns": [
-      "repomix-output.xml",
-      "database/schema/**",
-      "resources/js/Components/ui/**",
-      "resources/js/data/mockData.ts"
-    ]
-  }
-}
-</file>
-
 <file path=".editorconfig">
 root = true
 
@@ -370,34 +357,6 @@ VITE_APP_NAME="${APP_NAME}"
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
-</file>
-
-<file path=".gitignore">
-*.log
-.DS_Store
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-/.fleet
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
-/auth.json
-/bootstrap/ssr
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
-Homestead.json
-Homestead.yaml
-Thumbs.db
 </file>
 
 <file path="app/Console/Commands/ConfigurarAdmin.php">
@@ -3937,6 +3896,19 @@ User-agent: *
 Disallow:
 </file>
 
+<file path="repomix.config.json">
+{
+  "ignore": {
+    "customPatterns": [
+      "repomix-output.xml",
+      "database/schema/**",
+      "resources/js/Components/ui/**",
+      "resources/js/data/mockData.ts"
+    ]
+  }
+}
+</file>
+
 <file path="resources/js/bootstrap.ts">
 import axios from 'axios';
 window.axios = axios;
@@ -6383,6 +6355,35 @@ test('that true is true', function () {
     },
     "include": ["resources/js/**/*.ts", "resources/js/**/*.tsx", "resources/js/**/*.d.ts"]
 }
+</file>
+
+<file path=".gitignore">
+*.log
+.DS_Store
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+/.fleet
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/bootstrap/ssr
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+Homestead.json
+Homestead.yaml
+Thumbs.db
+repomix-output.xml
 </file>
 
 <file path="app/Enums/Parentesco.php">
