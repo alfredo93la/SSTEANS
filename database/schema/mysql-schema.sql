@@ -32,9 +32,15 @@ CREATE TABLE `agenda_eventos` (
   `tipo` varchar(255) NOT NULL,
   `grupo` varchar(255) DEFAULT NULL,
   `materia` varchar(255) DEFAULT NULL,
+  `circular_id` bigint(20) unsigned DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  `creado_por_id` bigint(20) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `agenda_eventos_circular_id_foreign` (`circular_id`),
+  KEY `agenda_eventos_creado_por_id_foreign` (`creado_por_id`),
+  CONSTRAINT `agenda_eventos_circular_id_foreign` FOREIGN KEY (`circular_id`) REFERENCES `circulares` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `agenda_eventos_creado_por_id_foreign` FOREIGN KEY (`creado_por_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `alumnos`;
@@ -147,6 +153,7 @@ CREATE TABLE `calificaciones` (
   `ciclo_escolar_id` bigint(20) unsigned NOT NULL,
   `periodo_evaluacion_id` bigint(20) unsigned NOT NULL,
   `promedio` decimal(5,2) DEFAULT NULL,
+  `publicada` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -170,6 +177,7 @@ CREATE TABLE `ciclos_escolares` (
   `fecha_fin` date NOT NULL,
   `activo` tinyint(1) NOT NULL DEFAULT 0,
   `cerrado` tinyint(1) NOT NULL DEFAULT 0,
+  `archivado` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -212,7 +220,7 @@ CREATE TABLE `circulares` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `titulo` varchar(255) NOT NULL,
   `descripcion` varchar(255) NOT NULL,
-  `contenido` text NOT NULL,
+  `contenido` text DEFAULT NULL,
   `categoria` varchar(255) NOT NULL,
   `prioridad` varchar(255) NOT NULL,
   `adjuntos` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`adjuntos`)),
@@ -258,6 +266,7 @@ DROP TABLE IF EXISTS `configuracion_escuela`;
 CREATE TABLE `configuracion_escuela` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `nombre` varchar(255) NOT NULL DEFAULT '',
+  `logo_url` varchar(255) DEFAULT NULL,
   `numero` varchar(255) DEFAULT NULL,
   `cct` varchar(20) DEFAULT NULL,
   `turno_escuela` varchar(255) DEFAULT NULL,
@@ -272,6 +281,7 @@ CREATE TABLE `configuracion_escuela` (
   `acceso_profesor` tinyint(1) NOT NULL DEFAULT 1,
   `acceso_trab_social` tinyint(1) NOT NULL DEFAULT 1,
   `acceso_administrativo` tinyint(1) NOT NULL DEFAULT 1,
+  `registro_tutores_activo` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -390,10 +400,11 @@ CREATE TABLE `notificaciones` (
   `remitente_user_id` bigint(20) unsigned NOT NULL,
   `destinatario_user_id` bigint(20) unsigned NOT NULL,
   `alumno_id` bigint(20) unsigned DEFAULT NULL,
+  `grupo_id` bigint(20) unsigned DEFAULT NULL,
   `titulo` varchar(255) NOT NULL,
   `mensaje` text NOT NULL,
   `tipo` enum('Reporte','Alerta','Recordatorio','Información') NOT NULL DEFAULT 'Información',
-  `categoria` enum('Académico','Administrativo','Evento','Conducta') NOT NULL DEFAULT 'Académico',
+  `categoria` enum('Académico','Asistencia','Conducta','Citatorio','Administrativo','Aviso','Orientación','Evento') NOT NULL,
   `prioridad` enum('Alta','Media','Baja') NOT NULL DEFAULT 'Media',
   `leida` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -402,8 +413,10 @@ CREATE TABLE `notificaciones` (
   KEY `notificaciones_remitente_user_id_foreign` (`remitente_user_id`),
   KEY `notificaciones_destinatario_user_id_foreign` (`destinatario_user_id`),
   KEY `notificaciones_alumno_id_foreign` (`alumno_id`),
+  KEY `notificaciones_grupo_id_foreign` (`grupo_id`),
   CONSTRAINT `notificaciones_alumno_id_foreign` FOREIGN KEY (`alumno_id`) REFERENCES `alumnos` (`id`) ON DELETE SET NULL,
   CONSTRAINT `notificaciones_destinatario_user_id_foreign` FOREIGN KEY (`destinatario_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `notificaciones_grupo_id_foreign` FOREIGN KEY (`grupo_id`) REFERENCES `grupos` (`id`) ON DELETE SET NULL,
   CONSTRAINT `notificaciones_remitente_user_id_foreign` FOREIGN KEY (`remitente_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -672,7 +685,8 @@ DROP TABLE IF EXISTS `trab_sociales`;
 CREATE TABLE `trab_sociales` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `persona_id` bigint(20) unsigned NOT NULL,
-  `horario` varchar(100) DEFAULT NULL,
+  `hora_entrada` time DEFAULT NULL,
+  `hora_salida` time DEFAULT NULL,
   `extension` varchar(20) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -728,6 +742,7 @@ CREATE TABLE `users` (
   `rejection_reason` text DEFAULT NULL,
   `validated_by` bigint(20) unsigned DEFAULT NULL,
   `validated_at` timestamp NULL DEFAULT NULL,
+  `must_change_password` tinyint(1) NOT NULL DEFAULT 0,
   `remember_token` varchar(100) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -774,3 +789,16 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (25,'2026_04_16_052
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (26,'2026_04_16_052018_create_circular_lecturas_table',16);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (27,'2026_04_16_052019_add_adjuntos_to_circulares_table',16);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (28,'2026_04_16_060000_add_fecha_fin_to_agenda_eventos_table',17);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (29,'2024_01_01_000000_create_cache_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (30,'2026_04_16_161847_add_publicada_to_calificaciones_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (31,'2026_04_22_000000_add_circular_id_to_agenda_eventos_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (32,'2026_04_22_000001_make_contenido_nullable_in_circulares_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (33,'2026_04_23_022250_add_archivado_to_ciclos_escolares_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (34,'2026_04_24_000000_add_grupo_id_to_notificaciones_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (35,'2026_04_29_000001_add_must_change_password_to_users_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (36,'2026_04_30_060602_add_creado_por_id_to_agenda_eventos_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (37,'2026_04_30_120000_add_registro_tutores_activo_to_configuracion_escuela_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (38,'2026_05_01_000001_normalizar_parentesco_tutor_alumno',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (39,'2026_05_07_004035_add_logo_url_to_configuracion_escuela_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (40,'2026_05_09_020321_replace_horario_with_hora_entrada_salida_in_trab_sociales_table',19);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (41,'2026_05_11_041145_update_categoria_enum_in_notificaciones_table',20);
