@@ -1,0 +1,10 @@
+{
+  "ignore": {
+    "customPatterns": [
+      "repomix-output.xml",
+      "database/schema/**",
+      "resources/js/Components/ui/**",
+      "resources/js/data/mockData.ts"
+    ]
+  }
+}
