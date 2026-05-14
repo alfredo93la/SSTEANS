@@ -401,6 +401,7 @@ CREATE TABLE `notificaciones` (
   `destinatario_user_id` bigint(20) unsigned NOT NULL,
   `alumno_id` bigint(20) unsigned DEFAULT NULL,
   `grupo_id` bigint(20) unsigned DEFAULT NULL,
+  `grupo_envio` varchar(36) DEFAULT NULL,
   `titulo` varchar(255) NOT NULL,
   `mensaje` text NOT NULL,
   `tipo` enum('Reporte','Alerta','Recordatorio','Información') NOT NULL DEFAULT 'Información',
@@ -414,6 +415,7 @@ CREATE TABLE `notificaciones` (
   KEY `notificaciones_destinatario_user_id_foreign` (`destinatario_user_id`),
   KEY `notificaciones_alumno_id_foreign` (`alumno_id`),
   KEY `notificaciones_grupo_id_foreign` (`grupo_id`),
+  KEY `notificaciones_grupo_envio_index` (`grupo_envio`),
   CONSTRAINT `notificaciones_alumno_id_foreign` FOREIGN KEY (`alumno_id`) REFERENCES `alumnos` (`id`) ON DELETE SET NULL,
   CONSTRAINT `notificaciones_destinatario_user_id_foreign` FOREIGN KEY (`destinatario_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `notificaciones_grupo_id_foreign` FOREIGN KEY (`grupo_id`) REFERENCES `grupos` (`id`) ON DELETE SET NULL,
@@ -666,6 +668,7 @@ CREATE TABLE `tareas` (
   `asignado_por` bigint(20) unsigned NOT NULL,
   `fecha_asignacion` date NOT NULL,
   `fecha_entrega` date NOT NULL,
+  `archivos` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`archivos`)),
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -802,3 +805,5 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (38,'2026_05_01_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (39,'2026_05_07_004035_add_logo_url_to_configuracion_escuela_table',18);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (40,'2026_05_09_020321_replace_horario_with_hora_entrada_salida_in_trab_sociales_table',19);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (41,'2026_05_11_041145_update_categoria_enum_in_notificaciones_table',20);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (42,'2026_05_12_062915_add_grupo_envio_to_notificaciones_table',21);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (43,'2026_05_14_043908_add_archivos_to_tareas_table',22);
