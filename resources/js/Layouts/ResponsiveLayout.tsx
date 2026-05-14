@@ -2,7 +2,7 @@ import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { usePage } from "@inertiajs/react";
 import type { PageProps } from "../types";
 import { useEcho } from "@laravel/echo-react";
-import { Menu, X, Bell, User, ChevronDown, Users, IdCard, LogOut, ArrowLeft, Mail, MailOpen, ChevronRight } from "lucide-react";
+import { Menu, X, Bell, User, ChevronDown, Users, IdCard, LogOut, ArrowLeft, Mail, MailOpen, ChevronRight, AlertTriangle, ClipboardList, ScrollText, CalendarDays, ClipboardCheck } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { canAccessRoute } from "../data/auth";
 import { Button } from "../Components/ui/button";
@@ -22,6 +22,7 @@ interface ResponsiveLayoutProps {
   onLogout: () => void;
   hijoSeleccionado?: number | null;
   onHijoChange?: (hijoId: number | null) => void;
+  onNotifClick?: (notifId: number) => void;
 }
 
 export function ResponsiveLayout({
@@ -33,6 +34,7 @@ export function ResponsiveLayout({
   onLogout,
   hijoSeleccionado,
   onHijoChange,
+  onNotifClick,
 }: ResponsiveLayoutProps) {
   const { escuela, auth } = usePage<PageProps>().props;
   const permissions = auth?.user?.permissions ?? [];
@@ -64,9 +66,9 @@ export function ResponsiveLayout({
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showUserMenu]);
 
-  // Helpers para persistir conteos vistos
-  const getSeenCount = (key: string) => parseInt(localStorage.getItem(key) ?? "0");
-  const markAsSeen  = (key: string, count: number) => localStorage.setItem(key, String(count));
+  // Helpers para persistir conteos vistos (clave por usuario para aislar sesiones)
+  const getSeenCount = (key: string) => parseInt(localStorage.getItem(`${key}_u${userId}`) ?? "0");
+  const markAsSeen  = (key: string, count: number) => localStorage.setItem(`${key}_u${userId}`, String(count));
 
   const TIPOS_EXAMEN = ["Parcial", "Final", "Extraordinario", "Examen"];
 
@@ -108,19 +110,23 @@ export function ResponsiveLayout({
       .catch(() => {});
   }, [userRole, playBeep]);
 
+  const parseLocalDate = (fecha: string) => new Date(fecha + "T00:00:00");
+
   const fetchAgenda = useCallback(() => {
     if (currentRoute === "#/agenda") return;
     const hasAgenda = permissions.includes("agenda.view");
     if (!hasAgenda) return;
+    if (permissions.includes("agenda.manage")) return;
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const next7 = new Date(today); next7.setDate(today.getDate() + 7);
     axios.get<{ eventos: { fecha: string; tipo: string }[] }>("/api/agenda/eventos")
       .then(({ data }) => {
         const eventos = data.eventos ?? [];
-        const agendaBadge = eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7; }).length > getSeenCount("badge_agenda_seen")
-          ? eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7; }).length : 0;
-        const examenBadge = eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7 && TIPOS_EXAMEN.includes(e.tipo); }).length > getSeenCount("badge_examenes_seen")
-          ? eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7 && TIPOS_EXAMEN.includes(e.tipo); }).length : 0;
+        const enRango = (fecha: string) => { const d = parseLocalDate(fecha); return d >= today && d <= next7; };
+        const agendaBadge = eventos.filter(e => enRango(e.fecha)).length > getSeenCount("badge_agenda_seen")
+          ? eventos.filter(e => enRango(e.fecha)).length : 0;
+        const examenBadge = eventos.filter(e => enRango(e.fecha) && TIPOS_EXAMEN.includes(e.tipo)).length > getSeenCount("badge_examenes_seen")
+          ? eventos.filter(e => enRango(e.fecha) && TIPOS_EXAMEN.includes(e.tipo)).length : 0;
         let beepPlayed = false;
         setAgendaSinLeer(prev => { if (agendaBadge > prev && !beepPlayed) { beepPlayed = true; playBeep(); } return agendaBadge; });
         setExamenesSinLeer(prev => { if (examenBadge > prev && !beepPlayed) { beepPlayed = true; playBeep(); } return examenBadge; });
@@ -173,11 +179,12 @@ export function ResponsiveLayout({
     if (currentRoute === "#/agenda") {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const next7 = new Date(today); next7.setDate(today.getDate() + 7);
+      const enRango = (fecha: string) => { const d = new Date(fecha + "T00:00:00"); return d >= today && d <= next7; };
       axios.get<{ eventos: { fecha: string; tipo: string }[] }>("/api/agenda/eventos")
         .then(({ data }) => {
           const eventos = data.eventos ?? [];
-          markAsSeen("badge_agenda_seen", eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7; }).length);
-          markAsSeen("badge_examenes_seen", eventos.filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7 && TIPOS_EXAMEN.includes(e.tipo); }).length);
+          markAsSeen("badge_agenda_seen", eventos.filter(e => enRango(e.fecha)).length);
+          markAsSeen("badge_examenes_seen", eventos.filter(e => enRango(e.fecha) && TIPOS_EXAMEN.includes(e.tipo)).length);
         }).catch(() => {});
       setAgendaSinLeer(0);
       setExamenesSinLeer(0);
@@ -185,9 +192,10 @@ export function ResponsiveLayout({
     if (currentRoute === "#/examenes") {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const next7 = new Date(today); next7.setDate(today.getDate() + 7);
+      const enRango = (fecha: string) => { const d = new Date(fecha + "T00:00:00"); return d >= today && d <= next7; };
       axios.get<{ eventos: { fecha: string; tipo: string }[] }>("/api/agenda/eventos")
         .then(({ data }) => {
-          const count = (data.eventos ?? []).filter(e => { const d = new Date(e.fecha); return d >= today && d <= next7 && TIPOS_EXAMEN.includes(e.tipo); }).length;
+          const count = (data.eventos ?? []).filter(e => enRango(e.fecha) && TIPOS_EXAMEN.includes(e.tipo)).length;
           markAsSeen("badge_examenes_seen", count);
         }).catch(() => {});
       setExamenesSinLeer(0);
@@ -398,9 +406,9 @@ export function ResponsiveLayout({
                 <PopoverTrigger asChild>
                   <button className="relative rounded-lg p-2 transition-colors hover:bg-gray-100" aria-label="Notificaciones">
                     <Bell className="h-5 w-5 text-gray-600" />
-                    {notifsSinLeer > 0 && (
+                    {(notifsSinLeer + reportesSinLeer + tareasSinLeer + circularesSinLeer + agendaSinLeer + examenesSinLeer) > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
-                        {notifsSinLeer > 9 ? "9+" : notifsSinLeer}
+                        {(notifsSinLeer + reportesSinLeer + tareasSinLeer + circularesSinLeer + agendaSinLeer + examenesSinLeer) > 9 ? "9+" : (notifsSinLeer + reportesSinLeer + tareasSinLeer + circularesSinLeer + agendaSinLeer + examenesSinLeer)}
                       </span>
                     )}
                   </button>
@@ -411,23 +419,95 @@ export function ResponsiveLayout({
                   <div className="px-4 py-3 bg-linear-to-r from-[#1D4ED8] to-[#7C3AED] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Bell className="h-4 w-4 text-white" />
-                      <span className="font-semibold text-white text-sm">Notificaciones recientes</span>
+                      <span className="font-semibold text-white text-sm">Actividad reciente</span>
                     </div>
-                    {notifs.filter(n => !n.leida).length > 0 && (
+                    {(notifsSinLeer + reportesSinLeer + tareasSinLeer + circularesSinLeer + agendaSinLeer + examenesSinLeer) > 0 && (
                       <Badge className="bg-white/20 text-white border-0 text-xs">
-                        {notifs.filter(n => !n.leida).length} sin leer
+                        {notifsSinLeer + reportesSinLeer + tareasSinLeer + circularesSinLeer + agendaSinLeer + examenesSinLeer} pendiente(s)
                       </Badge>
                     )}
                   </div>
 
-                  {/* Lista */}
                   <div className="divide-y divide-[#F3F4F6] max-h-105 overflow-y-auto">
-                    {notifs.length === 0 ? (
-                      <div className="py-10 text-center">
-                        <Bell className="h-8 w-8 text-[#D1D5DB] mx-auto mb-2" />
-                        <p className="text-sm text-[#6B7280]">Sin notificaciones recientes</p>
+                    {/* Resumen de badges por sección */}
+                    {reportesSinLeer > 0 && (
+                      <button type="button" onClick={() => { setBellOpen(false); onNavigate("#/reportes"); }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3 items-center bg-red-50/40">
+                        <div className="shrink-0 w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                          <AlertTriangle className="h-4 w-4 text-[#E11D48]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-[#111827]">
+                            {reportesSinLeer === 1 ? "1 nuevo reporte de conducta" : `${reportesSinLeer} nuevos reportes de conducta`}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-[#9CA3AF] shrink-0" />
+                      </button>
+                    )}
+                    {tareasSinLeer > 0 && (
+                      <button type="button" onClick={() => { setBellOpen(false); onNavigate("#/tareas"); }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3 items-center bg-amber-50/40">
+                        <div className="shrink-0 w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                          <ClipboardList className="h-4 w-4 text-[#D97706]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-[#111827]">
+                            {tareasSinLeer === 1 ? "1 tarea pendiente" : `${tareasSinLeer} tareas pendientes`}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-[#9CA3AF] shrink-0" />
+                      </button>
+                    )}
+                    {circularesSinLeer > 0 && (
+                      <button type="button" onClick={() => { setBellOpen(false); onNavigate("#/circulares"); }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3 items-center bg-blue-50/40">
+                        <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <ScrollText className="h-4 w-4 text-[#1D4ED8]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-[#111827]">
+                            {circularesSinLeer === 1 ? "1 circular sin leer" : `${circularesSinLeer} circulares sin leer`}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-[#9CA3AF] shrink-0" />
+                      </button>
+                    )}
+                    {agendaSinLeer > 0 && (
+                      <button type="button" onClick={() => { setBellOpen(false); onNavigate("#/agenda"); }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3 items-center bg-green-50/40">
+                        <div className="shrink-0 w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                          <CalendarDays className="h-4 w-4 text-[#059669]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-[#111827]">
+                            {agendaSinLeer === 1 ? "1 evento próximo" : `${agendaSinLeer} eventos próximos`}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-[#9CA3AF] shrink-0" />
+                      </button>
+                    )}
+                    {examenesSinLeer > 0 && (
+                      <button type="button" onClick={() => { setBellOpen(false); onNavigate("#/examenes"); }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3 items-center bg-purple-50/40">
+                        <div className="shrink-0 w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                          <ClipboardCheck className="h-4 w-4 text-[#7C3AED]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-[#111827]">
+                            {examenesSinLeer === 1 ? "1 examen próximo" : `${examenesSinLeer} exámenes próximos`}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-[#9CA3AF] shrink-0" />
+                      </button>
+                    )}
+
+                    {/* Notificaciones individuales */}
+                    {notifs.length > 0 && (
+                      <div className="px-4 py-2 bg-gray-50">
+                        <span className="text-[10px] font-semibold text-[#6B7280] uppercase tracking-wide">Notificaciones</span>
                       </div>
-                    ) : notifs.map((notif) => (
+                    )}
+                    {notifs.map((notif) => (
                       <button
                         key={notif.id}
                         type="button"
@@ -437,6 +517,9 @@ export function ResponsiveLayout({
                             setNotifs(prev => prev.map(n => n.id === notif.id ? { ...n, leida: true } : n));
                             setNotifsSinLeer(prev => Math.max(0, prev - 1));
                           }
+                          setBellOpen(false);
+                          onNotifClick?.(notif.id);
+                          onNavigate("#/notificaciones");
                         }}
                         className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex gap-3 items-start ${!notif.leida ? "bg-blue-50/60" : ""}`}
                       >
@@ -466,6 +549,13 @@ export function ResponsiveLayout({
                         </div>
                       </button>
                     ))}
+
+                    {notifs.length === 0 && reportesSinLeer === 0 && tareasSinLeer === 0 && circularesSinLeer === 0 && agendaSinLeer === 0 && examenesSinLeer === 0 && (
+                      <div className="py-10 text-center">
+                        <Bell className="h-8 w-8 text-[#D1D5DB] mx-auto mb-2" />
+                        <p className="text-sm text-[#6B7280]">Sin actividad reciente</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Footer */}

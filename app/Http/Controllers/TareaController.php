@@ -12,6 +12,7 @@ use App\Models\TareaEntrega;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class TareaController extends Controller
 {
@@ -58,6 +59,7 @@ class TareaController extends Controller
             'grupo_id'         => ['required', 'integer', 'exists:grupos,id'],
             'fecha_asignacion' => ['required', 'date'],
             'fecha_entrega'    => ['required', 'date', 'after:fecha_asignacion'],
+            'archivos.*'       => ['nullable', 'file', 'max:10240'],
         ]);
 
         $cicloId = CicloEscolar::where('activo', true)->value('id');
@@ -75,14 +77,16 @@ class TareaController extends Controller
             return response()->json(['message' => 'No estás asignado a esta materia en este grupo.'], 403);
         }
 
-        $tarea = DB::transaction(function () use ($validated, $request, $cicloId): Tarea {
+        $archivos = $this->subirArchivos($request);
+
+        $tarea = DB::transaction(function () use ($validated, $request, $cicloId, $archivos): Tarea {
             $tarea = Tarea::create([
                 ...$validated,
                 'ciclo_escolar_id' => $cicloId,
                 'asignado_por'     => $request->user()->id,
+                'archivos'         => $archivos ?: null,
             ]);
 
-            // Crear entregas "Pendiente" para todos los alumnos del grupo
             $alumnoIds = AsignacionGrupo::where('grupo_id', $validated['grupo_id'])
                 ->where('ciclo_escolar_id', $cicloId)
                 ->where('estado', 'activo')
@@ -118,12 +122,24 @@ class TareaController extends Controller
     public function update(Request $request, Tarea $tarea): JsonResponse
     {
         $validated = $request->validate([
-            'titulo'        => ['required', 'string', 'max:255'],
-            'descripcion'   => ['nullable', 'string', 'max:1000'],
-            'fecha_entrega' => ['required', 'date'],
+            'titulo'               => ['required', 'string', 'max:255'],
+            'descripcion'          => ['nullable', 'string', 'max:1000'],
+            'fecha_entrega'        => ['required', 'date'],
+            'archivos.*'           => ['nullable', 'file', 'max:10240'],
+            'archivosExistentes'   => ['nullable', 'array'],
+            'archivosExistentes.*' => ['nullable', 'string'],
         ]);
 
-        $tarea->update($validated);
+        $existentes = $validated['archivosExistentes'] ?? $tarea->archivos ?? [];
+        $nuevos     = $this->subirArchivos($request);
+        $archivos   = array_values(array_merge($existentes, $nuevos));
+
+        $tarea->update([
+            'titulo'        => $validated['titulo'],
+            'descripcion'   => $validated['descripcion'] ?? null,
+            'fecha_entrega' => $validated['fecha_entrega'],
+            'archivos'      => $archivos ?: null,
+        ]);
 
         $this->emitirBadge('tareas', 'tareas.view');
 
@@ -138,6 +154,10 @@ class TareaController extends Controller
      */
     public function destroy(Tarea $tarea): JsonResponse
     {
+        foreach ($tarea->archivos ?? [] as $path) {
+            Storage::disk('public')->delete($path);
+        }
+
         $tarea->delete();
 
         $this->emitirBadge('tareas', 'tareas.view');
@@ -145,7 +165,37 @@ class TareaController extends Controller
         return response()->json(['message' => 'Tarea eliminada.']);
     }
 
+    /**
+     * GET /api/tareas/{tarea}/adjuntos/{archivo}
+     */
+    public function descargarAdjunto(Tarea $tarea, string $archivo): mixed
+    {
+        $ruta = "tareas/{$archivo}";
+
+        if (! in_array($ruta, $tarea->archivos ?? [], true) || ! Storage::disk('public')->exists($ruta)) {
+            abort(404);
+        }
+
+        return response()->download(Storage::disk('public')->path($ruta));
+    }
+
     // ─── Helper ──────────────────────────────────────────────────────────────
+
+    private function subirArchivos(Request $request): array
+    {
+        $paths = [];
+
+        if ($request->hasFile('archivos')) {
+            foreach ($request->file('archivos') as $file) {
+                $path = $file->store('tareas', 'public');
+                if ($path) {
+                    $paths[] = $path;
+                }
+            }
+        }
+
+        return $paths;
+    }
 
     private function formatTarea(Tarea $t): array
     {
@@ -154,16 +204,17 @@ class TareaController extends Controller
             : \Illuminate\Support\Carbon::parse($t->fecha_entrega)->format('d/m/Y');
 
         return [
-            'id'           => $t->id,
-            'titulo'       => $t->titulo,
-            'descripcion'  => $t->descripcion ?? '',
-            'materiaId'    => $t->materia_id,
-            'materia'      => $t->materia?->nombre,
-            'grupoId'      => $t->grupo_id,
-            'grupo'        => $t->grupo ? ($t->grupo->grado ? $t->grupo->grado->numero.'°'.$t->grupo->nombre : $t->grupo->nombre) : null,
-            'fechaEntrega'     => $fechaStr,
-            'entregadasCount'  => (int) ($t->entregadas_count ?? 0),
-            'totalAlumnos'     => (int) ($t->total_alumnos ?? 0),
+            'id'              => $t->id,
+            'titulo'          => $t->titulo,
+            'descripcion'     => $t->descripcion ?? '',
+            'materiaId'       => $t->materia_id,
+            'materia'         => $t->materia?->nombre,
+            'grupoId'         => $t->grupo_id,
+            'grupo'           => $t->grupo ? ($t->grupo->grado ? $t->grupo->grado->numero.'°'.$t->grupo->nombre : $t->grupo->nombre) : null,
+            'fechaEntrega'    => $fechaStr,
+            'entregadasCount' => (int) ($t->entregadas_count ?? 0),
+            'totalAlumnos'    => (int) ($t->total_alumnos ?? 0),
+            'archivos'        => $t->archivos ?? [],
         ];
     }
 
@@ -262,6 +313,7 @@ class TareaController extends Controller
                     'fechaEntrega'        => $fechaStr,
                     'estadoEntrega'       => $entrega?->estado ?? 'Pendiente',
                     'fechaEntregaAlumno'  => $entrega?->fecha_entrega?->format('d/m/Y'),
+                    'archivos'            => $t->archivos ?? [],
                     'entregas'            => [[
                         'alumnoId'     => $alumno->id,
                         'estado'       => $entrega?->estado ?? 'Pendiente',

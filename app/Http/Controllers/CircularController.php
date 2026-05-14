@@ -100,6 +100,7 @@ class CircularController extends Controller
 
         if (! empty($validated['eventoFecha']) && ! empty($validated['eventoTipo'])) {
             $this->sincronizarEvento($circular, $validated);
+            $this->emitirBadge('agenda', 'agenda.view');
         }
 
         $this->emitirBadge('circulares', 'circulares.view');
@@ -148,6 +149,7 @@ class CircularController extends Controller
 
         if (! empty($validated['eventoFecha']) && ! empty($validated['eventoTipo'])) {
             $this->sincronizarEvento($circular, $validated);
+            $this->emitirBadge('agenda', 'agenda.view');
         } else {
             // Si se quitó el vínculo, eliminar el evento asociado
             $circular->evento()->delete();
@@ -184,7 +186,7 @@ class CircularController extends Controller
         return response()->json(['message' => 'Circular marcada como leída.']);
     }
 
-    public function descargarAdjunto(Circular $circular, string $archivo): mixed
+    public function descargarAdjunto(Request $request, Circular $circular, string $archivo): mixed
     {
         $ruta = "circulares/{$archivo}";
 
@@ -192,7 +194,11 @@ class CircularController extends Controller
             abort(404);
         }
 
-        return response()->download(Storage::disk('public')->path($ruta));
+        $path = Storage::disk('public')->path($ruta);
+
+        return $request->boolean('download')
+            ? response()->download($path)
+            : response()->file($path);
     }
 
     private function sincronizarEvento(Circular $circular, array $validated): void

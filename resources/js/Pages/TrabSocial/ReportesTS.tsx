@@ -18,7 +18,8 @@ import {
   XCircle,
   Plus,
   Paperclip,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../../Components/ui/dialog";
 import { PageTitle } from "../../Layouts/PageTitle";
@@ -613,6 +614,7 @@ export function ReportesTS() {
                   Cancelar
                 </Button>
                 <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]" onClick={guardarReporte} disabled={guardando}>
+                  {guardando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {guardando ? "Guardando..." : editandoId ? "Actualizar Reporte" : "Crear Reporte"}
                 </Button>
               </div>

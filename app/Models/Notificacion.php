@@ -14,6 +14,7 @@ class Notificacion extends Model
         'destinatario_user_id',
         'alumno_id',
         'grupo_id',
+        'grupo_envio',
         'titulo',
         'mensaje',
         'tipo',

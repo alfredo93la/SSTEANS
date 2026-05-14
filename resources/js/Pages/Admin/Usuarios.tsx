@@ -9,7 +9,7 @@ import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { Textarea } from "../../Components/ui/textarea";
 import {
-  Users, Search, Filter, Eye, Edit, Plus, UserCog,
+  Users, Search, Filter, Eye, Edit, Plus,
   CheckCircle, XCircle, Trash2, Loader2, Mail, Phone,
   UserPen,
 } from "lucide-react";
@@ -323,6 +323,8 @@ export function Usuarios() {
 
   const [modalValidar, setModalValidar] = useState(false);
   const [modalRechazo, setModalRechazo] = useState(false);
+  const [aprobando, setAprobando] = useState(false);
+  const [rechazando, setRechazando] = useState(false);
   const [motivoRechazo, setMotivoRechazo] = useState("");
 
   const cargar = () => {
@@ -436,19 +438,23 @@ export function Usuarios() {
   const handleValidar = (u: UsuarioItem) => { setUsuarioSel(u); setModalValidar(true); };
 
   const handleAprobar = async (id: number) => {
+    setAprobando(true);
     try {
       await axios.post(`/admin/validar-usuarios/${id}/aprobar`);
       toast.success("Solicitud aprobada"); setModalValidar(false); cargar();
     } catch { toast.error("No se pudo aprobar"); }
+    finally { setAprobando(false); }
   };
 
   const handleConfirmarRechazo = async () => {
     if (!usuarioSel) return;
     if (!motivoRechazo.trim()) { toast.error("Debes indicar el motivo del rechazo."); return; }
+    setRechazando(true);
     try {
       await axios.post(`/admin/validar-usuarios/${usuarioSel.id}/rechazar`, { reason: motivoRechazo });
       toast.success("Solicitud rechazada"); setModalRechazo(false); setModalValidar(false); setMotivoRechazo(""); cargar();
     } catch { toast.error("No se pudo rechazar"); }
+    finally { setRechazando(false); }
   };
 
   const abrirDetalle = (u: UsuarioItem) => { setUsuarioSel(u); setModalDetalle(true); };
@@ -476,7 +482,7 @@ export function Usuarios() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={UserPen} title="Gestión de Usuarios" description="Administra los usuarios y sus permisos del sistema" color="bg-[#1D4ED8]">
+      <PageTitle icon={UserPen} title="Administración de Usuarios" description="Administra los usuarios y sus permisos del sistema" color="bg-[#1D4ED8]">
         <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
           <DialogTrigger asChild>
             <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
@@ -702,8 +708,10 @@ export function Usuarios() {
               <p><strong>Estado actual:</strong> {usuarioSel.status}</p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setModalValidar(false)}>Cerrar</Button>
-                <Button variant="destructive" onClick={() => { setMotivoRechazo(""); setModalRechazo(true); }}>Rechazar</Button>
-                <Button onClick={() => handleAprobar(usuarioSel.id)}>Aprobar</Button>
+                <Button variant="destructive" disabled={aprobando} onClick={() => { setMotivoRechazo(""); setModalRechazo(true); }}>Rechazar</Button>
+                <Button disabled={aprobando} onClick={() => handleAprobar(usuarioSel.id)}>
+                  {aprobando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}Aprobar
+                </Button>
               </DialogFooter>
             </div>
           )}
@@ -720,8 +728,10 @@ export function Usuarios() {
             <Label htmlFor="motivo">Indica el motivo</Label>
             <Textarea id="motivo" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} rows={4} />
             <DialogFooter>
-              <Button variant="outline" onClick={() => setModalRechazo(false)}>Cancelar</Button>
-              <Button variant="destructive" onClick={handleConfirmarRechazo}>Confirmar rechazo</Button>
+              <Button variant="outline" disabled={rechazando} onClick={() => setModalRechazo(false)}>Cancelar</Button>
+              <Button variant="destructive" disabled={rechazando} onClick={handleConfirmarRechazo}>
+                {rechazando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}Confirmar rechazo
+              </Button>
             </DialogFooter>
           </div>
         </DialogContent>

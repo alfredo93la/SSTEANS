@@ -22,6 +22,8 @@ interface NotificacionEnviada {
   titulo: string;
   mensaje: string;
   destinatario: string;
+  totalDestinatarios: number;
+  leidasCount: number;
   alumno: string | null;
   fecha: string;
   estado: string;
@@ -555,7 +557,7 @@ export function Notificaciones() {
                           <User className="h-3 w-3" />
                           <span>{notif.destinatario}</span>
                         </div>
-                        {notif.alumno && (
+                        {notif.alumno && notif.totalDestinatarios === 1 && (
                           <span className="bg-blue-50 text-[#1D4ED8] px-1.5 py-0.5 rounded font-medium">
                             Alumno: {notif.alumno}
                           </span>
@@ -565,6 +567,11 @@ export function Notificaciones() {
                           <span>{notif.categoria}</span>
                         </div>
                         <span>{notif.fecha}</span>
+                        {notif.totalDestinatarios > 1 && (
+                          <span className="text-[#6B7280]">
+                            · {notif.leidasCount}/{notif.totalDestinatarios} leídas
+                          </span>
+                        )}
                       </div>
                     </div>
                     <Badge

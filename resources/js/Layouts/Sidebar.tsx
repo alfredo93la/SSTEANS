@@ -1,4 +1,4 @@
-import { Home, ScrollText, ClipboardList, GraduationCap, CheckCircle2, AlertTriangle, Inbox, Users, BookMarked, Clock, CalendarRange, BookKey, Settings2, ClipboardCheck, CalendarDays, ChevronRight, ChevronDown, Send, BookA, ShieldUser, Shield, UserPen, UserCheck, UserPlus, DoorOpen, FilePenLine } from "lucide-react";
+import { Home, ScrollText, ClipboardList, GraduationCap, CheckCircle2, AlertTriangle, Inbox, Users, BookMarked, Clock, CalendarRange, BookKey, Settings2, ClipboardCheck, CalendarDays, ChevronRight, ChevronDown, Send, BookA, ShieldUser, Shield, UserPen, UserCheck, UserPlus, DoorOpen} from "lucide-react";
 import { cn } from "../Components/ui/utils";
 import { useState } from "react";
 
@@ -44,13 +44,14 @@ export const allMenuItems: MenuItem[] = [
   { id: "circulares",     label: "Circulares",            icon: ScrollText,       route: "#/circulares",   permission: ["circulares.view", "circulares.manage"] },
 
   // ── Módulos Tutor ────────────────────────────────────────────────────────
-  { id: "calificaciones", label: "Calificaciones",            icon: BookA,  route: "#/calificaciones", permission: ["calificaciones.view"] },
-  { id: "tareas",         label: "Tareas",                    icon: ClipboardList,  route: "#/tareas",         permission: ["tareas.view"] },
-  { id: "asistencia",     label: "Asistencia",                icon: CheckCircle2,   route: "#/asistencia",     permission: ["asistencia.view"] },
-  { id: "examenes",       label: "Exámenes Programados",      icon: ClipboardCheck, route: "#/examenes",       permission: ["examenes.view"] },
-  { id: "horario",        label: "Horario de Clases",         icon: Clock,   route: "#/horario",        permission: "horario.view" },
-  { id: "reportes",       label: "Reportes de Conducta",      icon: AlertTriangle,  route: "#/reportes",       permission: ["reportes.view"] },
   { id: "notificaciones", label: "Bandeja de Notificaciones", icon: Inbox,       route: "#/notificaciones", permission: ["notificaciones.view"] },
+  { id: "reportes",       label: "Reportes de Conducta",      icon: AlertTriangle,  route: "#/reportes",       permission: ["reportes.view"] },
+  { id: "tareas",         label: "Tareas",                    icon: ClipboardList,  route: "#/tareas",         permission: ["tareas.view"] },
+  { id: "examenes",       label: "Exámenes Programados",      icon: ClipboardCheck, route: "#/examenes",       permission: ["examenes.view"] },
+  { id: "calificaciones", label: "Calificaciones",            icon: BookA,  route: "#/calificaciones", permission: ["calificaciones.view"] },
+  { id: "asistencia",     label: "Asistencia",                icon: CheckCircle2,   route: "#/asistencia",     permission: ["asistencia.view"] },
+  { id: "horario",        label: "Horario de Clases",         icon: Clock,   route: "#/horario",        permission: "horario.view" },
+  
 
   // ── Módulos Profesor y Trabajador Social ────────────────────────────────────────────────────────
   { id: "calificaciones", label: "Registro de Calificaciones",            icon: BookA,  route: "#/calificaciones", permission: ["calificaciones.manage"] },
@@ -119,7 +120,7 @@ export function Sidebar({ currentRoute, onNavigate, permissions, logoUrl, regist
                   else if (item.route) onNavigate(item.route);
                 }}
                 className={cn(
-                  "w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group relative overflow-hidden",
+                  "w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group relative",
                   isActive
                     ? "text-white shadow-lg shadow-blue-500/20"
                     : hasActiveSubItem
@@ -139,47 +140,51 @@ export function Sidebar({ currentRoute, onNavigate, permissions, logoUrl, regist
                     <Icon className="h-4 w-4" />
                   </div>
                   <span className="font-medium text-sm whitespace-nowrap">{item.label}</span>
+                </div>
+                <div className="flex items-center gap-1.5 relative z-10">
                   {item.id === "agenda" && agendaSinLeer > 0 && (
-                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                    <span className="min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
                       {agendaSinLeer > 9 ? "9+" : agendaSinLeer}
                     </span>
                   )}
                   {item.id === "circulares" && circularesSinLeer > 0 && (
-                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                    <span className="min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
                       {circularesSinLeer > 9 ? "9+" : circularesSinLeer}
                     </span>
                   )}
                   {item.id === "examenes" && examenesSinLeer > 0 && (
-                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                    <span className="min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
                       {examenesSinLeer > 9 ? "9+" : examenesSinLeer}
                     </span>
                   )}
                   {item.id === "tareas" && tareasSinLeer > 0 && (
-                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                    <span className="min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
                       {tareasSinLeer > 9 ? "9+" : tareasSinLeer}
                     </span>
                   )}
                   {item.id === "reportes" && reportesSinLeer > 0 && (
-                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                    <span className="min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
                       {reportesSinLeer > 9 ? "9+" : reportesSinLeer}
                     </span>
                   )}
                   {item.id === "notificaciones" && notifsSinLeer > 0 && (
-                    <span className="ml-auto mr-1 min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                    <span className="min-w-5 h-5 bg-[#E11D48] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
                       {notifsSinLeer > 9 ? "9+" : notifsSinLeer}
                     </span>
                   )}
+                  {hasSubItems ? (
+                    <ChevronDown className={cn("h-4 w-4 transition-all duration-200", isExpanded && "rotate-180")} />
+                  ) : (
+                    <ChevronRight className={cn(
+                      "h-4 w-4 transition-all duration-200",
+                      isActive ? "opacity-100" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
+                    )} />
+                  )}
                 </div>
-                {hasSubItems ? (
-                  <ChevronDown className={cn("h-4 w-4 transition-all duration-200", isExpanded && "rotate-180")} />
-                ) : (
-                  <ChevronRight className={cn(
-                    "h-4 w-4 transition-all duration-200",
-                    isActive ? "opacity-100" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
-                  )} />
-                )}
                 {!isActive && !hasActiveSubItem && (
-                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/50 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
+                  <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none">
+                    <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/50 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
+                  </div>
                 )}
               </button>
 

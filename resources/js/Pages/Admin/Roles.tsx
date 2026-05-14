@@ -55,6 +55,7 @@ export function Roles() {
   const [editarNombre, setEditarNombre] = useState("");
   const [editarDescripcion, setEditarDescripcion] = useState("");
   const [editarPermisos, setEditarPermisos] = useState<number[]>([]);
+  const [eliminando, setEliminando] = useState<number | null>(null);
 
   const cargarRoles = async () => {
     setLoading(true);
@@ -154,12 +155,15 @@ export function Roles() {
       : `¿Eliminar el rol "${rol.nombre}"?`;
     if (!confirm(msg)) return;
 
+    setEliminando(rol.id);
     try {
       await window.axios.delete(`/admin/roles/${rol.id}`);
       toast.success("Rol eliminado correctamente.");
       await cargarRoles();
     } catch {
       toast.error("No se pudo eliminar el rol.");
+    } finally {
+      setEliminando(null);
     }
   };
 
@@ -303,8 +307,8 @@ export function Roles() {
                         <Button variant="ghost" size="sm" onClick={() => verDetalle(rol)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-[#E11D48] hover:bg-red-50" onClick={() => eliminarRol(rol)}>
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" disabled={eliminando === rol.id} className="text-[#E11D48] hover:bg-red-50" onClick={() => eliminarRol(rol)}>
+                          {eliminando === rol.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
                       </>
                     )}

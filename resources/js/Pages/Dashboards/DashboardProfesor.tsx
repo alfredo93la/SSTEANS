@@ -72,11 +72,11 @@ function diasHastaVencimiento(fechaEntrega: string): number {
 export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
   const { auth } = usePage<PageProps>().props;
   const userName = auth.user?.name ?? "Profesor";
+  const userRole = auth.user?.role ?? "Profesor";
 
   const [grupos, setGrupos] = useState<GrupoData[]>([]);
   const [clasesHoy, setClasesHoy] = useState<ClaseHorario[]>([]);
   const [tareas, setTareas] = useState<TareaData[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const diaSemanaHoy = DIAS_SEMANA[new Date().getDay()];
@@ -97,8 +97,7 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
 
         setTareas(tareasRes.data.tareas ?? []);
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
   const totalAlumnos = grupos.reduce((sum, g) => sum + (g.alumnos ?? 0), 0);
@@ -135,13 +134,10 @@ export function DashboardProfesor({ onNavigate }: DashboardProfesorProps) {
       <Card className="bg-linear-to-br from-purple-50 to-blue-50 border-purple-200">
         <CardContent className="pt-6">
           <div>
-            <h2 className="text-[#111827]">¡Buen día, {userName}!</h2>
-            <p className="text-sm text-[#6B7280] mt-1">
-              {loading
-                ? "Cargando información..."
-                : clasesHoy.length > 0
-                ? `Tienes ${clasesHoy.length} sesión${clasesHoy.length > 1 ? "es" : ""} programada${clasesHoy.length > 1 ? "s" : ""} hoy`
-                : "No tienes sesiones programadas hoy"}
+            <h2 className="text-[#111827]">¡Bienvenido/a, {userName}!</h2>
+            <p className="text-sm text-[#6B7280] mt-1 flex items-center gap-2 flex-wrap">
+              <Badge className="bg-purple-100 text-[#7C3AED] border-0 text-xs">{userRole}</Badge>
+              Registro de asistencia, calificaciones y tareas
             </p>
           </div>
         </CardContent>

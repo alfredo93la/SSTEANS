@@ -3,12 +3,15 @@ import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Badge } from "../../Components/ui/badge";
-import { Button } from "../../Components/ui/button";
-import { CheckCircle2, Clock, AlertCircle, Calendar, FileText, ClipboardList } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Calendar, FileText, ClipboardList, Download, Paperclip } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 
-interface TareaData { id: number; titulo: string; descripcion: string; materiaId: number; materia: string | null; fechaEntrega: string; estadoEntrega: string; fechaEntregaAlumno: string | null; }
+interface TareaData { id: number; titulo: string; descripcion: string; materiaId: number; materia: string | null; fechaEntrega: string; estadoEntrega: string; fechaEntregaAlumno: string | null; archivos: string[]; }
+
+function nombreArchivo(path: string): string {
+  return path.split("/").pop() ?? path;
+}
 
 interface TareasTutorProps {
   alumnoId: number;
@@ -214,6 +217,26 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
                               <span className="text-[#6B7280]">Fecha límite: {tarea.fechaEntrega}</span>
                             </div>
                           </div>
+
+                          {tarea.archivos?.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              <span className="flex items-center gap-1 text-xs text-[#6B7280]">
+                                <Paperclip className="h-3 w-3" />Adjuntos:
+                              </span>
+                              {tarea.archivos.map((path) => (
+                                <a
+                                  key={path}
+                                  href={`/api/tareas/${tarea.id}/adjuntos/${nombreArchivo(path)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB] transition-colors"
+                                >
+                                  <Download className="h-3 w-3" />
+                                  {nombreArchivo(path)}
+                                </a>
+                              ))}
+                            </div>
+                          )}
 
                           {/* Información adicional según el estado */}
                           {tarea.estadoEntrega === "Pendiente" && diasRestantes >= 0 && (

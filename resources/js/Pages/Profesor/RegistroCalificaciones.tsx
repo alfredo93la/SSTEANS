@@ -7,7 +7,7 @@ import { Input } from "../../Components/ui/input";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { toast } from "sonner";
-import { Save, AlertCircle, CheckCircle, Lock, Settings, Plus, Trash2, ChevronUp, Send, BookA } from "lucide-react";
+import { Save, AlertCircle, CheckCircle, Lock, Settings, Plus, Trash2, ChevronUp, Send, BookA, Loader2 } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 
 interface GrupoData   { id: number; nombre: string; }
@@ -159,6 +159,7 @@ export function RegistroCalificaciones() {
   const [editandoRubros, setEditandoRubros]             = useState(false);
   const [publicada, setPublicada]                       = useState(false);
   const [publicando, setPublicando]                     = useState(false);
+  const [guardandoCals, setGuardandoCals]               = useState(false);
 
   const periodoActual  = periodos.find(p => p.id.toString() === periodoSeleccionado);
   const capturaAbierta = periodoActual?.capturaAbierta ?? false;
@@ -245,9 +246,14 @@ export function RegistroCalificaciones() {
   const getCalificacion = (alumnoId: number): CalData =>
     calificaciones.find(c => c.alumnoId === alumnoId) ?? { alumnoId, promedio: null, valores: {} };
 
+  const handleValorBlur = (valor: string) => {
+    const num = parseFloat(valor);
+    if (!isNaN(num) && num < 5) toast.error("La calificación debe estar entre 5 y 10");
+  };
+
   const handleValorChange = (alumnoId: number, rubroId: number, valor: string) => {
     const num: number | null = valor === '' ? null : parseFloat(valor);
-    if (num !== null && (num < 5 || num > 10)) { toast.error("La calificación debe estar entre 5 y 10"); return; }
+    if (num !== null && num > 10) { toast.error("La calificación debe estar entre 5 y 10"); return; }
 
     setCalificaciones(prev => {
       const nuevas = [...prev];
@@ -270,6 +276,7 @@ export function RegistroCalificaciones() {
 
   const guardarCalificaciones = () => {
     if (!materiaSeleccionada || !periodoSeleccionado) return;
+    setGuardandoCals(true);
     axios.post("/api/calificaciones", {
       grupo_id:       parseInt(grupoSeleccionado),
       materia_id:     parseInt(materiaSeleccionada),
@@ -281,7 +288,8 @@ export function RegistroCalificaciones() {
         setCambiosPendientes(new Set());
         setPublicada(false);
       })
-      .catch(err => toast.error(err.response?.data?.message ?? "Error al guardar calificaciones"));
+      .catch(err => toast.error(err.response?.data?.message ?? "Error al guardar calificaciones"))
+      .finally(() => setGuardandoCals(false));
   };
 
   const handlePublicar = () => {
@@ -457,17 +465,18 @@ export function RegistroCalificaciones() {
               <div className="flex gap-2">
                 <Button
                   onClick={guardarCalificaciones}
-                  disabled={cambiosPendientes.size === 0 || !capturaAbierta}
+                  disabled={guardandoCals || cambiosPendientes.size === 0 || !capturaAbierta}
                   variant="outline"
                 >
-                  <Save className="h-4 w-4 mr-2" />Guardar Cambios
+                  {guardandoCals ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  {guardandoCals ? "Guardando..." : "Guardar Cambios"}
                 </Button>
                 <Button
                   onClick={handlePublicar}
                   disabled={!todosCompletos || cambiosPendientes.size > 0 || publicada || publicando || !capturaAbierta}
                   className="bg-[#059669] hover:bg-[#047857]"
                 >
-                  <Send className="h-4 w-4 mr-2" />
+                  {publicando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                   {publicando ? "Publicando…" : publicada ? "Ya publicadas" : "Publicar"}
                 </Button>
               </div>
@@ -511,6 +520,7 @@ export function RegistroCalificaciones() {
                                 type="number" min="5" max="10" step="0.1"
                                 value={cal.valores[r.id] ?? ''}
                                 onChange={e => handleValorChange(alumno.id, r.id, e.target.value)}
+                                onBlur={e => handleValorBlur(e.target.value)}
                                 disabled={!capturaAbierta}
                                 className="w-20 text-center mx-auto disabled:opacity-50"
                               />

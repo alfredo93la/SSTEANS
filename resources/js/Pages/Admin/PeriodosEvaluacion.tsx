@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSubmit } from "../../hooks/useSubmit";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
@@ -9,7 +10,7 @@ import { Switch } from "../../Components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../Components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../../Components/ui/dialog";
-import { Plus, BookKey, Pencil, Trash2, CheckCircle, CalendarRange } from "lucide-react";
+import { Plus, BookKey, Pencil, Trash2, CheckCircle, CalendarRange, Loader2 } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { toast } from "sonner";
 
@@ -25,6 +26,7 @@ export function PeriodosEvaluacion() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [form, setForm] = useState({ cicloId: "", nombre: "", fechaInicio: "", fechaFin: "" });
+  const [guardando, submitGuardar] = useSubmit();
 
   useEffect(() => {
     axios.get("/api/admin/ciclos")
@@ -56,24 +58,19 @@ export function PeriodosEvaluacion() {
       toast.error("Completa todos los campos obligatorios");
       return;
     }
-
-    if (editandoId !== null) {
-      axios.put(`/api/periodos/${editandoId}`, form)
-        .then(({ data }) => {
-          setPeriodos(prev => prev.map(p => p.id === editandoId ? data.periodo : p));
-          toast.success("Periodo actualizado correctamente.");
-          resetForm();
-        })
-        .catch(() => toast.error("Error al actualizar el periodo"));
-    } else {
-      axios.post("/api/periodos", { ...form, cicloId: parseInt(form.cicloId) })
-        .then(({ data }) => {
-          setPeriodos(prev => [...prev, data.periodo]);
-          toast.success("Periodo de evaluación creado.");
-          resetForm();
-        })
-        .catch(() => toast.error("Error al crear el periodo"));
-    }
+    submitGuardar(async () => {
+      if (editandoId !== null) {
+        const { data } = await axios.put(`/api/periodos/${editandoId}`, form);
+        setPeriodos(prev => prev.map(p => p.id === editandoId ? data.periodo : p));
+        toast.success("Periodo actualizado correctamente.");
+        resetForm();
+      } else {
+        const { data } = await axios.post("/api/periodos", { ...form, cicloId: parseInt(form.cicloId) });
+        setPeriodos(prev => [...prev, data.periodo]);
+        toast.success("Periodo de evaluación creado.");
+        resetForm();
+      }
+    });
   };
 
   const handleEditar = (p: PeriodoData) => {
@@ -260,8 +257,8 @@ export function PeriodosEvaluacion() {
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={resetForm} className="rounded-lg">Cancelar</Button>
-                    <Button onClick={handleGuardar} className="bg-[#7C3AED] hover:bg-[#6D28D9] rounded-lg">
-                      {editandoId ? "Actualizar" : "Guardar"}
+                    <Button onClick={handleGuardar} disabled={guardando} className="bg-[#7C3AED] hover:bg-[#6D28D9] rounded-lg">
+                      {guardando ? <Loader2 className="h-4 w-4 animate-spin" /> : (editandoId ? "Actualizar" : "Guardar")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

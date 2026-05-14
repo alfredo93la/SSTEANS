@@ -41,6 +41,7 @@ export function Grupos() {
   const [grupoSel, setGrupoSel] = useState<Grupo | null>(null);
   const [form, setForm] = useState(formVacio);
   const [saving, setSaving] = useState(false);
+  const [eliminando, setEliminando] = useState<number | null>(null);
 
   const cargar = (cicloId?: number) => {
     setLoading(true);
@@ -92,12 +93,14 @@ export function Grupos() {
 
   const handleEliminar = (grupo: Grupo) => {
     if (!confirm(`¿Eliminar el grupo ${grupo.grado?.numero ?? ""}°${grupo.nombre}?`)) return;
+    setEliminando(grupo.id);
     axios.delete(`/api/administrativo/grupos/${grupo.id}`)
       .then(() => {
         setGrupos((prev) => prev.filter((g) => g.id !== grupo.id));
         toast.success("Grupo eliminado.");
       })
-      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."));
+      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."))
+      .finally(() => setEliminando(null));
   };
 
   const abrirEditar = (grupo: Grupo) => {
@@ -275,8 +278,8 @@ export function Grupos() {
                   <Button variant="outline" size="sm" onClick={() => abrirEditar(grupo)}>
                     <Edit className="h-3.5 w-3.5" />
                   </Button>
-                  <Button variant="outline" size="sm" className="text-[#E11D48] border-[#E11D48] hover:bg-red-50" onClick={() => handleEliminar(grupo)}>
-                    <Trash2 className="h-3.5 w-3.5" />
+                  <Button variant="outline" size="sm" disabled={eliminando === grupo.id} className="text-[#E11D48] border-[#E11D48] hover:bg-red-50" onClick={() => handleEliminar(grupo)}>
+                    {eliminando === grupo.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   </Button>
                 </div>
               </CardContent>

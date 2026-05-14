@@ -47,6 +47,7 @@ export function CiclosEscolares() {
   const [puedeCerrar, setPuedeCerrar] = useState(false);
   const [cerrando, setCerrando] = useState(false);
   const [alertCerrar, setAlertCerrar] = useState(false);
+  const [eliminando, setEliminando] = useState<number | null>(null);
 
   const nuevoVacio = { nombre: "", fecha_inicio: "", fecha_fin: "", grupos_matutino: "", grupos_vespertino: "" };
 
@@ -137,12 +138,14 @@ export function CiclosEscolares() {
   };
 
   const handleEliminar = (id: number) => {
+    setEliminando(id);
     axios.delete(`/api/admin/ciclos/${id}`)
       .then(() => {
         setCiclos((prev) => prev.filter((c) => c.id !== id));
         toast.success("Ciclo escolar eliminado.");
       })
-      .catch((err) => toast.error(err.response?.data?.message ?? "Error al eliminar el ciclo."));
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al eliminar el ciclo."))
+      .finally(() => setEliminando(null));
   };
 
   const cicloActivo = ciclos.find((c) => c.activo);
@@ -425,9 +428,12 @@ export function CiclosEscolares() {
                         size="sm"
                         variant="ghost"
                         className="rounded-lg text-[#E11D48] hover:bg-red-50 text-xs h-7"
+                        disabled={eliminando === ciclo.id}
                         onClick={() => handleEliminar(ciclo.id)}
                       >
-                        <Trash2 className="h-3.5 w-3.5 mr-1" />Eliminar
+                        {eliminando === ciclo.id
+                          ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                          : <Trash2 className="h-3.5 w-3.5 mr-1" />}Eliminar
                       </Button>
                     )}
                     {ciclo.cerrado && (
@@ -536,9 +542,10 @@ export function CiclosEscolares() {
             <AlertDialogCancel className="rounded-lg">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCerrar}
+              disabled={cerrando}
               className="bg-[#D97706] hover:bg-[#B45309] text-white rounded-lg"
             >
-              Sí, cerrar ciclo
+              {cerrando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sí, cerrar ciclo"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

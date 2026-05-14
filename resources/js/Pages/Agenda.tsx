@@ -3,7 +3,8 @@ import axios from "axios";
 import { Button } from "../Components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../Components/ui/card";
 import { Badge } from "../Components/ui/badge";
-import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, CalendarDays, Clock, Edit2, Trash2, ChevronDown, Sun } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, CalendarDays, Clock, Edit2, Trash2, ChevronDown, Sun, Loader2 } from "lucide-react";
+import { useSubmit } from "../hooks/useSubmit";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../Components/ui/dialog";
 import { Input } from "../Components/ui/input";
 import { Label } from "../Components/ui/label";
@@ -40,7 +41,6 @@ const tipoColors: Record<string, string> = {
   Parcial: "bg-[#FEE2E2] text-[#E11D48] border-[#FCA5A5]",
   Final: "bg-orange-100 text-orange-700 border-orange-300",
   Extraordinario: "bg-yellow-100 text-yellow-700 border-yellow-300",
-  Entrega: "bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD]",
   // Tipos gestionables desde agenda
   Junta: "bg-[#F3E8FF] text-[#7C3AED] border-[#C4B5FD]",
   Suspensión: "bg-[#FEF3C7] text-[#D97706] border-[#FCD34D]",
@@ -50,6 +50,7 @@ const tipoColors: Record<string, string> = {
   Campaña: "bg-[#F3E8FF] text-[#7C3AED] border-[#C4B5FD]",
   Concurso: "bg-yellow-100 text-yellow-700 border-yellow-300",
   Convocatoria: "bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD]",
+  Plática: "bg-teal-100 text-teal-700 border-teal-300",
 };
 
 const meses = [
@@ -111,7 +112,7 @@ function EventoItem({ evento, formatearRango, tipoColors, pasado = false, onClic
   );
 }
 
-const diasSemana = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const diasSemana = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"];
 const ROLES_DESTINATARIOS = ["Tutor", "Profesor", "Trabajador Social"];
 
 export function Agenda({ permissions }: AgendaProps) {
@@ -124,6 +125,8 @@ export function Agenda({ permissions }: AgendaProps) {
   const [eventoDetalleOpen, setEventoDetalleOpen] = useState(false);
   const [eventoSeleccionado, setEventoSeleccionado] = useState<Evento | null>(null);
   const [eventoEliminar, setEventoEliminar] = useState<number | null>(null);
+  const [guardandoEvento, submitEvento] = useSubmit();
+  const [eliminandoEvento, setEliminandoEvento] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [viewMode, setViewMode] = useState<"calendario" | "lista">("lista");
   const [fechaFiltro, setFechaFiltro] = useState<string | null>(null);
@@ -184,7 +187,7 @@ export function Agenda({ permissions }: AgendaProps) {
     setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + direction, 1));
   };
 
-  const handleCrearEvento = async () => {
+  const handleCrearEvento = () => {
     if (!nuevoEvento.titulo || !nuevoEvento.fecha || !nuevoEvento.tipo) {
       toast.error("Por favor completa los campos obligatorios");
       return;
@@ -205,41 +208,35 @@ export function Agenda({ permissions }: AgendaProps) {
       destinatarios: nuevoEvento.destinatarios,
     };
 
-    try {
-      if (editMode && eventoSeleccionado) {
-        await axios.put(`/api/agenda/eventos/${eventoSeleccionado.id}`, payload);
-        toast.success("Evento actualizado exitosamente");
-      } else {
-        await axios.post("/api/agenda/eventos", payload);
-        toast.success("Evento creado exitosamente");
-      }
-
-      await cargarEventos();
-      setDialogOpen(false);
-      setEditMode(false);
-      setNuevoEvento({
-        titulo: "",
-        descripcion: "",
-        fecha: "",
-        fechaFin: "",
-        horaInicio: "",
-        horaFin: "",
-        tipo: "",
-        destinatarios: [],
-      });
-    } catch (error: any) {
-      if (error?.response?.status === 422) {
-        const errors = error.response.data?.errors;
-        if (errors) {
-          const primer = Object.values(errors)[0] as string[];
-          toast.error(primer[0]);
+    submitEvento(async () => {
+      try {
+        if (editMode && eventoSeleccionado) {
+          await axios.put(`/api/agenda/eventos/${eventoSeleccionado.id}`, payload);
+          toast.success("Evento actualizado exitosamente");
         } else {
-          toast.error("Datos inválidos, revisa el formulario");
+          await axios.post("/api/agenda/eventos", payload);
+          toast.success("Evento creado exitosamente");
         }
-      } else {
-        toast.error("No se pudo guardar el evento");
+
+        await cargarEventos();
+        setDialogOpen(false);
+        setEditMode(false);
+        setNuevoEvento({ titulo: "", descripcion: "", fecha: "", fechaFin: "", horaInicio: "", horaFin: "", tipo: "", destinatarios: [] });
+      } catch (error: any) {
+        if (error?.response?.status === 422) {
+          const errors = error.response.data?.errors;
+          if (errors) {
+            const primer = Object.values(errors)[0] as string[];
+            toast.error(primer[0]);
+          } else {
+            toast.error("Datos inválidos, revisa el formulario");
+          }
+        } else {
+          toast.error("No se pudo guardar el evento");
+        }
+        throw error;
       }
-    }
+    });
   };
 
   const handleEditarEvento = (evento: Evento) => {
@@ -260,6 +257,7 @@ export function Agenda({ permissions }: AgendaProps) {
   };
 
   const handleEliminarEvento = async (id: number) => {
+    setEliminandoEvento(true);
     try {
       await axios.delete(`/api/agenda/eventos/${id}`);
       await cargarEventos();
@@ -268,6 +266,8 @@ export function Agenda({ permissions }: AgendaProps) {
       toast.success("Evento eliminado exitosamente");
     } catch (error) {
       toast.error("No se pudo eliminar el evento");
+    } finally {
+      setEliminandoEvento(false);
     }
   };
 
@@ -350,6 +350,7 @@ export function Agenda({ permissions }: AgendaProps) {
                   <SelectItem value="Campaña">Campaña</SelectItem>
                   <SelectItem value="Concurso">Concurso</SelectItem>
                   <SelectItem value="Convocatoria">Convocatoria</SelectItem>
+                  <SelectItem value="Plática">Plática</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -436,6 +437,7 @@ export function Agenda({ permissions }: AgendaProps) {
                           <SelectItem value="Campaña">Campaña</SelectItem>
                           <SelectItem value="Concurso">Concurso</SelectItem>
                           <SelectItem value="Convocatoria">Convocatoria</SelectItem>
+                          <SelectItem value="Plática">Plática</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -537,7 +539,8 @@ export function Agenda({ permissions }: AgendaProps) {
                     >
                       Cancelar
                     </Button>
-                    <Button onClick={handleCrearEvento} className="w-full sm:w-auto bg-[#1D4ED8] hover:bg-[#1E40AF]">
+                    <Button onClick={handleCrearEvento} disabled={guardandoEvento} className="w-full sm:w-auto bg-[#1D4ED8] hover:bg-[#1E40AF]">
+                      {guardandoEvento ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                       {editMode ? "Actualizar" : "Crear"} evento
                     </Button>
                   </DialogFooter>
@@ -549,9 +552,9 @@ export function Agenda({ permissions }: AgendaProps) {
       </Card>
 
       {/* Vista Desktop/Tablet: Calendario + Lista lado a lado */}
-      <div className="hidden sm:grid sm:grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="hidden sm:grid sm:grid-cols-1 lg:grid-cols-2 gap-6 lg:h-[520px]">
         {/* Calendario mensual - Desktop/Tablet */}
-        <Card className="border-[#E5E7EB] lg:col-span-2">
+        <Card className="border-[#E5E7EB] flex flex-col h-full overflow-hidden">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>
@@ -596,35 +599,42 @@ export function Agenda({ permissions }: AgendaProps) {
           </CardHeader>
           <CardContent>
             {/* Encabezados de días */}
-            <div className="grid grid-cols-7 gap-2 mb-2">
+            <div className="grid grid-cols-7 gap-1 mb-1">
               {diasSemana.map((dia) => (
-                <div key={dia} className="text-center text-xs font-semibold text-[#6B7280] py-2">
+                <div key={dia} className="text-center text-[10px] font-semibold text-[#6B7280] py-1">
                   {dia}
                 </div>
               ))}
             </div>
 
             {/* Días del mes */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1">
               {/* Espacios vacíos antes del primer día */}
               {Array.from({ length: startingDayOfWeek }).map((_, i) => (
-                <div key={`empty-${i}`} className="aspect-square" />
+                <div key={`empty-${i}`} className="h-14" />
               ))}
 
               {/* Días del mes */}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const dia = i + 1;
                 const eventosDelDia = getEventosDelDia(dia);
-                const esHoy = 
+                const esHoy =
                   selectedDate.getMonth() === new Date().getMonth() &&
                   selectedDate.getFullYear() === new Date().getFullYear() &&
                   dia === new Date().getDate();
+
+                const badgeColor = esHoy ? "rgba(255,255,255,0.5)"
+                  : eventosDelDia.some(e => ["Examen","Parcial","Final","Extraordinario"].includes(e.tipo)) ? "#E11D48"
+                  : eventosDelDia.some(e => ["Junta","Campaña"].includes(e.tipo)) ? "#7C3AED"
+                  : eventosDelDia.some(e => ["Suspensión","Actividad Deportiva","Concurso"].includes(e.tipo)) ? "#D97706"
+                  : eventosDelDia.some(e => ["Día Cívico / Festivo","Actividad Cultural"].includes(e.tipo)) ? "#059669"
+                  : "#1D4ED8";
 
                 return (
                   <button
                     key={dia}
                     onClick={() => seleccionarDia(dia)}
-                    className={`aspect-square p-2 rounded-lg text-sm transition-all hover:shadow-md ${
+                    className={`h-14 p-0.5 rounded-md text-xs transition-all hover:shadow-md ${
                       esHoy
                         ? "bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] text-white font-bold"
                         : eventosDelDia.length > 0
@@ -632,24 +642,15 @@ export function Agenda({ permissions }: AgendaProps) {
                         : "hover:bg-gray-50"
                     }`}
                   >
-                    <div className="flex flex-col items-center justify-center h-full">
-                      <span className={esHoy ? "text-white" : "text-[#111827]"}>{dia}</span>
+                    <div className="flex flex-col items-center justify-center h-full gap-0.5">
+                      <span className={`text-[11px] leading-none ${esHoy ? "text-white" : "text-[#111827]"}`}>{dia}</span>
                       {eventosDelDia.length > 0 && (
-                        <div className="flex gap-1 mt-1 flex-wrap justify-center">
-                          {eventosDelDia.slice(0, 3).map((evento, idx) => (
-                            <div
-                              key={idx}
-                              className="w-1.5 h-1.5 rounded-full"
-                              style={{
-                                backgroundColor: evento.tipo === "Examen" || evento.tipo === "Parcial" || evento.tipo === "Final" || evento.tipo === "Extraordinario" ? "#E11D48" :
-                                  evento.tipo === "Junta" || evento.tipo === "Campaña" ? "#7C3AED" :
-                                  evento.tipo === "Suspensión" ? "#D97706" :
-                                  evento.tipo === "Actividad Deportiva" || evento.tipo === "Concurso" ? "#D97706" :
-                                  evento.tipo === "Día Cívico / Festivo" || evento.tipo === "Actividad Cultural" ? "#059669" : "#6B7280"
-                              }}
-                            />
-                          ))}
-                        </div>
+                        <span
+                          className="min-w-3.5 h-3.5 rounded-full text-[9px] font-bold flex items-center justify-center px-0.5 leading-none text-white"
+                          style={{ backgroundColor: badgeColor }}
+                        >
+                          {eventosDelDia.length}
+                        </span>
                       )}
                     </div>
                   </button>
@@ -660,14 +661,14 @@ export function Agenda({ permissions }: AgendaProps) {
         </Card>
 
         {/* Panel derecho — hoy + próximos + pasados */}
-        <Card className="border-[#E5E7EB] flex flex-col">
+        <Card className="border-[#E5E7EB] flex flex-col h-full overflow-hidden">
           <CardHeader className="shrink-0">
             <CardTitle>Eventos</CardTitle>
             <CardDescription>
               {fechaFiltro ? `Mostrando: ${formatearFecha(fechaFiltro)}` : `${eventosOrdenados.length} en total`}
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto max-h-144 pr-2 space-y-4">
+          <CardContent className="flex-1 overflow-y-auto min-h-0 pr-2 space-y-4">
 
             {/* Banner — Hoy */}
             {eventosHoy.length > 0 && (
@@ -845,9 +846,9 @@ export function Agenda({ permissions }: AgendaProps) {
             </CardHeader>
             <CardContent>
               {/* Encabezados de días */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
+              <div className="grid grid-cols-7 gap-1 mb-1">
                 {diasSemana.map((dia) => (
-                  <div key={dia} className="text-center text-xs font-semibold text-[#6B7280] py-1">
+                  <div key={dia} className="text-center text-[10px] font-semibold text-[#6B7280] py-1">
                     {dia}
                   </div>
                 ))}
@@ -864,16 +865,23 @@ export function Agenda({ permissions }: AgendaProps) {
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                   const dia = i + 1;
                   const eventosDelDia = getEventosDelDia(dia);
-                  const esHoy = 
+                  const esHoy =
                     selectedDate.getMonth() === new Date().getMonth() &&
                     selectedDate.getFullYear() === new Date().getFullYear() &&
                     dia === new Date().getDate();
+
+                  const badgeColor = esHoy ? "rgba(255,255,255,0.5)"
+                    : eventosDelDia.some(e => ["Examen","Parcial","Final","Extraordinario"].includes(e.tipo)) ? "#E11D48"
+                    : eventosDelDia.some(e => ["Junta","Campaña"].includes(e.tipo)) ? "#7C3AED"
+                    : eventosDelDia.some(e => ["Suspensión","Actividad Deportiva","Concurso"].includes(e.tipo)) ? "#D97706"
+                    : eventosDelDia.some(e => ["Día Cívico / Festivo","Actividad Cultural"].includes(e.tipo)) ? "#059669"
+                    : "#1D4ED8";
 
                   return (
                     <button
                       key={dia}
                       onClick={() => seleccionarDia(dia)}
-                      className={`aspect-square p-1 rounded-lg text-xs transition-all ${
+                      className={`aspect-square p-0.5 rounded-md text-xs transition-all ${
                         esHoy
                           ? "bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] text-white font-bold"
                           : eventosDelDia.length > 0
@@ -881,10 +889,15 @@ export function Agenda({ permissions }: AgendaProps) {
                           : "hover:bg-gray-50"
                       }`}
                     >
-                      <div className="flex flex-col items-center justify-center h-full">
-                        <span>{dia}</span>
-                        {eventosDelDia.length > 0 && !esHoy && (
-                          <div className="w-1 h-1 bg-[#1D4ED8] rounded-full mt-0.5" />
+                      <div className="flex flex-col items-center justify-center h-full gap-0.5">
+                        <span className="text-[11px] leading-none">{dia}</span>
+                        {eventosDelDia.length > 0 && (
+                          <span
+                            className="min-w-3.5 h-3.5 rounded-full text-[9px] font-bold flex items-center justify-center px-0.5 leading-none text-white"
+                            style={{ backgroundColor: badgeColor }}
+                          >
+                            {eventosDelDia.length}
+                          </span>
                         )}
                       </div>
                     </button>
@@ -924,6 +937,43 @@ export function Agenda({ permissions }: AgendaProps) {
           </Card>
         )}
       </div>
+
+      {/* Leyenda del calendario */}
+      <Card className="border-[#E5E7EB]">
+        <CardContent className="pt-4 pb-4">
+          <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide mb-3">Referencias del calendario</p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-md bg-linear-to-br from-[#1D4ED8] to-[#7C3AED] shrink-0" />
+              <span className="text-xs text-[#374151]">Día actual</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-md bg-blue-50 border border-blue-200 shrink-0" />
+              <span className="text-xs text-[#374151]">Día con eventos</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#E11D48] shrink-0" />
+              <span className="text-xs text-[#374151]">Exámenes (Parcial, Final, Extraordinario)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#7C3AED] shrink-0" />
+              <span className="text-xs text-[#374151]">Juntas / Campañas</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#D97706] shrink-0" />
+              <span className="text-xs text-[#374151]">Suspensiones / Actividades Deportivas / Concursos</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#059669] shrink-0" />
+              <span className="text-xs text-[#374151]">Días Cívicos / Actividades Culturales</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#1D4ED8] shrink-0" />
+              <span className="text-xs text-[#374151]">Convocatorias</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Dialog de detalle de evento */}
       {eventoSeleccionado && (
@@ -1042,9 +1092,10 @@ export function Agenda({ permissions }: AgendaProps) {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => eventoEliminar && handleEliminarEvento(eventoEliminar)}
+              disabled={eliminandoEvento}
               className="bg-[#E11D48] hover:bg-[#BE123C]"
             >
-              Eliminar
+              {eliminandoEvento ? <Loader2 className="h-4 w-4 mr-2 animate-spin inline" /> : null}Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { usePage } from "@inertiajs/react";
+import type { PageProps } from "../../types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
-import { AlertTriangle, Users, FileText, Clock, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Users, Clock, CheckCircle2 } from "lucide-react";
 
 interface AlumnoData {
   id: number;
@@ -25,7 +27,9 @@ interface DashboardTrabajadorSocialProps {
 }
 
 export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSocialProps) {
-  const [busqueda] = useState("");
+  const { auth } = usePage<PageProps>().props;
+  const userName = auth.user?.name ?? "Trabajador(a) Social";
+  const userRole = auth.user?.role ?? "Trabajador Social";
   const [alumnos, setAlumnos] = useState<AlumnoData[]>([]);
   const [reportesConducta, setReportesConducta] = useState<ReporteData[]>([]);
 
@@ -43,11 +47,6 @@ export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSoc
   const reportesAbiertos = reportesConducta.filter(r => r.estatus === "Abierto");
   const reportesEnSeguimiento = reportesConducta.filter(r => r.estatus === "En seguimiento");
   const alumnosConReportes = [...new Set(reportesConducta.map(r => r.alumnoId))].length;
-
-  const alumnosFiltrados = alumnos.filter(a =>
-    a.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    a.grupo.toLowerCase().includes(busqueda.toLowerCase())
-  );
 
   const reportesRecientes = reportesConducta.slice(0, 5);
 
@@ -72,11 +71,10 @@ export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSoc
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-[#111827]">
-                Panel de Trabajo Social 👥
-              </h2>
-              <p className="text-sm text-[#6B7280] mt-1">
-                {reportesAbiertos.length} reportes abiertos · {reportesEnSeguimiento.length} en seguimiento
+              <h2 className="text-[#111827]">¡Bienvenido/a, {userName}!</h2>
+              <p className="text-sm text-[#6B7280] mt-1 flex items-center gap-2 flex-wrap">
+                <Badge className="bg-green-100 text-[#059669] border-0 text-xs">{userRole}</Badge>
+                Gestión de casos y reportes de conducta
               </p>
             </div>
           </div>

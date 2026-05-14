@@ -123,6 +123,7 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   const [vincularEnabled, setVincularEnabled] = useState(false);
   const [tutoresList, setTutoresList] = useState<TutorSimple[]>([]);
   const [loadingTutores, setLoadingTutores] = useState(false);
+  const [eliminando, setEliminando] = useState<number | null>(null);
   const [tutorBusq, setTutorBusq] = useState("");
   const [tutorSelId, setTutorSelId] = useState<number | null>(null);
   const [parentescoNuevo, setParentescoNuevo] = useState("");
@@ -247,12 +248,14 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
 
   const handleEliminar = (alumno: Alumno) => {
     if (!confirm(`¿Eliminar a ${alumno.persona.nombre} ${alumno.persona.apellidos}?`)) return;
+    setEliminando(alumno.id);
     axios.delete(`/api/administrativo/alumnos/${alumno.id}`)
       .then(() => {
         setAlumnos((prev) => prev.filter((a) => a.id !== alumno.id));
         toast.success("Alumno eliminado.");
       })
-      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."));
+      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."))
+      .finally(() => setEliminando(null));
   };
 
   const abrirEditar = (alumno: Alumno) => {
@@ -587,8 +590,8 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
                               <LinkIcon className="h-4 w-4" />
                             </Button>
                             {permissions.includes("alumnos.manage") && (
-                              <Button variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600" onClick={() => handleEliminar(alumno)}>
-                                <Trash2 className="h-4 w-4" />
+                              <Button variant="ghost" size="sm" disabled={eliminando === alumno.id} className="hover:bg-red-50 hover:text-red-600" onClick={() => handleEliminar(alumno)}>
+                                {eliminando === alumno.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                               </Button>
                             )}
                           </>

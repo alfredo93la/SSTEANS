@@ -19,11 +19,13 @@ class Tarea extends Model
         'asignado_por',
         'fecha_asignacion',
         'fecha_entrega',
+        'archivos',
     ];
 
     protected $casts = [
         'fecha_asignacion' => 'date',
         'fecha_entrega'    => 'date',
+        'archivos'         => 'array',
     ];
 
     public function materia(): BelongsTo

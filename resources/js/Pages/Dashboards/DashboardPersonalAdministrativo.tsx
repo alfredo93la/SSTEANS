@@ -38,6 +38,7 @@ interface DashboardPersonalAdministrativoProps {
 export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersonalAdministrativoProps) {
   const { auth, cicloActivo: cicloActivoProp } = usePage<PageProps>().props;
   const userName = auth.user?.name ?? "Personal Administrativo";
+  const userRole = auth.user?.role ?? "Personal Administrativo";
 
   const [alumnos, setAlumnos] = useState<AlumnoData[]>([]);
   const [grupos, setGrupos] = useState<GrupoData[]>([]);
@@ -93,16 +94,10 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
               <Building2 className="h-7 w-7 text-[#D97706]" />
             </div>
             <div>
-              <h2 className="text-[#111827]">¡Buen día, {userName}!</h2>
-              <p className="text-sm text-[#6B7280] mt-1">
-                Administración de grupos, materias, horarios, alumnos y tutores
-                {cicloActivoProp && (
-                  <span className="ml-2">
-                    <Badge className="bg-green-100 text-[#059669] border-0 text-xs">
-                      Ciclo {cicloActivoProp.nombre} activo
-                    </Badge>
-                  </span>
-                )}
+              <h2 className="text-[#111827]">¡Bienvenido/a, {userName}!</h2>
+              <p className="text-sm text-[#6B7280] mt-1 flex items-center gap-2 flex-wrap">
+                <Badge className="bg-amber-100 text-[#D97706] border-0 text-xs">{userRole}</Badge>
+                Administración de grupos, alumnos y horarios
               </p>
             </div>
           </div>

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { useSubmit } from "../../hooks/useSubmit";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
@@ -9,13 +10,17 @@ import { Input } from "../../Components/ui/input";
 import { Textarea } from "../../Components/ui/textarea";
 import { Label } from "../../Components/ui/label";
 import { toast } from "sonner";
-import { FileText, Calendar, Edit, Trash2, Users, CheckCircle, Clock, Plus, Save, X, BookOpen, ClipboardList } from "lucide-react";
+import { FileText, Calendar, Edit, Trash2, Users, CheckCircle, Clock, Plus, Save, X, BookOpen, ClipboardList, Paperclip, Download } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 
 interface GrupoData { id: number; nombre: string; }
 interface MateriaData { id: number; nombre: string; }
-interface TareaData { id: number; titulo: string; descripcion: string; materiaId: number; materia: string | null; grupoId: number; grupo: string | null; fechaEntrega: string; entregadasCount: number; totalAlumnos: number; }
+interface TareaData { id: number; titulo: string; descripcion: string; materiaId: number; materia: string | null; grupoId: number; grupo: string | null; fechaEntrega: string; entregadasCount: number; totalAlumnos: number; archivos: string[]; }
 interface EntregaData { alumnoId: number; nombre: string; estado: "Pendiente" | "Entregada" | "Tarde" | "No Entregada"; fechaEntrega: string | null; }
+
+function nombreArchivo(path: string): string {
+  return path.split("/").pop() ?? path;
+}
 
 export function GestionTareas() {
   const [grupos, setGrupos] = useState<GrupoData[]>([]);
@@ -30,6 +35,9 @@ export function GestionTareas() {
   const [tituloEdit, setTituloEdit] = useState("");
   const [descripcionEdit, setDescripcionEdit] = useState("");
   const [fechaEntregaEdit, setFechaEntregaEdit] = useState("");
+  const [archivosEdit, setArchivosEdit] = useState<File[]>([]);
+  const [archivosExistentesEdit, setArchivosExistentesEdit] = useState<string[]>([]);
+  const archivoEditRef = useRef<HTMLInputElement>(null);
 
   // Estado para entregas
   const [dialogEntregasAbierto, setDialogEntregasAbierto] = useState(false);
@@ -37,6 +45,7 @@ export function GestionTareas() {
   const [entregas, setEntregas] = useState<EntregaData[]>([]);
   const [cargandoEntregas, setCargandoEntregas] = useState(false);
   const [guardandoEntrega, setGuardandoEntrega] = useState<number | null>(null);
+  const [guardandoTodos, setGuardandoTodos] = useState(false);
 
   // Estado para nueva tarea
   const [dialogNuevaTareaAbierto, setDialogNuevaTareaAbierto] = useState(false);
@@ -47,6 +56,11 @@ export function GestionTareas() {
   const [materiaNueva, setMateriaNueva] = useState("");
   const [fechaAsignacionNueva, setFechaAsignacionNueva] = useState(new Date().toISOString().split('T')[0]);
   const [fechaEntregaNueva, setFechaEntregaNueva] = useState("");
+  const [archivosNueva, setArchivosNueva] = useState<File[]>([]);
+  const archivoNuevaRef = useRef<HTMLInputElement>(null);
+  const [guardandoNueva, submitNueva] = useSubmit();
+  const [guardandoEdicion, submitEdicion] = useSubmit();
+  const [eliminandoTarea, submitEliminar] = useSubmit();
 
   useEffect(() => {
     axios.get("/api/profesor/grupos")
@@ -77,6 +91,8 @@ export function GestionTareas() {
     setMateriaNueva("");
     setFechaAsignacionNueva(new Date().toISOString().split('T')[0]);
     setFechaEntregaNueva("");
+    setArchivosNueva([]);
+    if (archivoNuevaRef.current) archivoNuevaRef.current.value = "";
   };
 
   const formatearFecha = (fechaISO: string) => {
@@ -104,33 +120,35 @@ export function GestionTareas() {
     const grupo = grupos.find(g => g.id === parseInt(grupoNueva));
     const materia = materiasNueva.find(m => m.id === parseInt(materiaNueva));
 
-    axios.post("/api/tareas", {
-      titulo: tituloNueva,
-      descripcion: descripcionNueva,
-      grupo_id: parseInt(grupoNueva),
-      materia_id: parseInt(materiaNueva),
-      fecha_asignacion: fechaAsignacionNueva,
-      fecha_entrega: fechaEntregaNueva,
-    })
-      .then(({ data }) => {
-        const nuevaTarea: TareaData = data.tarea ?? {
-          id: data.id ?? Date.now(),
-          titulo: tituloNueva,
-          descripcion: descripcionNueva,
-          materiaId: parseInt(materiaNueva),
-          materia: materia?.nombre ?? null,
-          grupoId: parseInt(grupoNueva),
-          grupo: grupo?.nombre ?? null,
-          fechaEntrega: formatearFecha(fechaEntregaNueva),
-          entregadasCount: 0,
-          totalAlumnos: 0,
-        };
-        setTareas(prev => [...prev, nuevaTarea]);
-        toast.success(`Tarea "${tituloNueva}" asignada a ${grupo?.nombre} - ${materia?.nombre}`);
-        limpiarFormularioNueva();
-        setDialogNuevaTareaAbierto(false);
-      })
-      .catch(() => toast.error("Error al asignar la tarea"));
+    const fd = new FormData();
+    fd.append("titulo", tituloNueva);
+    fd.append("descripcion", descripcionNueva);
+    fd.append("grupo_id", grupoNueva);
+    fd.append("materia_id", materiaNueva);
+    fd.append("fecha_asignacion", fechaAsignacionNueva);
+    fd.append("fecha_entrega", fechaEntregaNueva);
+    archivosNueva.forEach(f => fd.append("archivos[]", f));
+
+    submitNueva(async () => {
+      const { data } = await axios.post("/api/tareas", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      const nuevaTarea: TareaData = data.tarea ?? {
+        id: Date.now(),
+        titulo: tituloNueva,
+        descripcion: descripcionNueva,
+        materiaId: parseInt(materiaNueva),
+        materia: materia?.nombre ?? null,
+        grupoId: parseInt(grupoNueva),
+        grupo: grupo?.nombre ?? null,
+        fechaEntrega: formatearFecha(fechaEntregaNueva),
+        entregadasCount: 0,
+        totalAlumnos: 0,
+        archivos: [],
+      };
+      setTareas(prev => [...prev, nuevaTarea]);
+      toast.success(`Tarea "${tituloNueva}" asignada a ${grupo?.nombre} - ${materia?.nombre}`);
+      limpiarFormularioNueva();
+      setDialogNuevaTareaAbierto(false);
+    }).catch(() => toast.error("Error al asignar la tarea"));
   };
 
   const tareasFiltradas = tareas.filter(t =>
@@ -142,6 +160,9 @@ export function GestionTareas() {
     setTituloEdit(tarea.titulo);
     setDescripcionEdit(tarea.descripcion);
     setFechaEntregaEdit(convertirFechaAISO(tarea.fechaEntrega));
+    setArchivosExistentesEdit(tarea.archivos ?? []);
+    setArchivosEdit([]);
+    if (archivoEditRef.current) archivoEditRef.current.value = "";
     setDialogEditarAbierto(true);
   };
 
@@ -158,28 +179,33 @@ export function GestionTareas() {
   const guardarEdicion = () => {
     if (!tareaEditar) return;
 
-    if (!tituloEdit.trim() || !descripcionEdit.trim() || !fechaEntregaEdit) {
-      toast.error("Todos los campos son obligatorios");
+    if (!tituloEdit.trim() || !fechaEntregaEdit) {
+      toast.error("El título y la fecha de entrega son obligatorios");
       return;
     }
 
     const fechaFormateada = convertirFechaAFormato(fechaEntregaEdit);
-    axios.put(`/api/tareas/${tareaEditar.id}`, {
-      titulo: tituloEdit,
-      descripcion: descripcionEdit,
-      fecha_entrega: fechaEntregaEdit, // yyyy-mm-dd para el backend
-    })
-      .then(() => {
-        setTareas(prev => prev.map(t =>
-          t.id === tareaEditar.id
-            ? { ...t, titulo: tituloEdit, descripcion: descripcionEdit, fechaEntrega: fechaFormateada }
-            : t
-        ));
-        toast.success("Tarea actualizada exitosamente");
-        setDialogEditarAbierto(false);
-        setTareaEditar(null);
-      })
-      .catch(() => toast.error("Error al actualizar la tarea"));
+
+    const fd = new FormData();
+    fd.append("_method", "PUT");
+    fd.append("titulo", tituloEdit);
+    fd.append("descripcion", descripcionEdit);
+    fd.append("fecha_entrega", fechaEntregaEdit);
+    archivosExistentesEdit.forEach(a => fd.append("archivosExistentes[]", a));
+    archivosEdit.forEach(f => fd.append("archivos[]", f));
+
+    submitEdicion(async () => {
+      const { data } = await axios.post(`/api/tareas/${tareaEditar.id}`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+      const archivosActualizados: string[] = data.tarea?.archivos ?? archivosExistentesEdit;
+      setTareas(prev => prev.map(t =>
+        t.id === tareaEditar.id
+          ? { ...t, titulo: tituloEdit, descripcion: descripcionEdit, fechaEntrega: fechaFormateada, archivos: archivosActualizados }
+          : t
+      ));
+      toast.success("Tarea actualizada exitosamente");
+      setDialogEditarAbierto(false);
+      setTareaEditar(null);
+    }).catch(() => toast.error("Error al actualizar la tarea"));
   };
 
   const abrirEntregas = (tarea: TareaData) => {
@@ -242,6 +268,41 @@ export function GestionTareas() {
       .finally(() => setGuardandoEntrega(null));
   };
 
+  const marcarTodosEntregas = async (nuevoEstado: EntregaData["estado"]) => {
+    if (!tareaEntregas || entregas.length === 0) return;
+
+    const hoy = new Date().toISOString().split("T")[0];
+    const [dia, mes, anio] = tareaEntregas.fechaEntrega.split("/");
+    const fechaLimiteISO = `${anio}-${mes}-${dia}`;
+
+    let fechaEntrega: string | null = null;
+    if (nuevoEstado === "Entregada") fechaEntrega = fechaLimitePasada ? fechaLimiteISO : hoy;
+    else if (nuevoEstado === "Tarde") fechaEntrega = hoy;
+    else if (nuevoEstado === "No Entregada") fechaEntrega = fechaLimiteISO;
+
+    setGuardandoTodos(true);
+    try {
+      await Promise.all(
+        entregas.map(e =>
+          axios.patch(`/api/tareas/${tareaEntregas.id}/entregas/${e.alumnoId}`, {
+            estado: nuevoEstado,
+            fecha_entrega: fechaEntrega,
+          })
+        )
+      );
+      const fechaMostrar = fechaEntrega ? fechaEntrega.split("-").reverse().join("/") : null;
+      setEntregas(prev => prev.map(e => ({ ...e, estado: nuevoEstado, fechaEntrega: fechaMostrar })));
+      setTareas(prev => prev.map(t =>
+        t.id === tareaEntregas.id ? { ...t, entregadasCount: entregas.length } : t
+      ));
+      toast.success(`Todos marcados como "${nuevoEstado}"`);
+    } catch {
+      toast.error("Error al actualizar las entregas");
+    } finally {
+      setGuardandoTodos(false);
+    }
+  };
+
   const abrirEliminar = (tareaId: number) => {
     setTareaEliminar(tareaId);
     setDialogEliminarAbierto(true);
@@ -249,15 +310,13 @@ export function GestionTareas() {
 
   const confirmarEliminar = () => {
     if (tareaEliminar === null) return;
-
-    axios.delete(`/api/tareas/${tareaEliminar}`)
-      .then(() => {
-        setTareas(prev => prev.filter(t => t.id !== tareaEliminar));
-        toast.success("Tarea eliminada exitosamente");
-        setDialogEliminarAbierto(false);
-        setTareaEliminar(null);
-      })
-      .catch(() => toast.error("Error al eliminar la tarea"));
+    submitEliminar(async () => {
+      await axios.delete(`/api/tareas/${tareaEliminar}`);
+      setTareas(prev => prev.filter(t => t.id !== tareaEliminar));
+      toast.success("Tarea eliminada exitosamente");
+      setDialogEliminarAbierto(false);
+      setTareaEliminar(null);
+    }).catch(() => toast.error("Error al eliminar la tarea"));
   };
 
   const calcularPorcentajeEntrega = (tarea: TareaData) => {
@@ -467,6 +526,24 @@ export function GestionTareas() {
                           </div>
                         </div>
 
+                        {/* Adjuntos */}
+                        {tarea.archivos?.length > 0 && (
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            {tarea.archivos.map((path) => (
+                              <a
+                                key={path}
+                                href={`/api/tareas/${tarea.id}/adjuntos/${nombreArchivo(path)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB] transition-colors"
+                              >
+                                <Download className="h-3 w-3" />
+                                {nombreArchivo(path)}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+
                         {/* Estado de la tarea */}
                         {diasRestantes < 0 ? (
                           <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-sm text-[#6B7280]">
@@ -495,7 +572,7 @@ export function GestionTareas() {
 
 
       {/* Dialog Nueva Tarea */}
-      <Dialog open={dialogNuevaTareaAbierto} onOpenChange={(open) => { setDialogNuevaTareaAbierto(open); if (!open) limpiarFormularioNueva(); }}>
+      <Dialog open={dialogNuevaTareaAbierto} onOpenChange={(open) => { if (guardandoNueva) return; setDialogNuevaTareaAbierto(open); if (!open) limpiarFormularioNueva(); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nueva Tarea</DialogTitle>
@@ -600,14 +677,47 @@ export function GestionTareas() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4 text-[#6B7280]" />
+                Archivos adjuntos <span className="text-[#9CA3AF] font-normal">(opcional)</span>
+              </Label>
+              <input
+                ref={archivoNuevaRef}
+                type="file"
+                multiple
+                onChange={(e) => setArchivosNueva(Array.from(e.target.files ?? []))}
+                className="block w-full text-sm text-[#6B7280] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-[#F3F4F6] file:text-[#374151] hover:file:bg-[#E5E7EB] cursor-pointer"
+              />
+              {archivosNueva.length > 0 && (
+                <ul className="text-xs text-[#6B7280] space-y-1 mt-1">
+                  {archivosNueva.map((f, i) => (
+                    <li key={i} className="flex items-center gap-1">
+                      <Paperclip className="h-3 w-3" />{f.name}
+                      <button type="button" onClick={() => setArchivosNueva(prev => prev.filter((_, j) => j !== i))} className="ml-auto text-[#E11D48]"><X className="h-3 w-3" /></button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => { limpiarFormularioNueva(); setDialogNuevaTareaAbierto(false); }}>
+              <Button type="button" variant="outline" disabled={guardandoNueva} onClick={() => { limpiarFormularioNueva(); setDialogNuevaTareaAbierto(false); }}>
                 <X className="h-4 w-4 mr-2" />
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-[#1D4ED8] hover:bg-[#1E40AF]">
-                <Save className="h-4 w-4 mr-2" />
-                Asignar Tarea
+              <Button type="submit" disabled={guardandoNueva} className="bg-[#1D4ED8] hover:bg-[#1E40AF]">
+                {guardandoNueva ? (
+                  <>
+                    <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent inline-block" />
+                    Asignando…
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Asignar Tarea
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </form>
@@ -654,6 +764,44 @@ export function GestionTareas() {
                   </span>
                 </div>
 
+                {/* Marcar todos */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={guardandoTodos}
+                    onClick={() => marcarTodosEntregas("Entregada")}
+                    className="text-[#059669] border-[#059669] hover:bg-green-50"
+                  >
+                    <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                    Todos entregada
+                  </Button>
+                  {fechaLimitePasada && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={guardandoTodos}
+                        onClick={() => marcarTodosEntregas("Tarde")}
+                        className="text-[#D97706] border-[#D97706] hover:bg-amber-50"
+                      >
+                        <Clock className="h-3.5 w-3.5 mr-1.5" />
+                        Todos tarde
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={guardandoTodos}
+                        onClick={() => marcarTodosEntregas("No Entregada")}
+                        className="text-[#E11D48] border-[#E11D48] hover:bg-red-50"
+                      >
+                        <X className="h-3.5 w-3.5 mr-1.5" />
+                        Todos no entregada
+                      </Button>
+                    </>
+                  )}
+                </div>
+
                 {/* Aviso cuando la fecha aún no ha pasado */}
                 {!fechaLimitePasada && (
                   <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg border border-amber-200 text-xs text-[#D97706]">
@@ -670,7 +818,7 @@ export function GestionTareas() {
                       className="flex items-center justify-between p-3 rounded-lg border border-[#E5E7EB] hover:bg-[#F9FAFB]"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[#111827] truncate">{e.nombre}</p>
+                        <p className="text-sm font-medium text-[#111827] truncate">{e.nombre.replace(/,\s*/g, ' ')}</p>
                         {e.fechaEntrega && e.estado !== "Pendiente" && (
                           <p className="text-xs text-[#6B7280]">Fecha: {e.fechaEntrega}</p>
                         )}
@@ -714,7 +862,7 @@ export function GestionTareas() {
       </Dialog>
 
       {/* Dialog Editar */}
-      <Dialog open={dialogEditarAbierto} onOpenChange={setDialogEditarAbierto}>
+      <Dialog open={dialogEditarAbierto} onOpenChange={(open) => { if (guardandoEdicion) return; setDialogEditarAbierto(open); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Tarea</DialogTitle>
@@ -753,14 +901,67 @@ export function GestionTareas() {
                 className="rounded-lg"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4 text-[#6B7280]" />
+                Archivos adjuntos <span className="text-[#9CA3AF] font-normal">(opcional)</span>
+              </Label>
+
+              {archivosExistentesEdit.length > 0 && (
+                <ul className="text-xs text-[#6B7280] space-y-1">
+                  {archivosExistentesEdit.map((path) => (
+                    <li key={path} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#F3F4F6]">
+                      <Paperclip className="h-3 w-3 shrink-0" />
+                      <span className="flex-1 truncate">{nombreArchivo(path)}</span>
+                      <button
+                        type="button"
+                        onClick={() => setArchivosExistentesEdit(prev => prev.filter(a => a !== path))}
+                        className="text-[#E11D48] shrink-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <input
+                ref={archivoEditRef}
+                type="file"
+                multiple
+                onChange={(e) => setArchivosEdit(Array.from(e.target.files ?? []))}
+                className="block w-full text-sm text-[#6B7280] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-[#F3F4F6] file:text-[#374151] hover:file:bg-[#E5E7EB] cursor-pointer"
+              />
+              {archivosEdit.length > 0 && (
+                <ul className="text-xs text-[#6B7280] space-y-1 mt-1">
+                  {archivosEdit.map((f, i) => (
+                    <li key={i} className="flex items-center gap-1">
+                      <Paperclip className="h-3 w-3" />{f.name}
+                      <button type="button" onClick={() => setArchivosEdit(prev => prev.filter((_, j) => j !== i))} className="ml-auto text-[#E11D48]"><X className="h-3 w-3" /></button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogEditarAbierto(false)}>
+            <Button variant="outline" disabled={guardandoEdicion} onClick={() => setDialogEditarAbierto(false)}>
               Cancelar
             </Button>
-            <Button onClick={guardarEdicion} className="bg-[#1D4ED8] hover:bg-[#1E40AF]">
-              Guardar Cambios
+            <Button onClick={guardarEdicion} disabled={guardandoEdicion} className="bg-[#1D4ED8] hover:bg-[#1E40AF]">
+              {guardandoEdicion ? (
+                <>
+                  <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent inline-block" />
+                  Guardando…
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar Cambios
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -777,13 +978,17 @@ export function GestionTareas() {
           </DialogHeader>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogEliminarAbierto(false)}>
+            <Button variant="outline" disabled={eliminandoTarea} onClick={() => setDialogEliminarAbierto(false)}>
               Cancelar
             </Button>
             <Button
               onClick={confirmarEliminar}
+              disabled={eliminandoTarea}
               className="bg-[#E11D48] hover:bg-[#BE123C]"
             >
+              {eliminandoTarea ? (
+                <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent inline-block" />
+              ) : null}
               Eliminar Tarea
             </Button>
           </DialogFooter>

@@ -47,6 +47,7 @@ export default function App() {
 
   const [currentRoute, setCurrentRoute] = useState(window.location.hash || "#/dashboard");
   const [hijoSeleccionado, setHijoSeleccionado] = useState<number | null>(null);
+  const [notifIdParaAbrir, setNotifIdParaAbrir] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -155,6 +156,7 @@ export default function App() {
         onLogout={handleLogout}
         hijoSeleccionado={hijoSeleccionado}
         onHijoChange={setHijoSeleccionado}
+        onNotifClick={setNotifIdParaAbrir}
       >
         {currentRoute === "#/dashboard" && (
           <Dashboard
@@ -203,7 +205,7 @@ export default function App() {
         {/* Notificaciones: view → tutor, manage → profesor / trabajador social */}
         {currentRoute === "#/notificaciones" && (
           has("notificaciones.view")
-            ? <NotificacionesTutor alumnoId={hijoSeleccionado || 1} />
+            ? <NotificacionesTutor alumnoId={hijoSeleccionado || 1} notifIdParaAbrir={notifIdParaAbrir} onNotifAbierta={() => setNotifIdParaAbrir(null)} />
             : <Notificaciones />
         )}
 
@@ -245,7 +247,7 @@ export default function App() {
         {currentRoute === "#/periodos" && <PeriodosEvaluacion />}
         {currentRoute === "#/configuracion" && <ConfiguracionGeneral />}
       </ResponsiveLayout>
-      <Toaster position="top-right" />
+      <Toaster position="top-right" closeButton />
     </>
   );
 }

@@ -47,8 +47,6 @@ export function DashboardCustomRole({ onNavigate, userRole, userName, permission
     alumnos: g.asignaciones_count ?? 0,
   }));
 
-  const firstName = userName.split(" ")[0];
-
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Bienvenida personalizada */}
@@ -58,15 +56,10 @@ export function DashboardCustomRole({ onNavigate, userRole, userName, permission
             <LayoutDashboard className="h-6 w-6 text-[#1D4ED8]" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[#111827]">Bienvenido, {firstName}</h1>
-            <p className="text-sm text-[#6B7280] mt-1">
-              Estás accediendo como{" "}
-              <Badge className="bg-[#DBEAFE] text-[#1D4ED8] border-0 text-xs ml-1">{userRole}</Badge>
-              {cicloActivo && (
-                <Badge className="bg-green-100 text-[#059669] border-0 text-xs ml-2">
-                  Ciclo {cicloActivo.nombre} activo
-                </Badge>
-              )}
+            <h2 className="text-[#111827]">¡Bienvenido/a, {userName}!</h2>
+            <p className="text-sm text-[#6B7280] mt-1 flex items-center gap-2 flex-wrap">
+              <Badge className="bg-[#DBEAFE] text-[#1D4ED8] border-0 text-xs">{userRole}</Badge>
+              Acceso según permisos asignados
             </p>
           </div>
         </div>

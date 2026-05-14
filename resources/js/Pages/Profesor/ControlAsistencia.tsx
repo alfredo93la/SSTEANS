@@ -8,7 +8,7 @@ import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { Input } from "../../Components/ui/input";
 import { toast } from "sonner";
-import { Save, CheckCircle2, XCircle, Clock, Calendar } from "lucide-react";
+import { Save, CheckCircle2, XCircle, Clock, Calendar, Loader2 } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 
 interface GrupoData { id: number; nombre: string; }
@@ -42,6 +42,7 @@ export function ControlAsistencia() {
   const [fechaSeleccionada, setFechaSeleccionada] = useState(hoyLocal);
   const [asistencias, setAsistencias] = useState<Record<number, EstadoAsistencia>>({});
   const [guardado, setGuardado] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   const grupo = grupos.find(g => g.id.toString() === grupoSeleccionado);
   const materia = materias.find(m => m.id.toString() === materiaSeleccionada);
@@ -108,6 +109,13 @@ export function ControlAsistencia() {
       .catch(() => {});
   }, [grupoSeleccionado, materiaSeleccionada, fechaSeleccionada, fechaEsValida]);
 
+  const marcarTodos = (estado: EstadoAsistencia) => {
+    const nuevas: Record<number, EstadoAsistencia> = {};
+    alumnosDelGrupo.forEach(a => { nuevas[a.id] = estado; });
+    setAsistencias(nuevas);
+    setGuardado(false);
+  };
+
   const marcarAsistencia = (alumnoId: number, estado: EstadoAsistencia) => {
     setAsistencias(prev => ({
       ...prev,
@@ -129,6 +137,7 @@ export function ControlAsistencia() {
       toast.warning(`Hay ${faltantes} alumno(s) sin marcar. Se guardarán los registros existentes.`);
     }
 
+    setGuardando(true);
     axios.post("/api/asistencias/bulk", {
       grupo_id: parseInt(grupoSeleccionado),
       materia_id: parseInt(materiaSeleccionada),
@@ -142,7 +151,8 @@ export function ControlAsistencia() {
         toast.success(`Asistencia guardada: ${materia?.nombre} - ${grupo?.nombre} - ${fechaFormateada}`);
         setGuardado(true);
       })
-      .catch(() => toast.error("Error al guardar asistencia"));
+      .catch(() => toast.error("Error al guardar asistencia"))
+      .finally(() => setGuardando(false));
   };
 
   const getEstadoBadge = (estado?: EstadoAsistencia) => {
@@ -222,27 +232,38 @@ export function ControlAsistencia() {
               />
             </div>
           </div>
-{/*
           <div className="mt-4 flex flex-wrap gap-2">
             <Button
               size="sm"
               variant="outline"
               onClick={() => marcarTodos("Presente")}
+              disabled={!fechaEsValida || alumnosDelGrupo.length === 0}
               className="text-[#059669] border-[#059669] hover:bg-green-50"
             >
               <CheckCircle2 className="h-4 w-4 mr-2" />
-              Marcar todos presentes
+              Todos presentes
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => marcarTodos("Retardo")}
+              disabled={!fechaEsValida || alumnosDelGrupo.length === 0}
+              className="text-[#D97706] border-[#D97706] hover:bg-amber-50"
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              Todos retardo
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => marcarTodos("Falta")}
+              disabled={!fechaEsValida || alumnosDelGrupo.length === 0}
               className="text-[#E11D48] border-[#E11D48] hover:bg-red-50"
             >
               <XCircle className="h-4 w-4 mr-2" />
-              Marcar todos falta
+              Todos falta
             </Button>
-          </div> */}
+          </div>
 
           {materiaSeleccionada && !fechaEsValida && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
@@ -315,11 +336,11 @@ export function ControlAsistencia() {
             </div>
             <Button
               onClick={guardarAsistencias}
-              disabled={guardado || Object.keys(asistencias).length === 0 || !fechaEsValida}
+              disabled={guardando || guardado || Object.keys(asistencias).length === 0 || !fechaEsValida}
               className="bg-[#1D4ED8] hover:bg-[#1E40AF]"
             >
-              <Save className="h-4 w-4 mr-2" />
-              Guardar Asistencia
+              {guardando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              {guardando ? "Guardando..." : "Guardar Asistencia"}
             </Button>
           </div>
         </CardHeader>
@@ -398,6 +419,32 @@ export function ControlAsistencia() {
                 )}
               </TableBody>
             </Table>
+          </div>
+        </CardContent>
+      </Card>
+      {/* Leyenda de iconos */}
+      <Card className="border-[#E5E7EB]">
+        <CardContent className="pt-4 pb-4">
+          <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide mb-3">Referencias de asistencia</p>
+          <div className="flex flex-wrap gap-x-8 gap-y-2">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[#059669] shrink-0">
+                <CheckCircle2 className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-sm text-[#374151]">Presente — alumno asistió a clase</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[#D97706] shrink-0">
+                <Clock className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-sm text-[#374151]">Retardo — llegó tarde a clase</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center w-7 h-7 rounded-md bg-[#E11D48] shrink-0">
+                <XCircle className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-sm text-[#374151]">Falta — no asistió a clase</span>
+            </div>
           </div>
         </CardContent>
       </Card>

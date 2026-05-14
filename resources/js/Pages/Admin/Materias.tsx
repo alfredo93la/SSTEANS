@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import { Input } from "../../Components/ui/input";
@@ -102,6 +102,7 @@ export function Materias() {
   const [form, setForm] = useState(formVacio);
   const [editando, setEditando] = useState<Materia | null>(null);
   const [saving, setSaving] = useState(false);
+  const [eliminando, setEliminando] = useState<number | null>(null);
 
   const cargar = () => {
     setLoading(true);
@@ -153,12 +154,14 @@ export function Materias() {
 
   const handleEliminar = (materia: Materia) => {
     if (!confirm(`¿Eliminar "${materia.nombre}"?`)) return;
+    setEliminando(materia.id);
     axios.delete(`/api/admin/materias/${materia.id}`)
       .then(() => {
         setMaterias((prev) => prev.filter((m) => m.id !== materia.id));
         toast.success("Materia eliminada.");
       })
-      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."));
+      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."))
+      .finally(() => setEliminando(null));
   };
 
   const abrirEditar = (materia: Materia) => {
@@ -182,7 +185,7 @@ export function Materias() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={BookMarked} title="Gestión de Materias" description="Administra el catálogo de materias del plan de estudios" color="bg-[#059669]">
+      <PageTitle icon={BookMarked} title="Administración de Materias" description="Administra el catálogo de materias del plan de estudios" color="bg-[#059669]">
         <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
           <DialogTrigger asChild>
             <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
@@ -312,10 +315,13 @@ export function Materias() {
                   <Button
                     variant="outline"
                     size="sm"
+                    disabled={eliminando === materia.id}
                     className="text-[#E11D48] border-[#E11D48] hover:bg-red-50"
                     onClick={() => handleEliminar(materia)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    {eliminando === materia.id
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <Trash2 className="h-3.5 w-3.5" />}
                   </Button>
                 </div>
               </CardContent>

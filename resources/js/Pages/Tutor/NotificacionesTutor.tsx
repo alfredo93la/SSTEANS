@@ -26,9 +26,14 @@ interface Notificacion {
   grupo: string | null;
 }
 
-export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
+export function NotificacionesTutor({ alumnoId, notifIdParaAbrir, onNotifAbierta }: {
+  alumnoId: number;
+  notifIdParaAbrir?: number | null;
+  onNotifAbierta?: () => void;
+}) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [marcandoTodas, setMarcandoTodas] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState("todas");
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
   const [notificacionSeleccionada, setNotificacionSeleccionada] = useState<Notificacion | null>(null);
@@ -42,6 +47,15 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!notifIdParaAbrir || loading) return;
+    const notif = notificaciones.find(n => n.id === notifIdParaAbrir);
+    if (notif) {
+      verDetalle(notif);
+      onNotifAbierta?.();
+    }
+  }, [notifIdParaAbrir, loading, notificaciones]);
+
   const marcarComoLeida = (id: number) => {
     axios.patch(`/api/notificaciones/${id}/leer`).catch(() => {});
     setNotificaciones((prev) =>
@@ -50,8 +64,11 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
   };
 
   const marcarTodasComoLeidas = () => {
-    axios.patch("/api/notificaciones/leer-todas").catch(() => {});
+    setMarcandoTodas(true);
     setNotificaciones((prev) => prev.map((n) => ({ ...n, leida: true })));
+    axios.patch("/api/notificaciones/leer-todas")
+      .catch(() => {})
+      .finally(() => setMarcandoTodas(false));
   };
 
   const verDetalle = (notificacion: Notificacion) => {
@@ -113,7 +130,8 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
         color="bg-[#0891B2]"
       >
         {noLeidas > 0 && (
-          <Button variant="outline" onClick={marcarTodasComoLeidas}>
+          <Button variant="outline" disabled={marcandoTodas} onClick={marcarTodasComoLeidas}>
+            {marcandoTodas ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Marcar todas como leídas
           </Button>
         )}
@@ -272,14 +290,15 @@ export function NotificacionesTutor({ alumnoId }: { alumnoId: number }) {
                             <span>{notif.fecha} • {notif.hora}</span>
                           </div>
                           <span>De: {notif.remitente}</span>
-                          {notif.alumno ? (
+                          <span>Para: </span>
+                          {notif.alumno ? ( 
                             <span className="bg-blue-50 text-[#1D4ED8] px-1.5 py-0.5 rounded text-xs font-medium">
-                              Alumno: {notif.alumno}
+                              Tutor de {notif.alumno}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 bg-purple-50 text-[#7C3AED] px-1.5 py-0.5 rounded text-xs font-medium">
                               <Users className="h-3 w-3" />
-                              {notif.grupo ? `Grupo ${notif.grupo}` : "Todo el grupo"}
+                              Tutores de {notif.grupo ? `Grupo ${notif.grupo}` : "Todo el grupo"}
                             </span>
                           )}
                         </div>

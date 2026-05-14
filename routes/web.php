@@ -283,6 +283,8 @@ Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
         ->middleware('permission:tareas.manage');
     Route::patch('/tareas/{tarea}/entregas/{alumno}',    [TareaController::class, 'updateEntrega'])
         ->middleware('permission:tareas.manage');
+    Route::get('/tareas/{tarea}/adjuntos/{archivo}',     [TareaController::class, 'descargarAdjunto'])
+        ->middleware('permission:tareas.manage|tareas.view');
 });
 
 // ─── Reportes de Conducta ─────────────────────────────────────────────────────

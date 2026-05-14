@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { usePage } from "@inertiajs/react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
@@ -18,6 +19,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
+import type { PageProps } from "../../types";
 
 interface CicloData {
   id: number;
@@ -65,6 +67,10 @@ function formatDate(dateStr: string): string {
 }
 
 export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
+  const { auth } = usePage<PageProps>().props;
+  const userName = auth.user?.name ?? "Administrador";
+  const userRole = auth.user?.role ?? "Administrador";
+
   const [usuarios, setUsuarios] = useState<UsuarioData[]>([]);
   const [cicloActivo, setCicloActivo] = useState<CicloData | null | undefined>(undefined);
   const [solicitudes, setSolicitudes] = useState<SolicitudData[]>([]);
@@ -164,9 +170,10 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
               <Shield className="h-7 w-7 text-[#E11D48]" />
             </div>
             <div>
-              <h2 className="text-[#111827]">Administración del Sistema</h2>
-              <p className="text-sm text-[#6B7280] mt-1">
-                Control de usuarios, roles y permisos de acceso
+              <h2 className="text-[#111827]">¡Bienvenido/a, {userName}!</h2>
+              <p className="text-sm text-[#6B7280] mt-1 flex items-center gap-2 flex-wrap">
+                <Badge className="bg-red-100 text-[#E11D48] border-0 text-xs">{userRole}</Badge>
+                Administración de usuarios, roles y permisos del sistema
               </p>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSubmit } from "../hooks/useSubmit";
 import axios from "axios";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../Components/ui/card";
 import { Button } from "../Components/ui/button";
@@ -11,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
 import { Checkbox } from "../Components/ui/checkbox";
 import { Switch } from "../Components/ui/switch";
-import { FileText, Download, AlertCircle, Info, CheckCircle, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, EyeOff, X, CalendarDays, TriangleAlert } from "lucide-react";
+import { FileText, Download, AlertCircle, Info, CheckCircle, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, EyeOff, X, CalendarDays, TriangleAlert, Loader2 } from "lucide-react";
 import { PageTitle } from "../Layouts/PageTitle";
 import { ScrollText } from "lucide-react";
 import { toast } from "sonner";
@@ -110,6 +111,8 @@ export function Circulares({ permissions }: CircularesProps) {
 
   // Estado de eliminar
   const [eliminarId, setEliminarId] = useState<number | null>(null);
+  const [guardando, submitGuardar] = useSubmit();
+  const [eliminando, setEliminando] = useState(false);
 
   // Estado del visor de adjunto PDF
   const [adjuntoExpandido, setAdjuntoExpandido] = useState<string | null>(null);
@@ -207,7 +210,7 @@ export function Circulares({ permissions }: CircularesProps) {
     }));
   };
 
-  const handleGuardar = async () => {
+  const handleGuardar = () => {
     if (!forma.titulo || !forma.descripcion || !forma.categoria || !forma.prioridad) {
       toast.error("Por favor completa todos los campos obligatorios");
       return;
@@ -220,7 +223,7 @@ export function Circulares({ permissions }: CircularesProps) {
       toast.error("Completa la fecha y el tipo de evento para agregarlo a la agenda");
       return;
     }
-
+    submitGuardar(async () => {
     const fd = new FormData();
     fd.append("titulo", forma.titulo);
     fd.append("descripcion", forma.descripcion);
@@ -258,10 +261,12 @@ export function Circulares({ permissions }: CircularesProps) {
     } catch (error) {
       toast.error("No se pudo guardar la circular");
     }
+    });
   };
 
   const handleEliminar = async () => {
     if (eliminarId !== null) {
+      setEliminando(true);
       try {
         await axios.delete(`/api/circulares/${eliminarId}`);
         await cargarCirculares();
@@ -269,6 +274,8 @@ export function Circulares({ permissions }: CircularesProps) {
         setEliminarId(null);
       } catch (error) {
         toast.error("No se pudo eliminar la circular");
+      } finally {
+        setEliminando(false);
       }
     }
   };
@@ -638,9 +645,10 @@ export function Circulares({ permissions }: CircularesProps) {
                     <div className="space-y-2">
                       {circularSeleccionada.adjuntos.map((adjunto, index) => {
                         const nombre = nombreArchivo(adjunto);
-                        const url = `/api/circulares/${circularSeleccionada.id}/adjuntos/${nombre}`;
+                        const urlVer = `/api/circulares/${circularSeleccionada.id}/adjuntos/${nombre}`;
+                        const urlDescargar = `${urlVer}?download=1`;
                         const esPdf = nombre.toLowerCase().endsWith(".pdf");
-                        const estaExpandido = adjuntoExpandido === url;
+                        const estaExpandido = adjuntoExpandido === urlVer;
                         return (
                           <div key={index} className="bg-gray-50 rounded-lg border border-[#E5E7EB] overflow-hidden">
                             <div className="flex items-center justify-between p-3">
@@ -656,13 +664,13 @@ export function Circulares({ permissions }: CircularesProps) {
                                     size="sm"
                                     variant="outline"
                                     className={`gap-2 ${estaExpandido ? "bg-blue-50 border-[#1D4ED8] text-[#1D4ED8]" : ""}`}
-                                    onClick={() => setAdjuntoExpandido(estaExpandido ? null : url)}
+                                    onClick={() => setAdjuntoExpandido(estaExpandido ? null : urlVer)}
                                   >
                                     {estaExpandido ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     {estaExpandido ? "Ocultar" : "Visualizar"}
                                   </Button>
                                 )}
-                                <a href={url} download>
+                                <a href={urlDescargar} download>
                                   <Button size="sm" variant="outline" className="gap-2">
                                     <Download className="h-4 w-4" />
                                     Descargar
@@ -673,7 +681,7 @@ export function Circulares({ permissions }: CircularesProps) {
                             {esPdf && estaExpandido && (
                               <div className="border-t border-[#E5E7EB]">
                                 <iframe
-                                  src={url}
+                                  src={urlVer}
                                   className="w-full"
                                   style={{ height: "500px" }}
                                   title={nombre}
@@ -951,10 +959,11 @@ export function Circulares({ permissions }: CircularesProps) {
             </Button>
             <Button
               onClick={handleGuardar}
+              disabled={guardando}
               className="bg-[#1D4ED8] hover:bg-[#1E40AF] rounded-lg"
             >
-              <Send className="h-4 w-4 mr-2" />
-              {modoEdicion ? "Guardar cambios" : "Publicar circular"}
+              {guardando ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+              {guardando ? "Guardando..." : (modoEdicion ? "Guardar cambios" : "Publicar circular")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -973,9 +982,10 @@ export function Circulares({ permissions }: CircularesProps) {
             <AlertDialogCancel className="rounded-lg">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleEliminar}
+              disabled={eliminando}
               className="bg-[#E11D48] hover:bg-[#BE123C] rounded-lg"
             >
-              Eliminar
+              {eliminando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

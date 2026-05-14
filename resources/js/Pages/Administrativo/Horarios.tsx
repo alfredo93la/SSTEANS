@@ -281,6 +281,7 @@ export function Horarios() {
   const [formNuevo, setFormNuevo] = useState(formNuevoVacio);
   const [formEdit, setFormEdit] = useState(formEditVacio);
   const [saving, setSaving] = useState(false);
+  const [eliminando, setEliminando] = useState<number | null>(null);
 
   useEffect(() => {
     setLoadingInicial(true);
@@ -398,12 +399,14 @@ export function Horarios() {
 
   const handleEliminar = (clase: Clase) => {
     if (!confirm("¿Eliminar esta clase del horario?")) return;
+    setEliminando(clase.id);
     axios.delete(`/api/administrativo/clases/${clase.id}`)
       .then(() => {
         setClases((prev) => prev.filter((c) => c.id !== clase.id));
         toast.success("Clase eliminada.");
       })
-      .catch((err) => toast.error(err.response?.data?.message ?? "Error al eliminar."));
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al eliminar."))
+      .finally(() => setEliminando(null));
   };
 
   const abrirEditar = (clase: Clase) => {
@@ -540,8 +543,8 @@ export function Horarios() {
                               <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => abrirEditar(clase)}>
                                 <Edit className="h-3 w-3" />
                               </Button>
-                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-red-400 hover:text-red-600" onClick={() => handleEliminar(clase)}>
-                                <Trash2 className="h-3 w-3" />
+                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-red-400 hover:text-red-600" onClick={() => handleEliminar(clase)} disabled={eliminando === clase.id}>
+                                {eliminando === clase.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                               </Button>
                             </div>
                           </div>

@@ -73,6 +73,7 @@ export function Salones() {
   const [salonSel, setSalonSel] = useState<Salon | null>(null);
   const [form, setForm] = useState(formVacio);
   const [saving, setSaving] = useState(false);
+  const [eliminando, setEliminando] = useState<number | null>(null);
 
   const cargar = () => {
     setLoading(true);
@@ -118,12 +119,14 @@ export function Salones() {
 
   const handleEliminar = (salon: Salon) => {
     if (!confirm(`¿Eliminar "${salon.nombre}"? Solo es posible si no tiene clases asignadas.`)) return;
+    setEliminando(salon.id);
     axios.delete(`/api/administrativo/salones/${salon.id}`)
       .then(() => {
         setSalones((prev) => prev.filter((s) => s.id !== salon.id));
         toast.success("Salón eliminado.");
       })
-      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."));
+      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."))
+      .finally(() => setEliminando(null));
   };
 
   const abrirEditar = (salon: Salon) => {
@@ -142,7 +145,7 @@ export function Salones() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageTitle icon={DoorOpen} title="Gestión de Salones" description="Aulas y espacios disponibles en la escuela" color="bg-[#0891B2]">
+      <PageTitle icon={DoorOpen} title="Administración de Salones" description="Aulas y espacios disponibles en la escuela" color="bg-[#0891B2]">
         <Dialog open={modalNuevo} onOpenChange={(open) => { setModalNuevo(open); if (!open) setForm(formVacio); }}>
           <DialogTrigger asChild>
             <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
@@ -245,8 +248,8 @@ export function Salones() {
                   <Button variant="outline" size="sm" onClick={() => abrirEditar(salon)}>
                     <Edit className="h-3.5 w-3.5" />
                   </Button>
-                  <Button variant="outline" size="sm" className="text-[#E11D48] border-[#E11D48] hover:bg-red-50" onClick={() => handleEliminar(salon)}>
-                    <Trash2 className="h-3.5 w-3.5" />
+                  <Button variant="outline" size="sm" disabled={eliminando === salon.id} className="text-[#E11D48] border-[#E11D48] hover:bg-red-50" onClick={() => handleEliminar(salon)}>
+                    {eliminando === salon.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   </Button>
                 </div>
               </CardContent>

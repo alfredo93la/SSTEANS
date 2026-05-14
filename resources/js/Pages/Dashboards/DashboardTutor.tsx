@@ -41,6 +41,7 @@ interface DashboardTutorProps {
 export function DashboardTutor({ onNavigate, hijoSeleccionado }: DashboardTutorProps) {
   const { auth } = usePage<PageProps>().props;
   const userName = auth.user?.name ?? "Tutor";
+  const userRole = auth.user?.role ?? "Tutor";
 
   const [tareasAlumno, setTareasAlumno] = useState<TareaData[]>([]);
   const [eventosAgenda, setEventosAgenda] = useState<EventoData[]>([]);
@@ -98,7 +99,6 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado }: DashboardTutorP
     return { dia: parts[0], mes: MESES[parseInt(parts[1]) - 1] };
   };
 
-  const primerNombre = userName.split(" ")[0];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -111,11 +111,10 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado }: DashboardTutorP
                 <Users className="h-7 w-7 text-[#1D4ED8]" />
               </div>
               <div>
-                <h2 className="text-[#111827]">¡Bienvenido/a, {primerNombre}!</h2>
-                <p className="text-sm text-[#6B7280] mt-1">
-                  {notifsSinLeer > 0
-                    ? `Tienes ${notifsSinLeer} notificación${notifsSinLeer > 1 ? "es" : ""} sin leer`
-                    : "No tienes notificaciones pendientes"}
+                <h2 className="text-[#111827]">¡Bienvenido/a, {userName}!</h2>
+                <p className="text-sm text-[#6B7280] mt-1 flex items-center gap-2 flex-wrap">
+                  <Badge className="bg-blue-100 text-[#1D4ED8] border-0 text-xs">{userRole}</Badge>
+                  Seguimiento escolar de tus hijos
                 </p>
               </div>
             </div>

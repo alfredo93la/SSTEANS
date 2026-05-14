@@ -32,6 +32,8 @@ export function AsignarAlumnosGrupo() {
   const [ciclos, setCiclos] = useState<Ciclo[]>([]);
   const [cicloActualId, setCicloActualId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [asignando, setAsignando] = useState<number | null>(null);
+  const [bajando, setBajando] = useState<number | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [filtroGrado, setFiltroGrado] = useState("todos");
   const [modalAlumnos, setModalAlumnos] = useState(false);
@@ -70,6 +72,7 @@ export function AsignarAlumnosGrupo() {
 
   const handleAsignarDirecto = (alumnoId: number) => {
     if (!grupoSel) return;
+    setAsignando(alumnoId);
     axios.post("/api/administrativo/asignaciones", { alumno_id: alumnoId, grupo_id: grupoSel.id })
       .then(({ data }) => {
         setAsignaciones((prev) => [...prev, data.asignacion]);
@@ -78,17 +81,20 @@ export function AsignarAlumnosGrupo() {
         setBusquedaAlumno("");
         toast.success("Alumno asignado al grupo.");
       })
-      .catch((err) => toast.error(err.response?.data?.message ?? "Error al asignar."));
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al asignar."))
+      .finally(() => setAsignando(null));
   };
 
   const handleDarBaja = (asignacionId: number) => {
+    setBajando(asignacionId);
     axios.delete(`/api/administrativo/asignaciones/${asignacionId}`)
       .then(() => {
         setAsignaciones((prev) => prev.filter((a) => a.id !== asignacionId));
         if (grupoSel) setGrupos((prev) => prev.map((g) => g.id === grupoSel.id ? { ...g, asignaciones_count: Math.max(0, (g.asignaciones_count ?? 1) - 1) } : g));
         toast.success("Alumno dado de baja del grupo.");
       })
-      .catch((err) => toast.error(err.response?.data?.message ?? "Error."));
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error."))
+      .finally(() => setBajando(null));
   };
 
   const filtered = grupos.filter((g) => {
@@ -251,8 +257,8 @@ export function AsignarAlumnosGrupo() {
                         <p className="text-sm font-semibold text-[#111827]">{a.persona.apellidos} {a.persona.nombre}</p>
                         <p className="text-xs text-[#6B7280] mt-0.5">{a.persona.curp ?? "Sin CURP"}</p>
                       </div>
-                      <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={() => handleAsignarDirecto(a.id)}>
-                        <UserPlus className="h-3.5 w-3.5 mr-1" />Asignar
+                      <Button size="sm" variant="outline" disabled={asignando === a.id} className="h-7 text-xs shrink-0" onClick={() => handleAsignarDirecto(a.id)}>
+                        {asignando === a.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <UserPlus className="h-3.5 w-3.5 mr-1" />}Asignar
                       </Button>
                     </div>
                   ));
@@ -275,8 +281,8 @@ export function AsignarAlumnosGrupo() {
                         <p className="text-xs text-[#6B7280]">{a.alumno.persona.curp ?? "Sin CURP"}</p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" onClick={() => handleDarBaja(a.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
+                    <Button variant="ghost" size="sm" disabled={bajando === a.id} className="text-red-500 hover:bg-red-50" onClick={() => handleDarBaja(a.id)}>
+                      {bajando === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                     </Button>
                   </div>
                 ))

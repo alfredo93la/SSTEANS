@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSubmit } from "../hooks/useSubmit";
 import axios from "axios";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../Components/ui/card";
 import { Button } from "../Components/ui/button";
@@ -9,7 +10,7 @@ import { Textarea } from "../Components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../Components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
-import { FileText, Clock, BookOpen, Plus, Search, Filter, Edit2, Trash2, ClipboardCheck } from "lucide-react";
+import { FileText, Clock, BookOpen, Plus, Search, Filter, Edit2, Trash2, ClipboardCheck, Loader2 } from "lucide-react";
 import { PageTitle } from "../Layouts/PageTitle";
 import { toast } from "sonner";
 
@@ -55,13 +56,15 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
 
   const [examenes, setExamenes] = useState<ExamenData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtroMateria, setFiltroMateria] = useState<string>("Todas");
+  const [filtroMateria, setFiltroMateria] = useState<string>("Todas las materias");
   const [busqueda, setBusqueda] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [forma, setForma] = useState(formaVacia);
   const [eliminarId, setEliminarId] = useState<number | null>(null);
+  const [guardando, submitGuardar] = useSubmit();
+  const [eliminando, setEliminando] = useState(false);
 
   // Opciones del formulario (grupos/materias asignados al profesor)
   const [grupos, setGrupos] = useState<GrupoOption[]>([]);
@@ -143,13 +146,13 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   }, [forma.grupoId]);
 
   const materiasUnicas = [
-    "Todas",
+    "Todas las materias",
     ...new Set(examenes.map((e) => e.materia).filter(Boolean)),
   ] as string[];
 
   const examenesFiltrados = examenes
     .filter(
-      (e) => filtroMateria === "Todas" || e.materia === filtroMateria
+      (e) => filtroMateria === "Todas las materias" || e.materia === filtroMateria
     )
     .filter(
       (e) =>
@@ -213,12 +216,11 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
     setDialogOpen(true);
   };
 
-  const handleGuardar = async () => {
+  const handleGuardar = () => {
     if (!forma.titulo || !forma.tipo || !forma.fecha || !forma.grupo || !forma.materia) {
       toast.error("Completa todos los campos obligatorios");
       return;
     }
-
     const payload = {
       titulo: forma.titulo,
       tipo: forma.tipo,
@@ -230,8 +232,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
       descripcion: forma.descripcion || undefined,
       destinatarios: ["Tutor", "Profesor"],
     };
-
-    try {
+    submitGuardar(async () => {
       if (editMode && editId !== null) {
         await axios.put(`/api/agenda/eventos/${editId}`, payload);
         toast.success("Examen actualizado");
@@ -242,13 +243,12 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
       await cargarExamenes();
       setDialogOpen(false);
       setForma(formaVacia);
-    } catch {
-      toast.error("No se pudo guardar el examen");
-    }
+    });
   };
 
   const handleEliminar = async () => {
     if (eliminarId === null) return;
+    setEliminando(true);
     try {
       await axios.delete(`/api/agenda/eventos/${eliminarId}`);
       await cargarExamenes();
@@ -256,6 +256,8 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
       setEliminarId(null);
     } catch {
       toast.error("No se pudo eliminar el examen");
+    } finally {
+      setEliminando(false);
     }
   };
 
@@ -355,7 +357,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
               <select
                 value={filtroMateria}
                 onChange={(e) => setFiltroMateria(e.target.value)}
-                className="px-4 py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] focus:border-transparent"
+                className="px-auto py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] focus:border-transparent"
               >
                 {materiasUnicas.map((m) => (
                   <option key={m} value={m}>
@@ -675,9 +677,10 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
             </Button>
             <Button
               onClick={handleGuardar}
+              disabled={guardando}
               className="bg-[#E11D48] hover:bg-[#BE123C] rounded-lg"
             >
-              {editMode ? "Guardar cambios" : "Programar examen"}
+              {guardando ? <Loader2 className="h-4 w-4 animate-spin" /> : (editMode ? "Guardar cambios" : "Programar examen")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -702,9 +705,10 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
             <AlertDialogCancel className="rounded-lg">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleEliminar}
+              disabled={eliminando}
               className="bg-[#E11D48] hover:bg-[#BE123C] rounded-lg"
             >
-              Eliminar
+              {eliminando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

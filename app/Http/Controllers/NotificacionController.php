@@ -7,6 +7,8 @@ use App\Models\Notificacion;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class NotificacionController extends Controller
 {
@@ -32,15 +34,31 @@ class NotificacionController extends Controller
 
     /**
      * GET /api/notificaciones/enviadas
-     * Profesor / Trabajador Social: notificaciones enviadas.
+     * Profesor / Trabajador Social: notificaciones enviadas (una fila por envío).
      */
     public function enviadas(Request $request): JsonResponse
     {
-        $notificaciones = Notificacion::where('remitente_user_id', $request->user()->id)
+        $remitenteId = $request->user()->id;
+
+        // Conteos por grupo_envio
+        $conteos = DB::table('notificaciones')
+            ->where('remitente_user_id', $remitenteId)
+            ->selectRaw('grupo_envio, COUNT(*) as total, SUM(leida) as leidas_count')
+            ->groupBy('grupo_envio')
+            ->get()
+            ->keyBy('grupo_envio');
+
+        // Un representante por grupo_envio (el de menor id)
+        $notificaciones = Notificacion::whereIn('id', function ($q) use ($remitenteId) {
+            $q->from('notificaciones')
+                ->selectRaw('MIN(id)')
+                ->where('remitente_user_id', $remitenteId)
+                ->groupBy('grupo_envio');
+        })
             ->with('destinatario:id,name', 'alumno.persona:id,nombre,apellidos')
             ->latest()
             ->get()
-            ->map(fn ($n) => $this->formatEnviada($n));
+            ->map(fn ($n) => $this->formatEnviada($n, $conteos->get($n->grupo_envio)));
 
         return response()->json(['notificaciones' => $notificaciones]);
     }
@@ -64,6 +82,7 @@ class NotificacionController extends Controller
         ]);
 
         $remitenteId = $request->user()->id;
+        $grupoEnvio  = (string) Str::uuid();
         $creadas     = 0;
 
         foreach ($validated['destinatarios'] as $dest) {
@@ -72,6 +91,7 @@ class NotificacionController extends Controller
                 'destinatario_user_id' => $dest['userId'],
                 'alumno_id'            => $dest['alumnoId'] ?? null,
                 'grupo_id'             => $dest['grupoId'] ?? null,
+                'grupo_envio'          => $grupoEnvio,
                 'titulo'               => $validated['titulo'],
                 'mensaje'              => $validated['mensaje'],
                 'categoria'            => $validated['categoria'],
@@ -271,18 +291,23 @@ class NotificacionController extends Controller
         ];
     }
 
-    private function formatEnviada(Notificacion $n): array
+    private function formatEnviada(Notificacion $n, ?object $conteo = null): array
     {
+        $total       = (int) ($conteo?->total ?? 1);
+        $leidasCount = (int) ($conteo?->leidas_count ?? ($n->leida ? 1 : 0));
+
         return [
-            'id'           => $n->id,
-            'titulo'       => $n->titulo,
-            'mensaje'      => $n->mensaje,
-            'categoria'    => $n->categoria,
-            'prioridad'    => $n->prioridad,
-            'destinatario' => $n->destinatario?->name ?? '—',
-            'alumno'       => $this->alumnoNombre($n),
-            'estado'       => $n->leida ? 'leída' : 'enviada',
-            'fecha'        => $n->created_at->format('d/m/Y'),
+            'id'                 => $n->id,
+            'titulo'             => $n->titulo,
+            'mensaje'            => $n->mensaje,
+            'categoria'          => $n->categoria,
+            'prioridad'          => $n->prioridad,
+            'destinatario'       => $total > 1 ? "{$total} destinatarios" : ($n->destinatario?->name ?? '—'),
+            'totalDestinatarios' => $total,
+            'leidasCount'        => $leidasCount,
+            'alumno'             => $this->alumnoNombre($n),
+            'estado'             => $leidasCount >= $total ? 'leída' : 'enviada',
+            'fecha'              => $n->created_at->format('d/m/Y'),
         ];
     }
 }
