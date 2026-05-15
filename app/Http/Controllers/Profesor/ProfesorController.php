@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Profesor;
 
 use App\Http\Controllers\Controller;
+use App\Models\AgendaEvento;
 use App\Models\Alumno;
 use App\Models\CicloEscolar;
 use App\Models\Clase;
@@ -58,19 +59,23 @@ class ProfesorController extends Controller
         $clases = Clase::where('profesor_user_id', $userId)
             ->where('grupo_id', $request->integer('grupo_id'))
             ->when($cicloId, fn ($q) => $q->where('ciclo_escolar_id', $cicloId))
-            ->get(['materia_id', 'dia_semana']);
+            ->get(['materia_id', 'dia_semana', 'hora_inicio', 'hora_fin']);
 
-        // Agrupar días por materia
-        $diasPorMateria = $clases->groupBy('materia_id')
-            ->map(fn ($rows) => $rows->pluck('dia_semana')->unique()->values()->all());
+        $horariosPorMateria = $clases->groupBy('materia_id')
+            ->map(fn ($rows) => $rows->map(fn ($c) => [
+                'dia_semana'  => $c->dia_semana,
+                'hora_inicio' => $c->hora_inicio ? substr($c->hora_inicio, 0, 5) : null,
+                'hora_fin'    => $c->hora_fin    ? substr($c->hora_fin,    0, 5) : null,
+            ])->values()->all());
 
         $materias = Materia::whereIn('id', $clases->pluck('materia_id')->unique())
             ->orderBy('nombre')
             ->get(['id', 'nombre'])
             ->map(fn ($m) => [
-                'id'          => $m->id,
-                'nombre'      => $m->nombre,
-                'diasSemana'  => $diasPorMateria[$m->id] ?? [],
+                'id'         => $m->id,
+                'nombre'     => $m->nombre,
+                'diasSemana' => collect($horariosPorMateria[$m->id] ?? [])->pluck('dia_semana')->unique()->values()->all(),
+                'horarios'   => $horariosPorMateria[$m->id] ?? [],
             ]);
 
         return response()->json(['materias' => $materias]);
@@ -132,5 +137,36 @@ class ProfesorController extends Controller
             ->values();
 
         return response()->json(['alumnos' => $alumnos]);
+    }
+
+    /**
+     * Exámenes creados por el profesor autenticado.
+     * GET /api/profesor/examenes
+     */
+    public function examenes(Request $request): JsonResponse
+    {
+        $TIPOS_EXAMEN = ['Parcial', 'Final', 'Extraordinario', 'Examen'];
+
+        $eventos = AgendaEvento::where('creado_por_id', $request->user()->id)
+            ->whereIn('tipo', $TIPOS_EXAMEN)
+            ->with('destinatarios:id,agenda_evento_id,rol')
+            ->orderBy('fecha')
+            ->orderBy('hora_inicio')
+            ->get()
+            ->map(fn (AgendaEvento $e) => [
+                'id'           => $e->id,
+                'fecha'        => $e->fecha,
+                'fechaFin'     => $e->fecha_fin,
+                'titulo'       => $e->titulo,
+                'descripcion'  => $e->descripcion,
+                'horaInicio'   => $e->hora_inicio ? substr($e->hora_inicio, 0, 5) : null,
+                'horaFin'      => $e->hora_fin    ? substr($e->hora_fin,    0, 5) : null,
+                'grupo'        => $e->grupo,
+                'materia'      => $e->materia,
+                'tipo'         => $e->tipo,
+                'destinatarios' => $e->destinatarios->pluck('rol')->values()->all(),
+            ]);
+
+        return response()->json(['eventos' => $eventos]);
     }
 }

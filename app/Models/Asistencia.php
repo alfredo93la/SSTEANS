@@ -11,6 +11,7 @@ class Asistencia extends Model
 
     protected $fillable = [
         'alumno_id',
+        'clase_id',
         'materia_id',
         'ciclo_escolar_id',
         'registrado_por',
@@ -25,6 +26,11 @@ class Asistencia extends Model
     public function alumno(): BelongsTo
     {
         return $this->belongsTo(Alumno::class);
+    }
+
+    public function clase(): BelongsTo
+    {
+        return $this->belongsTo(Clase::class);
     }
 
     public function materia(): BelongsTo

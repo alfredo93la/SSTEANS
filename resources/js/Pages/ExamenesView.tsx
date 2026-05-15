@@ -10,7 +10,9 @@ import { Textarea } from "../Components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../Components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
-import { FileText, Clock, BookOpen, Plus, Search, Filter, Edit2, Trash2, ClipboardCheck, Loader2 } from "lucide-react";
+import { FileText, Clock, BookOpen, Plus, Search, Filter, Edit2, Trash2, ClipboardCheck, Loader2, CalendarIcon } from "lucide-react";
+import { Calendar } from "../Components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../Components/ui/popover";
 import { PageTitle } from "../Layouts/PageTitle";
 import { toast } from "sonner";
 
@@ -34,7 +36,25 @@ interface ExamenesViewProps {
 const TIPOS_EXAMEN = ["Parcial", "Final", "Extraordinario", "Examen"];
 
 interface GrupoOption { id: number; nombre: string; }
-interface MateriaOption { id: number; nombre: string; }
+interface HorarioClase { dia_semana: string; hora_inicio: string | null; hora_fin: string | null; }
+interface MateriaOption { id: number; nombre: string; diasSemana: string[]; horarios: HorarioClase[]; }
+
+// Mapeo JS getDay() → nombre del enum en BD
+const JS_DIA_MAP: Record<number, string> = {
+  1: "lunes", 2: "martes", 3: "miercoles", 4: "jueves", 5: "viernes",
+};
+
+const DIAS_ES: Record<string, string> = {
+  lunes: "Lunes", martes: "Martes", miercoles: "Miércoles",
+  jueves: "Jueves", viernes: "Viernes",
+};
+
+function formatFecha(fechaStr: string): string {
+  const [y, m, d] = fechaStr.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1).toLocaleDateString("es-MX", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+}
 
 const formaVacia = {
   titulo: "",
@@ -70,6 +90,8 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   const [grupos, setGrupos] = useState<GrupoOption[]>([]);
   const [materias, setMaterias] = useState<MateriaOption[]>([]);
   const [loadingMaterias, setLoadingMaterias] = useState(false);
+  const [horariosClase, setHorariosClase] = useState<HorarioClase[]>([]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const cargarExamenes = async () => {
     try {
@@ -145,12 +167,22 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
       .finally(() => setLoadingMaterias(false));
   }, [forma.grupoId]);
 
+  // Actualizar horarios cuando cambia la materia seleccionada
+  useEffect(() => {
+    if (!forma.materiaId) { setHorariosClase([]); return; }
+    const m = materias.find((x) => x.id === forma.materiaId);
+    setHorariosClase(m?.horarios ?? []);
+  }, [forma.materiaId, materias]);
+
   const materiasUnicas = [
     "Todas las materias",
     ...new Set(examenes.map((e) => e.materia).filter(Boolean)),
   ] as string[];
 
+  const hoy = new Date().toISOString().split("T")[0]!;
+
   const examenesFiltrados = examenes
+    .filter((e) => e.fecha >= hoy)
     .filter(
       (e) => filtroMateria === "Todas las materias" || e.materia === filtroMateria
     )
@@ -571,7 +603,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                 value={forma.materiaId?.toString() ?? ""}
                 onValueChange={(v) => {
                   const m = materias.find((x) => x.id.toString() === v);
-                  setForma({ ...forma, materiaId: m?.id ?? null, materia: m?.nombre ?? "" });
+                  setForma({ ...forma, materiaId: m?.id ?? null, materia: m?.nombre ?? "", fecha: "", horaInicio: "", horaFin: "" });
                 }}
                 disabled={!forma.grupoId}
               >
@@ -618,14 +650,51 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fecha">Fecha *</Label>
-              <Input
-                id="fecha"
-                type="date"
-                value={forma.fecha}
-                onChange={(e) => setForma({ ...forma, fecha: e.target.value })}
-                className="rounded-lg"
-              />
+              <Label>Fecha *</Label>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={horariosClase.length === 0 && puedeGestionar && !!forma.materiaId}
+                    className="w-full justify-start rounded-lg font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                    {forma.fecha ? formatFecha(forma.fecha) : <span className="text-muted-foreground">Seleccionar fecha</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={forma.fecha ? new Date(forma.fecha + "T12:00:00") : undefined}
+                    onSelect={(date) => {
+                      if (!date) return;
+                      const diaNombre = JS_DIA_MAP[date.getDay()];
+                      const horario = horariosClase.find((h) => h.dia_semana === diaNombre);
+                      const y = date.getFullYear();
+                      const m = String(date.getMonth() + 1).padStart(2, "0");
+                      const d = String(date.getDate()).padStart(2, "0");
+                      setForma((prev) => ({
+                        ...prev,
+                        fecha: `${y}-${m}-${d}`,
+                        horaInicio: horario?.hora_inicio ?? prev.horaInicio,
+                        horaFin: horario?.hora_fin ?? prev.horaFin,
+                      }));
+                      setCalendarOpen(false);
+                    }}
+                    disabled={(date) => {
+                      if (horariosClase.length === 0) return false;
+                      const diaNombre = JS_DIA_MAP[date.getDay()];
+                      return !diaNombre || !horariosClase.some((h) => h.dia_semana === diaNombre);
+                    }}
+                    initialFocus
+                  />
+                  {horariosClase.length > 0 && (
+                    <p className="px-3 pb-3 text-xs text-muted-foreground">
+                      Días disponibles: {horariosClase.map((h) => DIAS_ES[h.dia_semana] ?? h.dia_semana).join(", ")}
+                    </p>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -635,8 +704,9 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                   id="horaInicio"
                   type="time"
                   value={forma.horaInicio}
-                  onChange={(e) => setForma({ ...forma, horaInicio: e.target.value })}
-                  className="rounded-lg"
+                  readOnly={horariosClase.length > 0}
+                  onChange={(e) => { if (horariosClase.length === 0) setForma({ ...forma, horaInicio: e.target.value }); }}
+                  className={`rounded-lg ${horariosClase.length > 0 ? "bg-muted cursor-not-allowed" : ""}`}
                 />
               </div>
               <div className="space-y-2">
@@ -645,8 +715,9 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                   id="horaFin"
                   type="time"
                   value={forma.horaFin}
-                  onChange={(e) => setForma({ ...forma, horaFin: e.target.value })}
-                  className="rounded-lg"
+                  readOnly={horariosClase.length > 0}
+                  onChange={(e) => { if (horariosClase.length === 0) setForma({ ...forma, horaFin: e.target.value }); }}
+                  className={`rounded-lg ${horariosClase.length > 0 ? "bg-muted cursor-not-allowed" : ""}`}
                 />
               </div>
             </div>

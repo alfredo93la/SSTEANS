@@ -243,6 +243,8 @@ Route::middleware(['auth', 'verified'])->prefix('api/profesor')->group(function 
         ->middleware('permission:horario.view');
     Route::get('/alumnos',  [ProfesorController::class, 'alumnos'])
         ->middleware('permission:calificaciones.manage');
+    Route::get('/examenes', [ProfesorController::class, 'examenes'])
+        ->middleware('permission:examenes.manage');
 
     // Rubros de evaluación (definidos por el profesor por clase)
     Route::get('/rubros',  [RubroEvaluacionController::class, 'index'])

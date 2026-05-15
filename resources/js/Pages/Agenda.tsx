@@ -552,7 +552,7 @@ export function Agenda({ permissions }: AgendaProps) {
       </Card>
 
       {/* Vista Desktop/Tablet: Calendario + Lista lado a lado */}
-      <div className="hidden sm:grid sm:grid-cols-1 lg:grid-cols-2 gap-6 lg:h-[520px]">
+      <div className="hidden sm:grid sm:grid-cols-1 lg:grid-cols-2 gap-6 lg:h-125">
         {/* Calendario mensual - Desktop/Tablet */}
         <Card className="border-[#E5E7EB] flex flex-col h-full overflow-hidden">
           <CardHeader>

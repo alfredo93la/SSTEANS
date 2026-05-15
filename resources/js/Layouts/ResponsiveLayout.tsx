@@ -123,10 +123,15 @@ export function ResponsiveLayout({
       .then(({ data }) => {
         const eventos = data.eventos ?? [];
         const enRango = (fecha: string) => { const d = parseLocalDate(fecha); return d >= today && d <= next7; };
-        const agendaBadge = eventos.filter(e => enRango(e.fecha)).length > getSeenCount("badge_agenda_seen")
-          ? eventos.filter(e => enRango(e.fecha)).length : 0;
-        const examenBadge = eventos.filter(e => enRango(e.fecha) && TIPOS_EXAMEN.includes(e.tipo)).length > getSeenCount("badge_examenes_seen")
-          ? eventos.filter(e => enRango(e.fecha) && TIPOS_EXAMEN.includes(e.tipo)).length : 0;
+        const enRangoEventos = eventos.filter(e => enRango(e.fecha));
+        const agendaRel = userRole === "Profesor"
+          ? enRangoEventos.filter(e => !TIPOS_EXAMEN.includes(e.tipo))
+          : enRangoEventos;
+        const agendaBadge = agendaRel.length > getSeenCount("badge_agenda_seen") ? agendaRel.length : 0;
+        const examenBadge = userRole === "Profesor" ? 0 : (
+          enRangoEventos.filter(e => TIPOS_EXAMEN.includes(e.tipo)).length > getSeenCount("badge_examenes_seen")
+            ? enRangoEventos.filter(e => TIPOS_EXAMEN.includes(e.tipo)).length : 0
+        );
         let beepPlayed = false;
         setAgendaSinLeer(prev => { if (agendaBadge > prev && !beepPlayed) { beepPlayed = true; playBeep(); } return agendaBadge; });
         setExamenesSinLeer(prev => { if (examenBadge > prev && !beepPlayed) { beepPlayed = true; playBeep(); } return examenBadge; });
@@ -183,8 +188,12 @@ export function ResponsiveLayout({
       axios.get<{ eventos: { fecha: string; tipo: string }[] }>("/api/agenda/eventos")
         .then(({ data }) => {
           const eventos = data.eventos ?? [];
-          markAsSeen("badge_agenda_seen", eventos.filter(e => enRango(e.fecha)).length);
-          markAsSeen("badge_examenes_seen", eventos.filter(e => enRango(e.fecha) && TIPOS_EXAMEN.includes(e.tipo)).length);
+          const enRangoAll = eventos.filter(e => enRango(e.fecha));
+          const agendaMark = userRole === "Profesor"
+            ? enRangoAll.filter(e => !TIPOS_EXAMEN.includes(e.tipo)).length
+            : enRangoAll.length;
+          markAsSeen("badge_agenda_seen", agendaMark);
+          markAsSeen("badge_examenes_seen", enRangoAll.filter(e => TIPOS_EXAMEN.includes(e.tipo)).length);
         }).catch(() => {});
       setAgendaSinLeer(0);
       setExamenesSinLeer(0);

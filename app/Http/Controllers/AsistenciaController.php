@@ -128,16 +128,18 @@ class AsistenciaController extends Controller
         $dia     = $this->diaSemanaDeCarbon($fecha->dayOfWeek);
 
         // Validar que el profesor tenga clase ese día para este grupo+materia
-        $autorizado = Clase::where('profesor_user_id', $userId)
+        $clase = Clase::where('profesor_user_id', $userId)
             ->where('grupo_id', $grupoId)
             ->where('materia_id', $request->integer('materia_id'))
             ->where('dia_semana', $dia)
             ->where('ciclo_escolar_id', $cicloId)
-            ->exists();
+            ->first();
 
-        if (! $autorizado) {
+        if (! $clase) {
             return response()->json(['message' => 'Esta clase no está programada para el día seleccionado.'], 403);
         }
+
+        $claseId = $clase->id;
 
         // Solo guardar asistencia de alumnos con asignación activa en el ciclo
         $alumnoIdsActivos = Alumno::whereHas('asignaciones', function ($q) use ($grupoId, $cicloId): void {
@@ -146,7 +148,7 @@ class AsistenciaController extends Controller
               ->where('estado', 'activo');
         })->pluck('id')->flip();
 
-        DB::transaction(function () use ($request, $cicloId, $userId, $alumnoIdsActivos): void {
+        DB::transaction(function () use ($request, $cicloId, $userId, $alumnoIdsActivos, $claseId): void {
             foreach ($request->asistencias as $item) {
                 if (! $alumnoIdsActivos->has($item['alumnoId'])) {
                     continue;
@@ -154,11 +156,12 @@ class AsistenciaController extends Controller
 
                 Asistencia::updateOrCreate(
                     [
-                        'alumno_id'  => $item['alumnoId'],
-                        'materia_id' => $request->integer('materia_id'),
-                        'fecha'      => $request->fecha,
+                        'alumno_id' => $item['alumnoId'],
+                        'clase_id'  => $claseId,
+                        'fecha'     => $request->fecha,
                     ],
                     [
+                        'materia_id'       => $request->integer('materia_id'),
                         'ciclo_escolar_id' => $cicloId,
                         'registrado_por'   => $userId,
                         'estado'           => $item['estado'],

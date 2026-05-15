@@ -11,7 +11,7 @@ trait EmiteBadge
      * Emite BadgeActualizado a todos los usuarios cuyo rol tenga el permiso dado.
      * Si se pasa $userId, solo se emite a ese usuario.
      */
-    protected function emitirBadge(string $seccion, string $permiso, ?int $userId = null): void
+    protected function emitirBadge(string $seccion, string $permiso, ?int $userId = null, array $excludeRoles = []): void
     {
         try {
             if ($userId !== null) {
@@ -27,7 +27,8 @@ trait EmiteBadge
                     in_array($permiso, $perms, true) &&
                     ! in_array($permisoManage, $perms, true)
                 )
-                ->keys();
+                ->keys()
+                ->reject(fn ($role) => in_array($role, $excludeRoles, true));
 
             User::whereIn('role', $roles)
                 ->pluck('id')

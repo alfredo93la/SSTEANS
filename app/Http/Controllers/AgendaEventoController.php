@@ -10,24 +10,31 @@ use Illuminate\Http\Request;
 class AgendaEventoController extends Controller
 {
     use EmiteBadge;
+
+    private const TIPOS_EXAMEN = ['Parcial', 'Final', 'Extraordinario', 'Examen'];
+
     public function index(): JsonResponse
     {
         $user = request()->user();
         $canManage = $user?->hasPermission('agenda.manage') ?? false;
 
-        $TIPOS_EXAMEN = ['Parcial', 'Final', 'Extraordinario', 'Examen'];
+        $TIPOS_EXAMEN = self::TIPOS_EXAMEN;
 
         $query = AgendaEvento::query()
             ->with('destinatarios:id,agenda_evento_id,rol')
             ->orderBy('fecha')
             ->orderBy('hora_inicio');
 
+        // Solo tutores y profesores ven exámenes en la agenda
+        if ($user?->role !== 'Tutor' && $user?->role !== 'Profesor') {
+            $query->whereNotIn('tipo', $TIPOS_EXAMEN);
+        }
+
         if (! $canManage && $user) {
             $query->whereHas('destinatarios', fn ($q) => $q->where('rol', $user->role));
 
             if ($user->role === 'Profesor') {
                 // Exámenes: solo los que el profesor creó
-                // Otros eventos: todos los que tengan 'Profesor' como destinatario
                 $query->where(function ($q) use ($user, $TIPOS_EXAMEN) {
                     $q->whereNotIn('tipo', $TIPOS_EXAMEN)
                         ->orWhere('creado_por_id', $user->id);
@@ -38,8 +45,6 @@ class AgendaEventoController extends Controller
                 /** @var \App\Models\User $user */
                 $gruposHijos = $this->getGruposDelTutor($user);
                 $query->where(function ($q) use ($gruposHijos, $TIPOS_EXAMEN) {
-                    // Exámenes: solo los del grupo de sus hijos
-                    // Otros eventos: generales o de sus grupos
                     $q->where(function ($inner) use ($gruposHijos, $TIPOS_EXAMEN) {
                         $inner->whereIn('tipo', $TIPOS_EXAMEN)
                             ->whereIn('grupo', $gruposHijos);
@@ -110,7 +115,8 @@ class AgendaEventoController extends Controller
                 ->all()
         );
 
-        $this->emitirBadge('agenda', 'agenda.view');
+        $excludeRoles = in_array($evento->tipo, self::TIPOS_EXAMEN) ? ['Profesor'] : [];
+        $this->emitirBadge('agenda', 'agenda.view', null, $excludeRoles);
 
         return response()->json([
             'message' => 'Evento creado correctamente.',
@@ -166,7 +172,8 @@ class AgendaEventoController extends Controller
                 ->all()
         );
 
-        $this->emitirBadge('agenda', 'agenda.view');
+        $excludeRoles = in_array($validated['tipo'], self::TIPOS_EXAMEN) ? ['Profesor'] : [];
+        $this->emitirBadge('agenda', 'agenda.view', null, $excludeRoles);
 
         return response()->json([
             'message' => 'Evento actualizado correctamente.',
@@ -175,9 +182,11 @@ class AgendaEventoController extends Controller
 
     public function destroy(AgendaEvento $evento): JsonResponse
     {
+        $tipo = $evento->tipo;
         $evento->delete();
 
-        $this->emitirBadge('agenda', 'agenda.view');
+        $excludeRoles = in_array($tipo, self::TIPOS_EXAMEN) ? ['Profesor'] : [];
+        $this->emitirBadge('agenda', 'agenda.view', null, $excludeRoles);
 
         return response()->json([
             'message' => 'Evento eliminado correctamente.',

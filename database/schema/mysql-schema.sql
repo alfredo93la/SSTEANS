@@ -88,18 +88,22 @@ CREATE TABLE `asistencias` (
   `alumno_id` bigint(20) unsigned NOT NULL,
   `materia_id` bigint(20) unsigned NOT NULL,
   `ciclo_escolar_id` bigint(20) unsigned NOT NULL,
+  `clase_id` bigint(20) unsigned DEFAULT NULL,
   `registrado_por` bigint(20) unsigned NOT NULL,
   `fecha` date NOT NULL,
   `estado` enum('Presente','Falta','Retardo') NOT NULL DEFAULT 'Presente',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `asistencia_unica` (`alumno_id`,`materia_id`,`fecha`),
+  UNIQUE KEY `asistencia_unica` (`alumno_id`,`clase_id`,`fecha`),
   KEY `asistencias_materia_id_foreign` (`materia_id`),
   KEY `asistencias_ciclo_escolar_id_foreign` (`ciclo_escolar_id`),
   KEY `asistencias_registrado_por_foreign` (`registrado_por`),
+  KEY `asistencias_clase_id_foreign` (`clase_id`),
+  KEY `asistencias_alumno_id_index` (`alumno_id`),
   CONSTRAINT `asistencias_alumno_id_foreign` FOREIGN KEY (`alumno_id`) REFERENCES `alumnos` (`id`) ON DELETE CASCADE,
   CONSTRAINT `asistencias_ciclo_escolar_id_foreign` FOREIGN KEY (`ciclo_escolar_id`) REFERENCES `ciclos_escolares` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `asistencias_clase_id_foreign` FOREIGN KEY (`clase_id`) REFERENCES `clases` (`id`) ON DELETE SET NULL,
   CONSTRAINT `asistencias_materia_id_foreign` FOREIGN KEY (`materia_id`) REFERENCES `materias` (`id`) ON DELETE CASCADE,
   CONSTRAINT `asistencias_registrado_por_foreign` FOREIGN KEY (`registrado_por`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -184,6 +188,50 @@ CREATE TABLE `ciclos_escolares` (
   UNIQUE KEY `ciclos_escolares_nombre_unique` (`nombre`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER enforce_single_ciclo_activo_insert
+            BEFORE INSERT ON ciclos_escolares
+            FOR EACH ROW
+            BEGIN
+                IF NEW.activo = 1 THEN
+                    UPDATE ciclos_escolares SET activo = 0;
+                END IF;
+            END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER enforce_single_ciclo_activo_update
+            BEFORE UPDATE ON ciclos_escolares
+            FOR EACH ROW
+            BEGIN
+                IF NEW.activo = 1 AND OLD.activo = 0 THEN
+                    UPDATE ciclos_escolares SET activo = 0 WHERE id != NEW.id;
+                END IF;
+            END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 DROP TABLE IF EXISTS `circular_destinatarios`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -519,8 +567,8 @@ CREATE TABLE `profesores` (
   `persona_id` bigint(20) unsigned NOT NULL,
   `academia` varchar(100) DEFAULT NULL,
   `cubiculo` varchar(50) DEFAULT NULL,
-  `hora_entrada` varchar(10) DEFAULT NULL,
-  `hora_salida` varchar(10) DEFAULT NULL,
+  `hora_entrada` time DEFAULT NULL,
+  `hora_salida` time DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -807,3 +855,6 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (40,'2026_05_09_020
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (41,'2026_05_11_041145_update_categoria_enum_in_notificaciones_table',20);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (42,'2026_05_12_062915_add_grupo_envio_to_notificaciones_table',21);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (43,'2026_05_14_043908_add_archivos_to_tareas_table',22);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (44,'2026_05_14_100001_change_hora_columns_to_time_in_profesores_table',23);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (45,'2026_05_14_100002_add_clase_id_to_asistencias_table',24);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (46,'2026_05_14_100003_add_trigger_single_ciclo_activo',24);
