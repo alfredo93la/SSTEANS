@@ -150,18 +150,17 @@ export function Roles() {
   };
 
   const eliminarRol = async (rol: Rol) => {
-    const msg = rol.users_count > 0
-      ? `¿Eliminar el rol "${rol.nombre}"? ${rol.users_count} usuario(s) perderán este rol.`
-      : `¿Eliminar el rol "${rol.nombre}"?`;
-    if (!confirm(msg)) return;
+    if (!confirm(`¿Eliminar el rol "${rol.nombre}"?`)) return;
 
     setEliminando(rol.id);
     try {
       await window.axios.delete(`/admin/roles/${rol.id}`);
       toast.success("Rol eliminado correctamente.");
       await cargarRoles();
-    } catch {
-      toast.error("No se pudo eliminar el rol.");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ?? "No se pudo eliminar el rol.";
+      toast.error(msg);
     } finally {
       setEliminando(null);
     }

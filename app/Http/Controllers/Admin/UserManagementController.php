@@ -23,6 +23,41 @@ use Illuminate\Validation\Rule;
 
 class UserManagementController extends Controller
 {
+    public function stats(): JsonResponse
+    {
+        $hasStatus = Schema::hasColumn('users', 'status');
+
+        $columns = ['id', 'name', 'role', 'created_at'];
+        if ($hasStatus) {
+            $columns[] = 'status';
+        }
+
+        $todos      = User::query()->orderByDesc('created_at')->get($columns);
+        $sinAdmin   = $todos->where('role', '!=', 'Administrador');
+
+        $activos   = $hasStatus ? $sinAdmin->where('status', 'Activo')->count()   : $sinAdmin->count();
+        $inactivos = $hasStatus ? $sinAdmin->where('status', 'Inactivo')->count() : 0;
+
+        $rolesUnicos = $todos->pluck('role')->unique()->count();
+        $porRol      = $sinAdmin->groupBy('role')->map->count();
+
+        $recientes = $sinAdmin->take(5)->map(fn (User $u) => [
+            'name'       => $u->name,
+            'role'       => $u->role,
+            'status'     => $hasStatus ? $u->status : 'Activo',
+            'created_at' => $u->created_at,
+        ])->values();
+
+        return response()->json([
+            'total'        => $sinAdmin->count(),
+            'activos'      => $activos,
+            'inactivos'    => $inactivos,
+            'roles_unicos' => $rolesUnicos,
+            'por_rol'      => $porRol,
+            'recientes'    => $recientes,
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $hasStatusColumn = Schema::hasColumn('users', 'status');
@@ -33,7 +68,7 @@ class UserManagementController extends Controller
         $query = User::query()
             ->with([
                 'roles:id,nombre',
-                'persona:id,nombre,apellidos,curp,telefono,direccion,tipo_persona',
+                'persona:id,nombre,apellidos,curp,telefono,tipo_persona',
                 'persona.tutor:id,persona_id,ocupacion',
                 'persona.tutor.alumnos' => fn ($q) => $q
                     ->where('estado', 'Pendiente')
@@ -115,7 +150,6 @@ class UserManagementController extends Controller
             'email'        => ['required', 'email', 'max:255', 'unique:users,email'],
             'curp'         => [$esTutor ? 'required' : 'nullable', 'string', 'size:18', 'unique:personas,curp'],
             'telefono'     => ['nullable', 'string', 'max:20'],
-            'direccion'    => ['nullable', 'string', 'max:255'],
             'status'       => ['nullable', Rule::in(['Pendiente', 'Activo', 'Rechazado', 'Inactivo'])],
             'roles'        => ['required', 'array', 'min:1'],
             'roles.*'      => ['integer', Rule::exists('roles', 'id')],
@@ -148,7 +182,6 @@ class UserManagementController extends Controller
                 'apellidos'    => $validated['apellidos'],
                 'curp'         => isset($validated['curp']) ? strtoupper($validated['curp']) : null,
                 'telefono'     => $validated['telefono'] ?? null,
-                'direccion'    => $validated['direccion'] ?? null,
             ]);
 
             $status = $validated['status'] ?? 'Activo';
@@ -197,7 +230,6 @@ class UserManagementController extends Controller
                 Rule::unique('personas', 'curp')->ignore($user->persona_id),
             ],
             'telefono'     => ['nullable', 'string', 'max:20'],
-            'direccion'    => ['nullable', 'string', 'max:255'],
             'status'       => ['required', Rule::in(['Pendiente', 'Activo', 'Rechazado', 'Inactivo'])],
             'roles'        => ['required', 'array', 'min:1'],
             'roles.*'      => ['integer', Rule::exists('roles', 'id')],
@@ -345,7 +377,7 @@ class UserManagementController extends Controller
     {
         return [
             'roles:id,nombre',
-            'persona:id,nombre,apellidos,curp,telefono,direccion,tipo_persona',
+            'persona:id,nombre,apellidos,curp,telefono,tipo_persona',
             'persona.tutor:id,persona_id,ocupacion',
             'persona.profesor:id,persona_id,academia,cubiculo,hora_entrada,hora_salida',
             'persona.trabSocial:id,persona_id,hora_entrada,hora_salida,extension',

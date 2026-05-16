@@ -81,7 +81,7 @@ class AsistenciaController extends Controller
             ->get();
 
         $asistencias = Asistencia::whereIn('alumno_id', $alumnos->pluck('id'))
-            ->where('materia_id', $request->integer('materia_id'))
+            ->whereHas('clase', fn ($q) => $q->where('materia_id', $request->integer('materia_id')))
             ->where('fecha', $request->fecha)
             ->when($cicloId, fn ($q) => $q->where('ciclo_escolar_id', $cicloId))
             ->get()
@@ -161,7 +161,6 @@ class AsistenciaController extends Controller
                         'fecha'     => $request->fecha,
                     ],
                     [
-                        'materia_id'       => $request->integer('materia_id'),
                         'ciclo_escolar_id' => $cicloId,
                         'registrado_por'   => $userId,
                         'estado'           => $item['estado'],
@@ -185,9 +184,9 @@ class AsistenciaController extends Controller
             : CicloEscolar::where('activo', true)->value('id');
 
         $query = Asistencia::where('alumno_id', $alumno->id)
-            ->with('materia:id,nombre')
+            ->with('clase.materia:id,nombre')
             ->when($cicloId, fn ($q) => $q->where('ciclo_escolar_id', $cicloId))
-            ->when($request->filled('materia_id'), fn ($q) => $q->where('materia_id', $request->integer('materia_id')))
+            ->when($request->filled('materia_id'), fn ($q) => $q->whereHas('clase', fn ($q) => $q->where('materia_id', $request->integer('materia_id'))))
             ->when($request->filled('fecha_inicio'), fn ($q) => $q->where('fecha', '>=', $request->fecha_inicio))
             ->when($request->filled('fecha_fin'), fn ($q) => $q->where('fecha', '<=', $request->fecha_fin))
             ->orderBy('fecha', 'desc');
@@ -201,8 +200,8 @@ class AsistenciaController extends Controller
             return [
                 'id'        => $a->id,
                 'alumnoId'  => $a->alumno_id,
-                'materiaId' => $a->materia_id,
-                'materia'   => $a->materia?->nombre,
+                'materiaId' => $a->clase?->materia_id,
+                'materia'   => $a->clase?->materia?->nombre,
                 'fecha'     => $fechaStr,
                 'diaSemana' => $diaSemana,
                 'estado'    => $a->estado,

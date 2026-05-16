@@ -30,8 +30,8 @@ CREATE TABLE `agenda_eventos` (
   `hora_inicio` time DEFAULT NULL,
   `hora_fin` time DEFAULT NULL,
   `tipo` varchar(255) NOT NULL,
-  `grupo` varchar(255) DEFAULT NULL,
-  `materia` varchar(255) DEFAULT NULL,
+  `grupo_id` bigint(20) unsigned DEFAULT NULL,
+  `materia_id` bigint(20) unsigned DEFAULT NULL,
   `circular_id` bigint(20) unsigned DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -39,8 +39,12 @@ CREATE TABLE `agenda_eventos` (
   PRIMARY KEY (`id`),
   KEY `agenda_eventos_circular_id_foreign` (`circular_id`),
   KEY `agenda_eventos_creado_por_id_foreign` (`creado_por_id`),
+  KEY `agenda_eventos_grupo_id_foreign` (`grupo_id`),
+  KEY `agenda_eventos_materia_id_foreign` (`materia_id`),
   CONSTRAINT `agenda_eventos_circular_id_foreign` FOREIGN KEY (`circular_id`) REFERENCES `circulares` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `agenda_eventos_creado_por_id_foreign` FOREIGN KEY (`creado_por_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+  CONSTRAINT `agenda_eventos_creado_por_id_foreign` FOREIGN KEY (`creado_por_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `agenda_eventos_grupo_id_foreign` FOREIGN KEY (`grupo_id`) REFERENCES `grupos` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `agenda_eventos_materia_id_foreign` FOREIGN KEY (`materia_id`) REFERENCES `materias` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `alumnos`;
@@ -86,9 +90,8 @@ DROP TABLE IF EXISTS `asistencias`;
 CREATE TABLE `asistencias` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `alumno_id` bigint(20) unsigned NOT NULL,
-  `materia_id` bigint(20) unsigned NOT NULL,
   `ciclo_escolar_id` bigint(20) unsigned NOT NULL,
-  `clase_id` bigint(20) unsigned DEFAULT NULL,
+  `clase_id` bigint(20) unsigned NOT NULL,
   `registrado_por` bigint(20) unsigned NOT NULL,
   `fecha` date NOT NULL,
   `estado` enum('Presente','Falta','Retardo') NOT NULL DEFAULT 'Presente',
@@ -96,15 +99,13 @@ CREATE TABLE `asistencias` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `asistencia_unica` (`alumno_id`,`clase_id`,`fecha`),
-  KEY `asistencias_materia_id_foreign` (`materia_id`),
   KEY `asistencias_ciclo_escolar_id_foreign` (`ciclo_escolar_id`),
   KEY `asistencias_registrado_por_foreign` (`registrado_por`),
-  KEY `asistencias_clase_id_foreign` (`clase_id`),
   KEY `asistencias_alumno_id_index` (`alumno_id`),
+  KEY `asistencias_clase_id_foreign` (`clase_id`),
   CONSTRAINT `asistencias_alumno_id_foreign` FOREIGN KEY (`alumno_id`) REFERENCES `alumnos` (`id`) ON DELETE CASCADE,
   CONSTRAINT `asistencias_ciclo_escolar_id_foreign` FOREIGN KEY (`ciclo_escolar_id`) REFERENCES `ciclos_escolares` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `asistencias_clase_id_foreign` FOREIGN KEY (`clase_id`) REFERENCES `clases` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `asistencias_materia_id_foreign` FOREIGN KEY (`materia_id`) REFERENCES `materias` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `asistencias_clase_id_foreign` FOREIGN KEY (`clase_id`) REFERENCES `clases` (`id`) ON DELETE CASCADE,
   CONSTRAINT `asistencias_registrado_por_foreign` FOREIGN KEY (`registrado_por`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -317,7 +318,6 @@ CREATE TABLE `configuracion_escuela` (
   `logo_url` varchar(255) DEFAULT NULL,
   `numero` varchar(255) DEFAULT NULL,
   `cct` varchar(20) DEFAULT NULL,
-  `turno_escuela` varchar(255) DEFAULT NULL,
   `turnos_disponibles` enum('matutino','vespertino','ambos') NOT NULL DEFAULT 'matutino',
   `director` varchar(255) DEFAULT NULL,
   `telefono` varchar(30) DEFAULT NULL,
@@ -858,3 +858,8 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (43,'2026_05_14_043
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (44,'2026_05_14_100001_change_hora_columns_to_time_in_profesores_table',23);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (45,'2026_05_14_100002_add_clase_id_to_asistencias_table',24);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (46,'2026_05_14_100003_add_trigger_single_ciclo_activo',24);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (47,'2026_05_15_072506_make_clase_id_not_null_in_asistencias_table',25);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (48,'2026_05_15_073253_drop_materia_id_from_asistencias_table',26);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (49,'2026_05_15_074340_rename_turnos_disponibles_to_turno_escuela_in_configuracion_escuela_table',27);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (50,'2026_05_15_075640_rename_turno_escuela_back_to_turnos_disponibles_in_configuracion_escuela_table',28);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (51,'2026_05_15_081105_replace_grupo_materia_strings_with_fks_in_agenda_eventos_table',29);

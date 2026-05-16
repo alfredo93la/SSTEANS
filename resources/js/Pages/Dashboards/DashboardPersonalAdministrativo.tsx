@@ -11,8 +11,12 @@ import {
   UserCheck,
   AlertCircle,
   CheckCircle2,
+  CalendarDays,
+  Mail,
 } from "lucide-react";
 import type { PageProps } from "../../types";
+
+const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
 interface GradoData { id: number; numero: number; }
 interface GrupoData {
@@ -31,6 +35,24 @@ interface AlumnoData {
   }> | null;
 }
 
+interface EventoData {
+  id: number;
+  fecha: string;
+  titulo: string;
+  horaInicio: string | null;
+  horaFin: string | null;
+  tipo: string;
+  grupo: string | null;
+}
+
+interface CircularData {
+  id: number;
+  titulo: string;
+  categoria: string;
+  prioridad: string;
+  fechaPublicacion: string;
+}
+
 interface DashboardPersonalAdministrativoProps {
   onNavigate: (route: string) => void;
 }
@@ -43,6 +65,8 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
   const [alumnos, setAlumnos] = useState<AlumnoData[]>([]);
   const [grupos, setGrupos] = useState<GrupoData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [eventosAgenda, setEventosAgenda] = useState<EventoData[]>([]);
+  const [ultimasCirculares, setUltimasCirculares] = useState<CircularData[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -57,8 +81,31 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    axios.get("/api/agenda/eventos")
+      .then(({ data }) => setEventosAgenda(data.eventos ?? []))
+      .catch(() => {});
+    axios.get("/api/circulares")
+      .then(({ data }) => setUltimasCirculares((data.circulares ?? []).slice(0, 4)))
+      .catch(() => {});
+  }, []);
+
   const totalAlumnos = alumnos.length;
   const totalGrupos = grupos.length;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const next30 = new Date(today);
+  next30.setDate(today.getDate() + 30);
+  const proximosEventos = eventosAgenda
+    .filter(e => { const d = new Date(e.fecha); return d >= today && d <= next30; })
+    .sort((a, b) => a.fecha.localeCompare(b.fecha))
+    .slice(0, 4);
+
+  const formatFechaEvento = (fecha: string) => {
+    const [, month, day] = fecha.split('-');
+    return { dia: day, mes: MESES[parseInt(month) - 1] };
+  };
   const sinTutor = alumnos.filter(a => !a.tiene_tutor).sort((a, b) => {
     const ap = (a.persona?.apellidos ?? "").localeCompare(b.persona?.apellidos ?? "", "es");
     return ap !== 0 ? ap : (a.persona?.nombre ?? "").localeCompare(b.persona?.nombre ?? "", "es");
@@ -105,7 +152,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
       </Card>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card
           className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all cursor-pointer"
           onClick={() => onNavigate("#/alumnos")}
@@ -134,7 +181,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
                 <Users className="h-6 w-6 text-[#7C3AED]" />
               </div>
               <div>
-                <p className="text-sm text-[#6B7280]">Grupos Activos</p>
+                <p className="text-sm text-[#6B7280]">Grupos activos</p>
                 <p className="text-2xl font-bold text-[#7C3AED]">{loading ? "—" : totalGrupos}</p>
                 <p className="text-xs text-[#6B7280] mt-1">
                   {cicloActivoProp ? `Ciclo ${cicloActivoProp.nombre}` : "Sin ciclo activo"}
@@ -146,7 +193,7 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
 
         <Card
           className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100 hover:shadow-lg transition-all cursor-pointer"
-          onClick={() => onNavigate("#/tutores")}
+          onClick={() => onNavigate("#/alumnos")}
         >
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -154,8 +201,8 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
                 <UserCheck className="h-6 w-6 text-[#D97706]" />
               </div>
               <div>
-                <p className="text-sm text-[#6B7280]">Sin Tutor</p>
-                <p className={`text-2xl font-bold ${alumnosSinTutor > 0 ? "text-[#E11D48]" : "text-[#059669]"}`}>
+                <p className="text-sm text-[#6B7280]">Sin tutor</p>
+                <p className="text-2xl font-bold text-[#D97706]">
                   {loading ? "—" : alumnosSinTutor}
                 </p>
                 <p className="text-xs text-[#6B7280] mt-1">Alumnos sin tutor vinculado</p>
@@ -163,6 +210,25 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
             </div>
           </CardContent>
         </Card>
+
+        <Card
+          className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100 hover:shadow-lg transition-all cursor-pointer"
+          onClick={() => onNavigate("#/agenda")}
+        >
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-xl">
+                <CalendarDays className="h-6 w-6 text-[#059669]" />
+              </div>
+              <div>
+                <p className="text-sm text-[#6B7280]">Eventos próximos</p>
+                <p className="text-2xl font-bold text-[#059669]">{proximosEventos.length}</p>
+                <p className="text-xs text-[#6B7280] mt-1">En los próximos 30 días</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
       </div>
 
       {/* Dos columnas */}
@@ -276,6 +342,108 @@ export function DashboardPersonalAdministrativo({ onNavigate }: DashboardPersona
                     y {sinTutor.length - 6} más...
                   </p>
                 )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Agenda y Circulares */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border-[#E5E7EB]">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-[#059669]" />
+                  Agenda Escolar
+                </CardTitle>
+                <CardDescription>Eventos y actividades próximos</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate("#/agenda")}>
+                Ver agenda
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {proximosEventos.length === 0 ? (
+              <div className="text-center py-8 text-[#6B7280]">
+                <CalendarDays className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">No hay eventos en los próximos 30 días</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {proximosEventos.map(evento => {
+                  const { dia, mes } = formatFechaEvento(evento.fecha);
+                  return (
+                    <div
+                      key={evento.id}
+                      className="flex items-center gap-3 p-3 rounded-lg bg-linear-to-br from-green-50 to-white border border-green-200 hover:shadow-md transition-all"
+                    >
+                      <div className="w-12 h-12 rounded-lg bg-linear-to-br from-green-100 to-green-200 flex flex-col items-center justify-center shrink-0">
+                        <span className="text-xs text-[#059669]">{mes}</span>
+                        <span className="text-lg font-bold text-[#059669]">{dia}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-[#111827] truncate">{evento.titulo}</h4>
+                        <p className="text-xs text-[#6B7280] mt-1">
+                          {evento.horaInicio
+                            ? `${evento.horaInicio}${evento.horaFin ? ` – ${evento.horaFin}` : ""}`
+                            : "Todo el día"}
+                          {evento.grupo && evento.grupo !== "General" ? ` · ${evento.grupo}` : ""}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="bg-green-100 text-[#059669] shrink-0">
+                        {evento.tipo}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#E5E7EB]">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-[#0284C7]" />
+                  Circulares Recientes
+                </CardTitle>
+                <CardDescription>Últimas comunicaciones emitidas</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate("#/circulares")}>
+                Ver todas
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {ultimasCirculares.length === 0 ? (
+              <div className="text-center py-8 text-[#6B7280]">
+                <Mail className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">No hay circulares publicadas</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {ultimasCirculares.map(c => (
+                  <div key={c.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#111827] truncate">{c.titulo}</p>
+                      <p className="text-xs text-[#6B7280] mt-0.5">{c.fechaPublicacion}</p>
+                    </div>
+                    <Badge className={
+                      c.prioridad === "alta"
+                        ? "bg-red-100 text-red-700 border-0 shrink-0"
+                        : c.prioridad === "media"
+                          ? "bg-amber-100 text-amber-700 border-0 shrink-0"
+                          : "bg-gray-100 text-gray-600 border-0 shrink-0"
+                    }>
+                      {c.categoria}
+                    </Badge>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

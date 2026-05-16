@@ -21,8 +21,8 @@ class AgendaEvento extends Model
         'hora_inicio',
         'hora_fin',
         'tipo',
-        'grupo',
-        'materia',
+        'grupo_id',
+        'materia_id',
         'circular_id',
         'creado_por_id',
     ];
@@ -35,5 +35,15 @@ class AgendaEvento extends Model
     public function circular(): BelongsTo
     {
         return $this->belongsTo(Circular::class);
+    }
+
+    public function grupo(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Grupo::class);
+    }
+
+    public function materia(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Materia::class);
     }
 }

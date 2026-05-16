@@ -149,7 +149,7 @@ class ProfesorController extends Controller
 
         $eventos = AgendaEvento::where('creado_por_id', $request->user()->id)
             ->whereIn('tipo', $TIPOS_EXAMEN)
-            ->with('destinatarios:id,agenda_evento_id,rol')
+            ->with(['destinatarios:id,agenda_evento_id,rol', 'grupo.grado:id,numero', 'materia:id,nombre'])
             ->orderBy('fecha')
             ->orderBy('hora_inicio')
             ->get()
@@ -161,8 +161,10 @@ class ProfesorController extends Controller
                 'descripcion'  => $e->descripcion,
                 'horaInicio'   => $e->hora_inicio ? substr($e->hora_inicio, 0, 5) : null,
                 'horaFin'      => $e->hora_fin    ? substr($e->hora_fin,    0, 5) : null,
-                'grupo'        => $e->grupo,
-                'materia'      => $e->materia,
+                'grupoId'      => $e->grupo_id,
+                'grupo'        => $e->grupo ? ($e->grupo->grado ? $e->grupo->grado->numero.'°'.$e->grupo->nombre : $e->grupo->nombre) : null,
+                'materiaId'    => $e->materia_id,
+                'materia'      => $e->materia?->nombre,
                 'tipo'         => $e->tipo,
                 'destinatarios' => $e->destinatarios->pluck('rol')->values()->all(),
             ]);

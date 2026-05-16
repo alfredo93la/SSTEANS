@@ -12,7 +12,6 @@ class ConfiguracionEscuela extends Model
         'nombre',
         'numero',
         'cct',
-        'turno_escuela',
         'turnos_disponibles',
         'director',
         'telefono',

@@ -9,8 +9,8 @@ import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { Textarea } from "../../Components/ui/textarea";
 import {
-  Users, Search, Filter, Eye, Edit, Plus,
-  CheckCircle, XCircle, Trash2, Loader2, Mail, Phone,
+  Users, Search, Eye, Edit, Plus,
+  CheckCircle, XCircle, UserX, Loader2, Mail, Phone,
   UserPen,
 } from "lucide-react";
 import {
@@ -19,6 +19,7 @@ import {
 } from "../../Components/ui/dialog";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../../Components/ui/pagination";
 import { toast } from "sonner";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────
@@ -31,7 +32,6 @@ interface Persona {
   apellidos: string;
   curp: string | null;
   telefono: string | null;
-  direccion: string | null;
   tipo_persona: string | null;
   tutor?: { ocupacion: string | null } | null;
   profesor?: { academia: string | null; cubiculo: string | null; hora_entrada: string | null; hora_salida: string | null } | null;
@@ -55,7 +55,7 @@ interface UsuarioItem {
 
 const formVacio = {
   nombre: "", apellidos: "", email: "",
-  curp: "", telefono: "", direccion: "",
+  curp: "", telefono: "",
   rolId: "", status: "Activo" as UsuarioItem["status"],
   // Tutor
   ocupacion: "",
@@ -93,6 +93,10 @@ function CamposEspecificosRol({ rolNombre, form, setForm }: {
         <div className="space-y-1.5">
           <Label>Ocupación</Label>
           <Input value={form.ocupacion} onChange={(e) => setForm({ ...form, ocupacion: e.target.value })} placeholder="Profesión u ocupación" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Teléfono</Label>
+          <Input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} placeholder="10 dígitos" />
         </div>
       </>
     );
@@ -212,15 +216,6 @@ function FormUsuario({ form, setForm, roles, isEdit = false }: {
           <Label>CURP {rolNombre === "Tutor" && <span className="text-red-500">*</span>}</Label>
           <Input value={form.curp} onChange={(e) => setForm({ ...form, curp: e.target.value.toUpperCase() })} placeholder="18 caracteres" maxLength={18} className="uppercase" />
         </div>
-        <div className="space-y-1.5">
-          <Label>Teléfono</Label>
-          <Input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} placeholder="10 dígitos" />
-        </div>
-        <div className="col-span-2 space-y-1.5">
-          <Label>Dirección</Label>
-          <Textarea rows={2} value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} placeholder="Calle, número, colonia, municipio" className="resize-none" />
-        </div>
-
         {/* Rol y estado */}
         <div className="space-y-1.5">
           <Label>Rol *</Label>
@@ -231,20 +226,6 @@ function FormUsuario({ form, setForm, roles, isEdit = false }: {
             </SelectContent>
           </Select>
         </div>
-        {isEdit && (
-          <div className="space-y-1.5">
-            <Label>Estado</Label>
-            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as UsuarioItem["status"] })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Activo">Activo</SelectItem>
-                <SelectItem value="Pendiente">Pendiente</SelectItem>
-                <SelectItem value="Rechazado">Rechazado</SelectItem>
-                <SelectItem value="Inactivo">Inactivo</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
 
         {/* Campos específicos por rol */}
         <CamposEspecificosRol rolNombre={rolNombre} form={form} setForm={setForm} />
@@ -321,6 +302,9 @@ export function Usuarios() {
 
   const [form, setForm] = useState(formVacio);
 
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 10;
+
   const [modalValidar, setModalValidar] = useState(false);
   const [modalRechazo, setModalRechazo] = useState(false);
   const [aprobando, setAprobando] = useState(false);
@@ -342,6 +326,7 @@ export function Usuarios() {
   };
 
   useEffect(() => { cargar(); }, [busqueda, filtroRol, filtroEstado]);
+  useEffect(() => { setPagina(1); }, [busqueda, filtroRol, filtroEstado]);
 
   const estadisticas = useMemo(() => ({
     total: users.length,
@@ -376,7 +361,7 @@ export function Usuarios() {
     axios.post("/admin/usuarios", {
       nombre: form.nombre, apellidos: form.apellidos, email: form.email,
       curp: form.curp || undefined,
-      telefono: form.telefono || undefined, direccion: form.direccion || undefined,
+      telefono: form.telefono || undefined,
       roles: [Number(form.rolId)], status: form.status,
       ...payloadEspecifico(rolNombre),
     })
@@ -395,8 +380,8 @@ export function Usuarios() {
     setSaving(true);
     axios.put(`/admin/usuarios/${usuarioSel.id}`, {
       nombre: form.nombre, apellidos: form.apellidos, email: form.email,
-      curp: form.curp || undefined, telefono: form.telefono || undefined,
-      direccion: form.direccion || undefined,
+      curp: form.curp || undefined,
+      telefono: form.telefono || undefined,
       roles: [Number(form.rolId)], status: form.status,
       ...payloadEspecifico(rolNombre),
     })
@@ -405,21 +390,33 @@ export function Usuarios() {
       .finally(() => setSaving(false));
   };
 
-  const handleEliminar = (id: number) => {
-    if (!confirm("¿Eliminar este usuario? Esta acción no se puede deshacer.")) return;
-    axios.delete(`/admin/usuarios/${id}`)
-      .then(() => { setUsers((prev) => prev.filter((u) => u.id !== id)); toast.success("Usuario eliminado."); })
-      .catch(() => toast.error("No se pudo eliminar el usuario."));
+  const handleDesactivar = (u: UsuarioItem) => {
+    if (!confirm(`¿Desactivar a ${u.persona ? `${u.persona.nombre} ${u.persona.apellidos}` : u.name}? Su cuenta quedará inactiva.`)) return;
+    const rolId = u.roles[0]?.id;
+    if (!rolId) { toast.error("No se pudo determinar el rol del usuario."); return; }
+    axios.put(`/admin/usuarios/${u.id}`, {
+      nombre: u.persona?.nombre ?? u.name,
+      apellidos: u.persona?.apellidos ?? "",
+      email: u.email,
+      curp: u.persona?.curp ?? undefined,
+      roles: [rolId],
+      status: "Inactivo",
+    })
+      .then(({ data }) => { setUsers((prev) => prev.map((x) => x.id === data.user.id ? data.user : x)); toast.success("Usuario desactivado."); })
+      .catch(() => toast.error("No se pudo desactivar el usuario."));
   };
 
   const abrirEditar = (u: UsuarioItem) => {
     const p = u.persona;
+    const rolId = u.roles[0]?.id.toString()
+      ?? roles.find((r) => r.nombre === u.role)?.id.toString()
+      ?? "";
     setUsuarioSel(u);
     setForm({
       nombre: p?.nombre ?? "", apellidos: p?.apellidos ?? "",
       email: u.email,
-      curp: p?.curp ?? "", telefono: p?.telefono ?? "", direccion: p?.direccion ?? "",
-      rolId: u.roles[0]?.id.toString() ?? "", status: u.status,
+      curp: p?.curp ?? "", telefono: p?.telefono ?? "",
+      rolId, status: u.status,
       // Tutor
       ocupacion: p?.tutor?.ocupacion ?? "",
       // Profesor
@@ -463,7 +460,7 @@ export function Usuarios() {
     switch (rol) {
       case "Administrador":           return "bg-purple-100 text-purple-700 border-purple-200";
       case "Personal Administrativo": return "bg-blue-100 text-blue-700 border-blue-200";
-      case "Profesor":                return "bg-green-100 text-green-700 border-green-200";
+      case "Profesor":                return "bg-sky-100 text-sky-700 border-sky-200";
       case "Trabajador Social":       return "bg-orange-100 text-orange-700 border-orange-200";
       case "Tutor":                   return "bg-pink-100 text-pink-700 border-pink-200";
       default:                        return "bg-gray-100 text-gray-700 border-gray-200";
@@ -516,29 +513,38 @@ export function Usuarios() {
       <Card className="border-[#E5E7EB]">
         <CardContent className="pt-6">
           <div className="flex flex-col lg:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
-              <Input placeholder="Buscar por nombre, apellidos o correo..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="pl-10" />
+            <div className="flex-1">
+              <label className="text-sm text-[#6B7280] mb-2 block">Buscar</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+                <Input placeholder="Buscar por nombre, apellidos o correo..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="pl-10" />
+              </div>
             </div>
-            <Select value={filtroRol} onValueChange={setFiltroRol}>
-              <SelectTrigger className="w-full lg:w-52">
-                <Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Rol" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los roles</SelectItem>
-                {roles.map((r) => <SelectItem key={r.id} value={r.nombre}>{r.nombre}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-              <SelectTrigger className="w-full lg:w-44"><SelectValue placeholder="Estado" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="Activo">Activo</SelectItem>
-                <SelectItem value="Pendiente">Pendiente</SelectItem>
-                <SelectItem value="Rechazado">Rechazado</SelectItem>
-                <SelectItem value="Inactivo">Inactivo</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="w-full lg:w-52">
+              <label className="text-sm text-[#6B7280] mb-2 block">Rol</label>
+              <Select value={filtroRol} onValueChange={setFiltroRol}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los roles</SelectItem>
+                  {roles.filter((r) => r.nombre !== "Administrador").map((r) => <SelectItem key={r.id} value={r.nombre}>{r.nombre}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full lg:w-44">
+              <label className="text-sm text-[#6B7280] mb-2 block">Estado</label>
+              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                <SelectTrigger><SelectValue placeholder="Estado" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="Activo">Activo</SelectItem>
+                  <SelectItem value="Pendiente">Pendiente</SelectItem>
+                  <SelectItem value="Rechazado">Rechazado</SelectItem>
+                  <SelectItem value="Inactivo">Inactivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -558,59 +564,96 @@ export function Usuarios() {
             </div>
           ) : (
             <div className="space-y-3">
-              {users.map((u) => (
-                <div key={u.id} className="border border-[#E5E7EB] rounded-xl p-4 flex items-start gap-4">
-                  <div className="p-2.5 rounded-full bg-indigo-500 shrink-0">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                      <div>
-                        <p className="font-semibold text-[#111827]">
-                          {u.persona ? `${u.persona.nombre} ${u.persona.apellidos}` : u.name}
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          <Badge className={getBadgeRol(u.role)}>{u.role}</Badge>
-                          <Badge className={getBadgeEstado(u.status)}>{u.status}</Badge>
+              {users.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA).map((u) => (
+                <div key={u.id} className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all overflow-hidden">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-indigo-100 rounded-lg shrink-0">
+                          <Users className="h-4 w-4 text-indigo-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-semibold text-[#111827] truncate">
+                            {u.persona ? `${u.persona.nombre} ${u.persona.apellidos}` : u.name}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <Badge className={getBadgeRol(u.role)}>{u.role}</Badge>
+                            <Badge className={getBadgeEstado(u.status)}>{u.status}</Badge>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        <Button variant="outline" size="sm" onClick={() => abrirDetalle(u)}>
-                          <Eye className="h-4 w-4" />Ver detalle
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => abrirEditar(u)}>
-                          <Edit className="h-4 w-4" />Editar
-                        </Button>
-                        {u.status === "Pendiente" && (
-                          <Button variant="outline" size="sm" className="text-[#E11D48] hover:text-[#E11D48]" onClick={() => handleValidar(u)}>
-                            <CheckCircle className="h-4 w-4" />Validar
-                          </Button>
+                      <div className="ml-11 space-y-1">
+                        <div className="flex items-center gap-1 text-xs text-[#6B7280] min-w-0">
+                          <Mail className="h-3 w-3 shrink-0" /><span className="truncate">{u.email}</span>
+                        </div>
+                        {u.persona?.telefono && (
+                          <div className="flex items-center gap-1 text-xs text-[#6B7280] min-w-0">
+                            <Phone className="h-3 w-3 shrink-0" /><span className="truncate">{u.persona.telefono}</span>
+                          </div>
                         )}
-                        {u.id !== currentUserId && (
-                          <Button variant="outline" size="sm" className="text-[#E11D48] hover:text-[#E11D48]" onClick={() => handleEliminar(u.id)}>
-                            <Trash2 className="h-4 w-4" />Eliminar
-                          </Button>
-                        )}
+                        <div className="text-xs text-[#6B7280]">
+                          Creado: {new Date(u.created_at).toLocaleDateString("es-MX")}
+                        </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-x-4 mt-2 text-sm text-[#6B7280]">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <Mail className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{u.email}</span>
-                      </div>
-                      {u.persona?.telefono && (
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <Phone className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{u.persona.telefono}</span>
-                        </div>
+                    <div className="flex flex-wrap gap-1">
+                      <Button variant="outline" size="sm" onClick={() => abrirDetalle(u)}>
+                        <Eye className="h-4 w-4" />Ver detalle
+                      </Button>
+                      {u.status === "Pendiente" && (
+                        <Button variant="outline" size="sm" className="text-[#E11D48] hover:text-[#E11D48]" onClick={() => handleValidar(u)}>
+                          <CheckCircle className="h-4 w-4" />Validar
+                        </Button>
                       )}
-                      <div className="text-xs mt-1">
-                        Creado: {new Date(u.created_at).toLocaleDateString("es-MX")}
-                      </div>
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {Math.ceil(users.length / POR_PAGINA) > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+              <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, users.length)} de {users.length}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }}
+                      className={pagina === 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: Math.ceil(users.length / POR_PAGINA) }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === Math.ceil(users.length / POR_PAGINA) || Math.abs(n - pagina) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === "ellipsis" ? (
+                        <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                      ) : (
+                        <PaginationItem key={item}>
+                          <PaginationLink
+                            href="#"
+                            isActive={pagina === item}
+                            onClick={(e) => { e.preventDefault(); setPagina(item as number); }}
+                          >
+                            {item}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(Math.ceil(users.length / POR_PAGINA), p + 1)); }}
+                      className={pagina === Math.ceil(users.length / POR_PAGINA) ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </CardContent>
@@ -634,21 +677,19 @@ export function Usuarios() {
                   <p className="text-[#6B7280] text-xs">Apellidos</p>
                   <p className="font-medium">{usuarioSel.persona?.apellidos ?? "—"}</p>
                 </div>
-                <div className="col-span-2">
+                <div className={usuarioSel.persona?.telefono ? "" : "col-span-2"}>
                   <p className="text-[#6B7280] text-xs">Correo electrónico</p>
                   <p className="font-medium">{usuarioSel.email}</p>
                 </div>
+                {usuarioSel.persona?.telefono && (
+                  <div>
+                    <p className="text-[#6B7280] text-xs">Teléfono</p>
+                    <p className="font-medium">{usuarioSel.persona.telefono}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-[#6B7280] text-xs">CURP</p>
                   <p className="font-medium">{usuarioSel.persona?.curp ?? "—"}</p>
-                </div>
-                <div>
-                  <p className="text-[#6B7280] text-xs">Teléfono</p>
-                  <p className="font-medium">{usuarioSel.persona?.telefono ?? "—"}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-[#6B7280] text-xs">Dirección</p>
-                  <p className="font-medium">{usuarioSel.persona?.direccion ?? "—"}</p>
                 </div>
                 <div>
                   <p className="text-[#6B7280] text-xs">Rol</p>
@@ -660,11 +701,19 @@ export function Usuarios() {
                 </div>
                 <DetalleEspecificoRol usuario={usuarioSel} />
               </div>
-              <DialogFooter className="pt-2">
-                <Button variant="outline" onClick={() => setModalDetalle(false)}>Cerrar</Button>
-                <Button onClick={() => { setModalDetalle(false); abrirEditar(usuarioSel); }}>
-                  <Edit className="h-4 w-4 mr-1" />Editar
-                </Button>
+              <DialogFooter className="pt-2 flex-col-reverse sm:flex-row sm:justify-between gap-2">
+                <div>
+                  {usuarioSel.id !== currentUserId && usuarioSel.status !== "Inactivo" && (
+                    <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 w-full sm:w-auto" onClick={() => { setModalDetalle(false); handleDesactivar(usuarioSel); }}>
+                      <UserX className="h-4 w-4 mr-1" />Desactivar
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={() => { setModalDetalle(false); abrirEditar(usuarioSel); }}>
+                    <Edit className="h-4 w-4 mr-1" />Editar
+                  </Button>
+                </div>
               </DialogFooter>
             </div>
           )}

@@ -25,10 +25,11 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../../Components/ui/pagination";
 import { toast } from "sonner";
 
 interface UserInfo { id: number; email: string; status: string; }
-interface Persona { id: number; nombre: string; apellidos: string; curp: string | null; telefono: string | null; direccion: string | null; user?: UserInfo; }
+interface Persona { id: number; nombre: string; apellidos: string; curp: string | null; telefono: string | null; user?: UserInfo; }
 interface AlumnoVinculado { id: number; sexo: string | null; persona: Persona; pivot?: { parentesco: string | null } }
 interface AlumnoListado { id: number; sexo: string | null; persona: Persona; tiene_tutor: boolean; }
 interface Tutor {
@@ -54,6 +55,9 @@ export function TutoresAdmin() {
   const [saving, setSaving] = useState(false);
   const [alumnoSearchText, setAlumnoSearchText] = useState("");
   const [editandoParentesco, setEditandoParentesco] = useState<{ alumnoId: number; valor: string } | null>(null);
+  const [filtroVinculacion, setFiltroVinculacion] = useState<"todos" | "con" | "sin">("todos");
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 10;
 
   const cargar = () => {
     setLoading(true);
@@ -142,11 +146,27 @@ export function TutoresAdmin() {
       .catch((err) => toast.error(err.response?.data?.message ?? "Error al desvincular."));
   };
 
-  const filtered = tutores.filter((t) => {
-    if (!busqueda) return true;
-    const nombre = `${t.persona.nombre} ${t.persona.apellidos}`.toLowerCase();
-    return nombre.includes(busqueda.toLowerCase());
+  const tutoresActivos = tutores.filter((t) => t.persona.user?.status === "Activo");
+
+  const filtered = [...tutoresActivos].sort((a, b) => {
+    const nom = a.persona.nombre.localeCompare(b.persona.nombre, "es");
+    return nom !== 0 ? nom : a.persona.apellidos.localeCompare(b.persona.apellidos, "es");
+  }).filter((t) => {
+    const q = busqueda.toLowerCase();
+    const matchBusqueda = !busqueda ||
+      `${t.persona.nombre} ${t.persona.apellidos}`.toLowerCase().includes(q) ||
+      (t.persona.user?.email ?? "").toLowerCase().includes(q) ||
+      (t.persona.curp ?? "").toLowerCase().includes(q);
+    const matchVinculacion =
+      filtroVinculacion === "todos" ||
+      (filtroVinculacion === "con" ? t.alumnos.length > 0 : t.alumnos.length === 0);
+    return matchBusqueda && matchVinculacion;
   });
+
+  useEffect(() => { setPagina(1); }, [busqueda, filtroVinculacion]);
+
+  const totalPaginas = Math.ceil(filtered.length / POR_PAGINA);
+  const paginados = filtered.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   const statusBadge = (status?: string) => {
     if (status === "Activo")    return <Badge className="bg-green-100 text-green-700 border-0 text-xs">Activo</Badge>;
@@ -166,7 +186,7 @@ export function TutoresAdmin() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl"><ShieldUser className="h-6 w-6 text-[#7C3AED]" /></div>
-              <div><p className="text-sm text-[#6B7280]">Total Tutores</p><p className="text-2xl font-bold text-[#7C3AED]">{tutores.length}</p></div>
+              <div><p className="text-sm text-[#6B7280]">Total Tutores</p><p className="text-2xl font-bold text-[#7C3AED]">{tutoresActivos.length}</p></div>
             </div>
           </CardContent>
         </Card>
@@ -174,7 +194,7 @@ export function TutoresAdmin() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl"><GraduationCap className="h-6 w-6 text-[#1D4ED8]" /></div>
-              <div><p className="text-sm text-[#6B7280]">Alumnos vinculados</p><p className="text-2xl font-bold text-[#1D4ED8]">{tutores.reduce((s, t) => s + t.alumnos.length, 0)}</p></div>
+              <div><p className="text-sm text-[#6B7280]">Con vinculación</p><p className="text-2xl font-bold text-[#1D4ED8]">{tutoresActivos.filter((t) => t.alumnos.length > 0).length}</p></div>
             </div>
           </CardContent>
         </Card>
@@ -182,7 +202,7 @@ export function TutoresAdmin() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl"><UserX className="h-6 w-6 text-[#F59E0B]" /></div>
-              <div><p className="text-sm text-[#6B7280]">Sin alumnos</p><p className="text-2xl font-bold text-[#F59E0B]">{tutores.filter((t) => t.alumnos.length === 0).length}</p></div>
+              <div><p className="text-sm text-[#6B7280]">Sin vinculación</p><p className="text-2xl font-bold text-[#F59E0B]">{tutoresActivos.filter((t) => t.alumnos.length === 0).length}</p></div>
             </div>
           </CardContent>
         </Card>
@@ -191,9 +211,27 @@ export function TutoresAdmin() {
       {/* Filtro */}
       <Card className="border-[#E5E7EB]">
         <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
-            <Input placeholder="Buscar por nombre..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="pl-10" />
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1">
+              <label className="text-sm text-[#6B7280] mb-2 block">Buscar</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+                <Input placeholder="Buscar por nombre, correo o CURP..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="pl-10" />
+              </div>
+            </div>
+            <div className="w-full lg:w-48">
+              <label className="text-sm text-[#6B7280] mb-2 block">Vinculación</label>
+              <Select value={filtroVinculacion} onValueChange={(v) => setFiltroVinculacion(v as "todos" | "con" | "sin")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="con">Con vinculación</SelectItem>
+                  <SelectItem value="sin">Sin vinculación</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -211,7 +249,7 @@ export function TutoresAdmin() {
             <p className="text-sm text-[#6B7280] text-center py-8">No hay tutores registrados.</p>
           ) : (
             <div className="space-y-3">
-              {filtered.map((tutor) => (
+              {paginados.map((tutor) => (
                 <div key={tutor.id} className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all overflow-hidden">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -252,16 +290,59 @@ export function TutoresAdmin() {
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" title="Ver detalle" onClick={() => { setTutorSel(tutor); setModalDetalle(true); }}>
+                      <Button variant="outline" size="sm" onClick={() => { setTutorSel(tutor); setModalDetalle(true); }}>
                         <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" title="Vincular alumno" onClick={() => { setTutorSel(tutor); setModalVincular(true); }}>
-                        <LinkIcon className="h-4 w-4" />
+                        Ver detalle
                       </Button>
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {totalPaginas > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+              <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, filtered.length)} de {filtered.length}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }}
+                      className={pagina === 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === "ellipsis" ? (
+                        <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                      ) : (
+                        <PaginationItem key={item}>
+                          <PaginationLink
+                            href="#"
+                            isActive={pagina === item}
+                            onClick={(e) => { e.preventDefault(); setPagina(item as number); }}
+                          >
+                            {item}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(totalPaginas, p + 1)); }}
+                      className={pagina === totalPaginas ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </CardContent>
@@ -285,7 +366,6 @@ export function TutoresAdmin() {
                 {tutorSel.persona.curp && <div><p className="text-[#6B7280]">CURP</p><p className="font-mono text-xs">{tutorSel.persona.curp}</p></div>}
                 {tutorSel.persona.telefono && <div><p className="text-[#6B7280]">Teléfono</p><p>{tutorSel.persona.telefono}</p></div>}
                 {tutorSel.ocupacion && <div><p className="text-[#6B7280]">Ocupación</p><p>{tutorSel.ocupacion}</p></div>}
-                {tutorSel.persona.direccion && <div className="col-span-2"><p className="text-[#6B7280]">Dirección</p><p>{tutorSel.persona.direccion}</p></div>}
               </div>
               <div>
                 <p className="font-semibold text-[#111827] mb-2">Alumnos vinculados</p>
@@ -346,7 +426,6 @@ export function TutoresAdmin() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setModalDetalle(false); setTutorSel(null); }}>Cerrar</Button>
             <Button onClick={() => { setModalDetalle(false); setModalVincular(true); }} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               <LinkIcon className="h-4 w-4 mr-2" />Vincular alumno
             </Button>

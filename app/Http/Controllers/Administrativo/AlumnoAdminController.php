@@ -10,6 +10,7 @@ use App\Models\Persona;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class AlumnoAdminController extends Controller
@@ -67,7 +68,7 @@ class AlumnoAdminController extends Controller
             'sexo'            => ['required', Rule::in(['Masculino', 'Femenino', 'No especificado'])],
             'telefono'        => ['nullable', 'string', 'max:30'],
             'direccion'       => ['nullable', 'string', 'max:500'],
-            'estado'          => ['nullable', Rule::in(['Activo', 'Inactivo', 'Baja', 'Pendiente'])],
+            'estado'          => ['nullable', Rule::in(['Activo', 'Baja', 'Pendiente'])],
         ]);
 
         $alumno = DB::transaction(function () use ($validated): Alumno {
@@ -104,7 +105,7 @@ class AlumnoAdminController extends Controller
             'sexo'            => ['required', Rule::in(['Masculino', 'Femenino', 'No especificado'])],
             'telefono'        => ['nullable', 'string', 'max:30'],
             'direccion'       => ['nullable', 'string', 'max:500'],
-            'estado'          => ['required', Rule::in(['Activo', 'Inactivo', 'Baja', 'Pendiente'])],
+            'estado'          => ['required', Rule::in(['Activo', 'Baja', 'Pendiente'])],
         ]);
 
         $estadoAnterior = $alumno->estado;
@@ -129,7 +130,7 @@ class AlumnoAdminController extends Controller
                 $cicloActivoId = CicloEscolar::where('activo', true)->value('id');
 
                 if ($cicloActivoId) {
-                    $estadoAsignacion = in_array($nuevoEstado, ['Baja', 'Inactivo']) ? 'baja' : 'activo';
+                    $estadoAsignacion = $nuevoEstado === 'Baja' ? 'baja' : 'activo';
 
                     AsignacionGrupo::where('alumno_id', $alumno->id)
                         ->where('ciclo_escolar_id', $cicloActivoId)
@@ -175,6 +176,36 @@ class AlumnoAdminController extends Controller
         });
 
         return response()->json(['message' => 'Solicitud rechazada y registro eliminado.']);
+    }
+
+    public function baja(Request $request, Alumno $alumno): JsonResponse
+    {
+        $request->validate(['password' => ['required', 'string']]);
+
+        if (! Hash::check($request->password, $request->user()->password)) {
+            return response()->json(['message' => 'Contraseña incorrecta.'], 403);
+        }
+
+        if ($alumno->estado === 'Baja') {
+            return response()->json(['message' => 'El alumno ya está dado de baja.'], 422);
+        }
+
+        DB::transaction(function () use ($alumno): void {
+            $cicloActivoId = CicloEscolar::where('activo', true)->value('id');
+
+            $alumno->update(['estado' => 'Baja']);
+
+            if ($cicloActivoId) {
+                AsignacionGrupo::where('alumno_id', $alumno->id)
+                    ->where('ciclo_escolar_id', $cicloActivoId)
+                    ->update(['estado' => 'baja']);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Alumno dado de baja.',
+            'alumno'  => $alumno->fresh()->load('persona:id,nombre,apellidos,curp,telefono,direccion'),
+        ]);
     }
 
     public function destroy(Alumno $alumno): JsonResponse

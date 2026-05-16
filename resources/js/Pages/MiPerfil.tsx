@@ -1,4 +1,4 @@
-import { BookOpen, Briefcase, Building2, Clock, IdCard, Mail, MapPin, Phone, ShieldCheck, UserRound, Users } from "lucide-react";
+import { BookOpen, Briefcase, Building2, Clock, IdCard, Mail, Phone, ShieldCheck, UserRound, Users } from "lucide-react";
 import { PageTitle } from "../Layouts/PageTitle";
 import type { User } from "../types";
 import { Badge } from "../Components/ui/badge";
@@ -99,7 +99,6 @@ export function MyProfile({ user }: MyProfileProps) {
     user.persona?.nombre ||
       user.persona?.apellidos ||
       user.persona?.telefono ||
-      user.persona?.direccion ||
       user.persona?.curp,
   );
 
@@ -170,7 +169,6 @@ export function MyProfile({ user }: MyProfileProps) {
           <CardContent className="grid gap-4">
             <InfoRow icon={UserRound} label="Nombre completo" value={hasPersonalInfo ? displayName : null} />
             <InfoRow icon={Phone} label="Telefono" value={user.persona?.telefono} />
-            <InfoRow icon={MapPin} label="Direccion" value={user.persona?.direccion} />
             <InfoRow icon={IdCard} label="CURP" value={user.persona?.curp} />
           </CardContent>
         </Card>

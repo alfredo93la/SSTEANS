@@ -20,8 +20,10 @@ interface ExamenData {
   id: number;
   titulo: string;
   descripcion: string;
-  materia: string | null;
-  grupo: string | null;
+  grupoId: number | null;
+  grupoNombre: string | null;
+  materiaId: number | null;
+  materiaNombre: string | null;
   fecha: string;
   horaInicio: string | null;
   horaFin: string | null;
@@ -59,9 +61,7 @@ function formatFecha(fechaStr: string): string {
 const formaVacia = {
   titulo: "",
   grupoId: null as number | null,
-  grupo: "",
   materiaId: null as number | null,
-  materia: "",
   tipo: "",
   fecha: "",
   horaInicio: "",
@@ -104,8 +104,10 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
           id: e.id,
           titulo: e.titulo,
           descripcion: e.descripcion || "",
-          materia: e.materia && e.materia !== "-" ? e.materia : null,
-          grupo: e.grupo && e.grupo !== "General" ? e.grupo : null,
+          grupoId: e.grupoId ?? null,
+          grupoNombre: e.grupoNombre ?? null,
+          materiaId: e.materiaId ?? null,
+          materiaNombre: e.materiaNombre ?? null,
           fecha: e.fecha,
           horaInicio: e.horaInicio || null,
           horaFin: e.horaFin || null,
@@ -130,15 +132,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
     axios
       .get<{ grupos: GrupoOption[] }>("/api/profesor/grupos")
       .then(({ data }) => {
-        const lista = data.grupos ?? [];
-        setGrupos(lista);
-        // En modo edición: pre-seleccionar el grupo por nombre
-        if (editMode && forma.grupo && !forma.grupoId) {
-          const match = lista.find((g) => g.nombre === forma.grupo);
-          if (match) {
-            setForma((prev) => ({ ...prev, grupoId: match.id }));
-          }
-        }
+        setGrupos(data.grupos ?? []);
       })
       .catch(() => toast.error("No se pudieron cargar los grupos"));
   }, [dialogOpen]);
@@ -155,13 +149,6 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
       .then(({ data }) => {
         const lista = data.materias ?? [];
         setMaterias(lista);
-        // En modo edición: pre-seleccionar la materia por nombre
-        if (editMode && forma.materia && !forma.materiaId) {
-          const match = lista.find((m) => m.nombre === forma.materia);
-          if (match) {
-            setForma((prev) => ({ ...prev, materiaId: match.id }));
-          }
-        }
       })
       .catch(() => toast.error("No se pudieron cargar las materias"))
       .finally(() => setLoadingMaterias(false));
@@ -176,7 +163,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
 
   const materiasUnicas = [
     "Todas las materias",
-    ...new Set(examenes.map((e) => e.materia).filter(Boolean)),
+    ...new Set(examenes.map((e) => e.materiaNombre).filter(Boolean)),
   ] as string[];
 
   const hoy = new Date().toISOString().split("T")[0]!;
@@ -184,14 +171,14 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   const examenesFiltrados = examenes
     .filter((e) => e.fecha >= hoy)
     .filter(
-      (e) => filtroMateria === "Todas las materias" || e.materia === filtroMateria
+      (e) => filtroMateria === "Todas las materias" || e.materiaNombre === filtroMateria
     )
     .filter(
       (e) =>
         busqueda === "" ||
         e.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
         e.descripcion.toLowerCase().includes(busqueda.toLowerCase()) ||
-        (e.materia ?? "").toLowerCase().includes(busqueda.toLowerCase())
+        (e.materiaNombre ?? "").toLowerCase().includes(busqueda.toLowerCase())
     )
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
 
@@ -228,14 +215,10 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   };
 
   const abrirEditar = (examen: ExamenData) => {
-    // Para edición dejamos grupo/materia como texto; el profesor puede cambiarlos
-    // usando los selects que se cargarán con sus grupos asignados
     setForma({
       titulo: examen.titulo,
-      grupoId: null,
-      grupo: examen.grupo ?? "",
-      materiaId: null,
-      materia: examen.materia ?? "",
+      grupoId: examen.grupoId,
+      materiaId: examen.materiaId,
       tipo: examen.tipo,
       fecha: examen.fecha,
       horaInicio: examen.horaInicio ?? "",
@@ -249,7 +232,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   };
 
   const handleGuardar = () => {
-    if (!forma.titulo || !forma.tipo || !forma.fecha || !forma.grupo || !forma.materia) {
+    if (!forma.titulo || !forma.tipo || !forma.fecha || !forma.grupoId || !forma.materiaId) {
       toast.error("Completa todos los campos obligatorios");
       return;
     }
@@ -257,8 +240,8 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
       titulo: forma.titulo,
       tipo: forma.tipo,
       fecha: forma.fecha,
-      materia: forma.materia,
-      grupo: forma.grupo,
+      materiaId: forma.materiaId,
+      grupoId: forma.grupoId,
       horaInicio: forma.horaInicio || undefined,
       horaFin: forma.horaFin || undefined,
       descripcion: forma.descripcion || undefined,
@@ -442,11 +425,11 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-[#111827] text-lg">
-                            {examen.materia ?? examen.titulo}
+                            {examen.materiaNombre ?? examen.titulo}
                           </h3>
-                          {examen.grupo && (
+                          {examen.grupoNombre && (
                             <Badge variant="outline" className="text-xs">
-                              {examen.grupo}
+                              {examen.grupoNombre}
                             </Badge>
                           )}
                         </div>
@@ -575,9 +558,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                   setForma({
                     ...forma,
                     grupoId: g?.id ?? null,
-                    grupo: g?.nombre ?? "",
                     materiaId: null,
-                    materia: "",
                   });
                 }}
               >
@@ -592,9 +573,6 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {editMode && forma.grupo && !forma.grupoId && (
-                <p className="text-xs text-[#6B7280]">Grupo actual: {forma.grupo}. Selecciona para cambiar.</p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -603,7 +581,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                 value={forma.materiaId?.toString() ?? ""}
                 onValueChange={(v) => {
                   const m = materias.find((x) => x.id.toString() === v);
-                  setForma({ ...forma, materiaId: m?.id ?? null, materia: m?.nombre ?? "", fecha: "", horaInicio: "", horaFin: "" });
+                  setForma({ ...forma, materiaId: m?.id ?? null, fecha: "", horaInicio: "", horaFin: "" });
                 }}
                 disabled={!forma.grupoId}
               >
@@ -626,9 +604,6 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {editMode && forma.materia && !forma.materiaId && (
-                <p className="text-xs text-[#6B7280]">Materia actual: {forma.materia}. Selecciona un grupo para cambiar.</p>
-              )}
             </div>
 
             <div className="space-y-2">

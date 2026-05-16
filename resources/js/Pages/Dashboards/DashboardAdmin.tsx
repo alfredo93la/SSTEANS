@@ -38,13 +38,13 @@ interface SolicitudData {
   created_at: string;
 }
 
-interface UsuarioData {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-  created_at: string;
+interface StatsData {
+  total: number;
+  activos: number;
+  inactivos: number;
+  roles_unicos: number;
+  por_rol: Record<string, number>;
+  recientes: { name: string; role: string; status: string; created_at: string }[];
 }
 
 interface DashboardAdminProps {
@@ -71,7 +71,7 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
   const userName = auth.user?.name ?? "Administrador";
   const userRole = auth.user?.role ?? "Administrador";
 
-  const [usuarios, setUsuarios] = useState<UsuarioData[]>([]);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [cicloActivo, setCicloActivo] = useState<CicloData | null | undefined>(undefined);
   const [solicitudes, setSolicitudes] = useState<SolicitudData[]>([]);
   const [aprobando, setAprobando] = useState<number | null>(null);
@@ -81,8 +81,8 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
   const [rechazando, setRechazando] = useState(false);
 
   useEffect(() => {
-    axios.get("/admin/usuarios")
-      .then(({ data }) => setUsuarios(data.users ?? []))
+    axios.get("/admin/usuarios/stats")
+      .then(({ data }) => setStats(data))
       .catch(() => {});
 
     axios.get("/api/admin/ciclos")
@@ -94,35 +94,47 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
       .catch(() => {});
   }, []);
 
-  const usuariosActivos   = usuarios.filter(u => u.status === "Activo").length;
-  const usuariosInactivos = usuarios.filter(u => u.status === "Inactivo").length;
-  const totalUsuarios     = usuarios.length;
-  const rolesUnicos       = [...new Set(usuarios.map(u => u.role))].length;
+  const usuariosActivos   = stats?.activos   ?? 0;
+  const usuariosInactivos = stats?.inactivos ?? 0;
+  const totalUsuarios     = stats?.total     ?? 0;
+  const rolesUnicos       = stats?.roles_unicos ?? 0;
 
-  const distribucionRoles = [
+  const ROLES_ESTANDAR = [
     { rol: "Tutor",                   color: "bg-blue-100 text-[#1D4ED8]"   },
     { rol: "Profesor",                color: "bg-purple-100 text-[#7C3AED]" },
     { rol: "Trabajador Social",       color: "bg-green-100 text-[#059669]"  },
     { rol: "Personal Administrativo", color: "bg-amber-100 text-[#D97706]"  },
-    { rol: "Administrador",           color: "bg-red-100 text-[#E11D48]"    },
-  ].map(item => ({
-    ...item,
-    cantidad: usuarios.filter(u => u.role === item.rol).length,
-  }));
+  ];
+  const COLORES_CUSTOM = [
+    "bg-teal-100 text-[#0F766E]",
+    "bg-indigo-100 text-[#4338CA]",
+    "bg-pink-100 text-[#BE185D]",
+    "bg-orange-100 text-[#C2410C]",
+    "bg-cyan-100 text-[#0E7490]",
+  ];
+  const nombresEstandar = new Set(ROLES_ESTANDAR.map(r => r.rol));
+  const rolesCustom = Object.entries(stats?.por_rol ?? {})
+    .filter(([rol]) => !nombresEstandar.has(rol))
+    .map(([rol, cantidad], idx) => ({
+      rol,
+      color: COLORES_CUSTOM[idx % COLORES_CUSTOM.length],
+      cantidad,
+    }));
+  const distribucionRoles = [
+    ...ROLES_ESTANDAR.map(item => ({ ...item, cantidad: stats?.por_rol[item.rol] ?? 0 })),
+    ...rolesCustom,
+  ];
 
   const actividadesRecientes = useMemo(() => {
-    if (!usuarios.length) return [];
-    return [...usuarios]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 5)
-      .map(u => ({
-        accion:  u.status === "Rechazado" ? "Solicitud rechazada"
-               : u.status === "Pendiente" ? "Solicitud pendiente"
-               : "Usuario registrado",
-        detalle: `${u.name} — ${u.role}`,
-        fecha:   formatRelativeTime(u.created_at),
-      }));
-  }, [usuarios]);
+    if (!stats?.recientes.length) return [];
+    return stats.recientes.map(u => ({
+      accion:  u.status === "Rechazado" ? "Solicitud rechazada"
+             : u.status === "Pendiente" ? "Solicitud pendiente"
+             : "Usuario registrado",
+      detalle: `${u.name} — ${u.role}`,
+      fecha:   formatRelativeTime(u.created_at),
+    }));
+  }, [stats]);
 
   const handleAbrirRechazo = (solicitud: SolicitudData) => {
     setSolicitudARechazo(solicitud);
@@ -304,13 +316,13 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
 
       {/* Distribución y actividad reciente */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-[#E5E7EB]">
+        <Card className="border-[#E5E7EB] flex flex-col">
           <CardHeader>
             <CardTitle>Distribución por Roles</CardTitle>
             <CardDescription>Usuarios registrados por perfil de acceso</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+          <CardContent className="flex flex-col flex-1">
+            <div className="space-y-3 flex-1">
               {distribucionRoles.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                   <div className="flex items-center gap-3">

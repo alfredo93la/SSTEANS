@@ -14,7 +14,6 @@ use App\Http\Controllers\Admin\PeriodoEvaluacionController;
 use App\Http\Controllers\Admin\ConfiguracionEscuelaController;
 use App\Http\Controllers\Admin\MateriaController;
 use App\Http\Controllers\Admin\RolePermissionManagementController;
-use App\Http\Controllers\Admin\UserRoleManagementController;
 use App\Http\Controllers\Admin\UserValidationController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Administrativo\AlumnoAdminController;
@@ -61,14 +60,12 @@ Route::middleware(['auth', 'verified', 'permission:dashboard.view'])
     });
 
 Route::middleware(['auth', 'verified', 'permission:usuarios.manage'])->prefix('admin')->group(function () {
-    Route::get('/usuarios-roles', [UserRoleManagementController::class, 'index'])->name('admin.usuarios.roles.index');
-    Route::put('/usuarios/{user}/roles', [UserRoleManagementController::class, 'update'])->name('admin.usuarios.roles.update');
-
     Route::get('/roles-permisos', [RolePermissionManagementController::class, 'index'])->name('admin.roles.permisos.index');
     Route::post('/roles', [RolePermissionManagementController::class, 'store'])->name('admin.roles.store');
     Route::put('/roles/{role}', [RolePermissionManagementController::class, 'update'])->name('admin.roles.update');
     Route::delete('/roles/{role}', [RolePermissionManagementController::class, 'destroy'])->name('admin.roles.destroy');
 
+    Route::get('/usuarios/stats', [UserManagementController::class, 'stats'])->name('admin.usuarios.stats');
     Route::get('/usuarios', [UserManagementController::class, 'index'])->name('admin.usuarios.index');
     Route::post('/usuarios', [UserManagementController::class, 'store'])->name('admin.usuarios.store');
     Route::put('/usuarios/{user}', [UserManagementController::class, 'update'])->name('admin.usuarios.update');
@@ -81,7 +78,7 @@ Route::middleware(['auth', 'verified', 'permission:usuarios.manage'])->prefix('a
 
 Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
     Route::get('/agenda/eventos', [AgendaEventoController::class, 'index'])
-        ->middleware('permission:agenda.view');
+        ->middleware('permission:agenda.view|agenda.manage');
     Route::post('/agenda/eventos', [AgendaEventoController::class, 'store'])
         ->middleware('permission:agenda.manage|examenes.manage');
     Route::put('/agenda/eventos/{evento}', [AgendaEventoController::class, 'update'])
@@ -90,7 +87,7 @@ Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
         ->middleware('permission:agenda.manage|examenes.manage');
 
     Route::get('/circulares', [CircularController::class, 'index'])
-        ->middleware('permission:circulares.view');
+        ->middleware('permission:circulares.view|circulares.manage');
     Route::post('/circulares', [CircularController::class, 'store'])
         ->middleware('permission:circulares.manage');
     Route::put('/circulares/{circular}', [CircularController::class, 'update'])
@@ -98,9 +95,9 @@ Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
     Route::delete('/circulares/{circular}', [CircularController::class, 'destroy'])
         ->middleware('permission:circulares.manage');
     Route::patch('/circulares/{circular}/leer', [CircularController::class, 'marcarLeida'])
-        ->middleware('permission:circulares.view');
+        ->middleware('permission:circulares.view|circulares.manage');
     Route::get('/circulares/{circular}/adjuntos/{archivo}', [CircularController::class, 'descargarAdjunto'])
-        ->middleware('permission:circulares.view')
+        ->middleware('permission:circulares.view|circulares.manage')
         ->where('archivo', '.+');
 });
 
@@ -177,6 +174,7 @@ Route::middleware(['auth', 'verified', 'permission:alumnos.manage'])
         Route::delete('/alumnos/{alumno}',              [AlumnoAdminController::class, 'destroy']);
         Route::post('/alumnos/{alumno}/aprobar',        [AlumnoAdminController::class, 'aprobar']);
         Route::post('/alumnos/{alumno}/rechazar',       [AlumnoAdminController::class, 'rechazar']);
+        Route::post('/alumnos/{alumno}/baja',           [AlumnoAdminController::class, 'baja']);
 
         Route::get('/asignaciones',                      [AsignacionGrupoController::class, 'index']);
         Route::post('/asignaciones',                     [AsignacionGrupoController::class, 'store']);

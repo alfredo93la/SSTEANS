@@ -45,28 +45,6 @@ test('tutor can fetch only assigned students', function () {
     $response->assertJsonPath('data.0.nombre', 'Juan Perez');
 });
 
-test('admin can update user roles from role management endpoint', function () {
-    $this->seed(RolesAndPermissionsSeeder::class);
-
-    $admin = User::factory()->create([
-        'role' => 'Administrador',
-    ]);
-
-    $targetUser = User::factory()->create([
-        'role' => 'Tutor',
-    ]);
-
-    $role = Role::query()->where('nombre', 'Profesor')->firstOrFail();
-
-    $response = $this->actingAs($admin)->putJson(route('admin.usuarios.roles.update', $targetUser), [
-        'roles' => [$role->id],
-    ]);
-
-    $response->assertOk();
-    $response->assertJsonPath('user.roles.0.nombre', 'Profesor');
-
-    expect($targetUser->fresh()->roles()->pluck('nombre')->all())->toBe(['Profesor']);
-});
 
 test('admin can update role permissions from roles section endpoint', function () {
     $this->seed(RolesAndPermissionsSeeder::class);
@@ -75,17 +53,22 @@ test('admin can update role permissions from roles section endpoint', function (
         'role' => 'Administrador',
     ]);
 
-    $role = Role::query()->where('nombre', 'Tutor')->firstOrFail();
-    $permisos = \App\Models\Permiso::query()->inRandomOrder()->limit(2)->pluck('id')->all();
+    // Solo se pueden editar roles personalizados (no los del sistema como Tutor)
+    $role = Role::query()->create(['nombre' => 'Coordinador', 'descripcion' => 'Rol personalizado']);
+    $permisos = \App\Models\Permiso::query()
+        ->whereIn('nombre', config('permissions.roles.Personal Administrativo', []))
+        ->limit(2)
+        ->pluck('id')
+        ->all();
 
     $response = $this->actingAs($admin)->putJson(route('admin.roles.update', $role), [
-        'nombre' => 'Tutor',
-        'descripcion' => 'Rol tutor actualizado',
+        'nombre' => 'Coordinador',
+        'descripcion' => 'Rol coordinador actualizado',
         'permisos' => $permisos,
     ]);
 
     $response->assertOk();
-    $response->assertJsonPath('role.descripcion', 'Rol tutor actualizado');
+    $response->assertJsonPath('role.descripcion', 'Rol coordinador actualizado');
     $response->assertJsonCount(2, 'role.permisos');
 });
 
@@ -96,11 +79,12 @@ test('admin can list and create users through admin usuarios endpoint', function
     $role = Role::query()->where('nombre', 'Tutor')->firstOrFail();
 
     $createResponse = $this->actingAs($admin)->postJson(route('admin.usuarios.store'), [
-        'name' => 'Usuario Nuevo',
-        'email' => 'nuevo@example.com',
-        'password' => 'password123',
-        'roles' => [$role->id],
-        'status' => 'pending',
+        'nombre'    => 'Usuario',
+        'apellidos' => 'Nuevo',
+        'email'     => 'nuevo@example.com',
+        'curp'      => 'NUEV900101HMCRXX01',
+        'roles'     => [$role->id],
+        'status'    => 'Activo',
     ]);
 
     $createResponse->assertCreated();
@@ -116,13 +100,13 @@ test('admin can approve and reject users through validar usuarios endpoint', fun
 
     $approve = $this->actingAs($admin)->postJson(route('admin.validar-usuarios.approve', $pendingUser));
     $approve->assertOk();
-    expect($pendingUser->fresh()->status)->toBe('approved');
+    expect($pendingUser->fresh()->status)->toBe('Activo');
 
     $reject = $this->actingAs($admin)->postJson(route('admin.validar-usuarios.reject', $pendingUser), [
         'reason' => 'Falta documento oficial',
     ]);
     $reject->assertOk();
-    expect($pendingUser->fresh()->status)->toBe('rejected');
+    expect($pendingUser->fresh()->status)->toBe('Rechazado');
     expect($pendingUser->fresh()->rejection_reason)->toBe('Falta documento oficial');
 });
 

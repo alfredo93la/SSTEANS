@@ -62,7 +62,6 @@ class HandleInertiaRequests extends Middleware
                                 'tipo_persona' => $user->persona->tipo_persona,
                                 'nombre' => $user->persona->nombre,
                                 'apellidos' => $user->persona->apellidos,
-                                'direccion' => $user->persona->direccion,
                                 'telefono' => $user->persona->telefono,
                                 'curp' => $user->persona->curp,
                             ]

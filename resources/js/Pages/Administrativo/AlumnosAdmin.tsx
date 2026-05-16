@@ -10,10 +10,8 @@ import {
   Link as LinkIcon,
   Unlink,
   Search,
-  Filter,
   Eye,
   Edit,
-  Trash2,
   Plus,
   Users,
   Phone,
@@ -28,6 +26,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../../Components/ui/pagination";
 import { toast } from "sonner";
 
 interface Persona { id: number; nombre: string; apellidos: string; curp: string; telefono: string | null; direccion: string | null; }
@@ -84,17 +83,6 @@ function FormAlumno({ form, setForm }: { form: AlumnoForm; setForm: (f: AlumnoFo
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Estado</Label>
-          <Select value={form.estado} onValueChange={(v) => setForm({ ...form, estado: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Activo">Activo</SelectItem>
-              <SelectItem value="Inactivo">Inactivo</SelectItem>
-              <SelectItem value="Baja">Baja</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
           <Label>Teléfono</Label>
           <Input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} />
         </div>
@@ -114,6 +102,8 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [filtroGrupo, setFiltroGrupo] = useState<"todos" | "con" | "sin">("todos");
+  const [filtroTutor, setFiltroTutor] = useState<"todos" | "con" | "sin">("todos");
   const [modalNuevo, setModalNuevo] = useState(false);
   const [modalDetalle, setModalDetalle] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
@@ -133,6 +123,13 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   const [tutorVincSelId, setTutorVincSelId] = useState<number | null>(null);
   const [parentescoVinc, setParentescoVinc] = useState("");
   const [savingTutor, setSavingTutor] = useState(false);
+
+  const [modalBaja, setModalBaja] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 10;
+  const [pendingBaja, setPendingBaja] = useState<Alumno | null>(null);
+  const [reauthPassword, setReauthPassword] = useState("");
+  const [reauthError, setReauthError] = useState("");
 
   const cargar = (q?: string) => {
     setLoading(true);
@@ -247,14 +244,32 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   };
 
   const handleEliminar = (alumno: Alumno) => {
-    if (!confirm(`¿Eliminar a ${alumno.persona.nombre} ${alumno.persona.apellidos}?`)) return;
-    setEliminando(alumno.id);
-    axios.delete(`/api/administrativo/alumnos/${alumno.id}`)
-      .then(() => {
-        setAlumnos((prev) => prev.filter((a) => a.id !== alumno.id));
-        toast.success("Alumno eliminado.");
+    setPendingBaja(alumno);
+    setReauthPassword("");
+    setReauthError("");
+    setModalBaja(true);
+  };
+
+  const handleConfirmarBaja = () => {
+    if (!pendingBaja) return;
+    setEliminando(pendingBaja.id);
+    setReauthError("");
+    axios.post(`/api/administrativo/alumnos/${pendingBaja.id}/baja`, { password: reauthPassword })
+      .then(({ data }) => {
+        setAlumnos((prev) => prev.map((a) => a.id === data.alumno.id ? data.alumno : a));
+        setModalBaja(false);
+        setPendingBaja(null);
+        toast.success("Alumno dado de baja.");
       })
-      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo eliminar."))
+      .catch((err) => {
+        const msg = err.response?.data?.message ?? "No se pudo dar de baja.";
+        if (err.response?.status === 403) {
+          setReauthError(msg);
+        } else {
+          toast.error(msg);
+          setModalBaja(false);
+        }
+      })
       .finally(() => setEliminando(null));
   };
 
@@ -335,15 +350,24 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
     return "bg-gray-100 text-gray-700 border-gray-200";
   };
 
+  useEffect(() => { setPagina(1); }, [busqueda, filtroEstado, filtroGrupo, filtroTutor]);
+
   const filtered = alumnos.filter((a) => {
     const nombre = `${a.persona.nombre} ${a.persona.apellidos}`.toLowerCase();
     const coincideBusqueda = !busqueda || nombre.includes(busqueda.toLowerCase()) || a.persona.curp?.toLowerCase().includes(busqueda.toLowerCase());
     const coincideEstado = filtroEstado === "todos" || a.estado.toLowerCase() === filtroEstado.toLowerCase();
-    return coincideBusqueda && coincideEstado;
+    const tieneGrupo = !!a.asignaciones?.find((x) => x.estado === "activo" && x.grupo);
+    const coincideGrupo = filtroGrupo === "todos" || (filtroGrupo === "con" ? tieneGrupo : !tieneGrupo);
+    const tieneTutor = (a.tutores?.length ?? 0) > 0;
+    const coincideTutor = filtroTutor === "todos" || (filtroTutor === "con" ? tieneTutor : !tieneTutor);
+    return coincideBusqueda && coincideEstado && coincideGrupo && coincideTutor;
   }).sort((a, b) => {
-    const ap = a.persona.apellidos.localeCompare(b.persona.apellidos, "es");
-    return ap !== 0 ? ap : a.persona.nombre.localeCompare(b.persona.nombre, "es");
+    const nom = a.persona.nombre.localeCompare(b.persona.nombre, "es");
+    return nom !== 0 ? nom : a.persona.apellidos.localeCompare(b.persona.apellidos, "es");
   });
+
+  const totalPaginas = Math.ceil(filtered.length / POR_PAGINA);
+  const paginados = filtered.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -493,28 +517,58 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
       <Card className="border-[#E5E7EB]">
         <CardContent className="pt-6">
           <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
-              <Input
-                placeholder="Buscar por nombre o CURP..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex-1">
+              <label className="text-sm text-[#6B7280] mb-2 block">Buscar</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+                <Input
+                  placeholder="Buscar por nombre o CURP..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
-            <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-              <SelectTrigger className="w-full lg:w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="Activo">Activos</SelectItem>
-                <SelectItem value="Inactivo">Inactivos</SelectItem>
-                <SelectItem value="Baja">Bajas</SelectItem>
-                <SelectItem value="Pendiente">Pendientes</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="w-full lg:w-48">
+              <label className="text-sm text-[#6B7280] mb-2 block">Estado</label>
+              <Select value={filtroEstado} onValueChange={setFiltroEstado}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="Activo">Activos</SelectItem>
+                  <SelectItem value="Baja">Bajas</SelectItem>
+                  <SelectItem value="Pendiente">Pendientes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full lg:w-48">
+              <label className="text-sm text-[#6B7280] mb-2 block">Grupo</label>
+              <Select value={filtroGrupo} onValueChange={(v) => setFiltroGrupo(v as "todos" | "con" | "sin")}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="con">Con grupo</SelectItem>
+                  <SelectItem value="sin">Sin grupo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full lg:w-48">
+              <label className="text-sm text-[#6B7280] mb-2 block">Tutor</label>
+              <Select value={filtroTutor} onValueChange={(v) => setFiltroTutor(v as "todos" | "con" | "sin")}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tutor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="con">Con tutor</SelectItem>
+                  <SelectItem value="sin">Sin tutor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -532,7 +586,7 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
             <p className="text-sm text-[#6B7280] text-center py-8">No hay alumnos registrados.</p>
           ) : (
             <div className="space-y-3">
-              {filtered.map((alumno) => {
+              {paginados.map((alumno) => {
                 const grupo = grupoActual(alumno);
                 return (
                   <div key={alumno.id} className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all overflow-hidden">
@@ -571,29 +625,21 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
                       <div className="flex gap-1">
                         {alumno.estado === "Pendiente" ? (
                           <>
-                            <Button variant="ghost" size="sm" className="hover:bg-green-50 hover:text-green-700" title="Aprobar" onClick={() => handleAprobar(alumno)}>
+                            <Button variant="outline" size="sm" className="hover:bg-green-50 hover:text-green-700" onClick={() => handleAprobar(alumno)}>
                               <CheckCircle2 className="h-4 w-4" />
+                              Aprobar
                             </Button>
-                            <Button variant="ghost" size="sm" className="hover:bg-red-50 hover:text-red-600" title="Rechazar" onClick={() => handleRechazar(alumno)}>
+                            <Button variant="outline" size="sm" className="hover:bg-red-50 hover:text-red-600" onClick={() => handleRechazar(alumno)}>
                               <XCircle className="h-4 w-4" />
+                              Rechazar
                             </Button>
                           </>
                         ) : (
                           <>
-                            <Button variant="ghost" size="sm" onClick={() => abrirDetalle(alumno)}>
+                            <Button variant="outline" size="sm" onClick={() => abrirDetalle(alumno)}>
                               <Eye className="h-4 w-4" />
+                              Ver detalle
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => abrirEditar(alumno)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" title="Gestionar tutor" onClick={() => abrirModalTutor(alumno)}>
-                              <LinkIcon className="h-4 w-4" />
-                            </Button>
-                            {permissions.includes("alumnos.manage") && (
-                              <Button variant="ghost" size="sm" disabled={eliminando === alumno.id} className="hover:bg-red-50 hover:text-red-600" onClick={() => handleEliminar(alumno)}>
-                                {eliminando === alumno.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                              </Button>
-                            )}
                           </>
                         )}
                       </div>
@@ -601,6 +647,51 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
                   </div>
                 );
               })}
+            </div>
+          )}
+          {totalPaginas > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+              <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, filtered.length)} de {filtered.length}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }}
+                      className={pagina === 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === "ellipsis" ? (
+                        <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                      ) : (
+                        <PaginationItem key={item}>
+                          <PaginationLink
+                            href="#"
+                            isActive={pagina === item}
+                            onClick={(e) => { e.preventDefault(); setPagina(item as number); }}
+                          >
+                            {item}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(totalPaginas, p + 1)); }}
+                      className={pagina === totalPaginas ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </CardContent>
@@ -661,13 +752,28 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalDetalle(false)}>Cerrar</Button>
-            <Button onClick={() => { setModalDetalle(false); setModalTutor(true); cargarTutores(); }}
-              className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
-              <LinkIcon className="h-4 w-4 mr-2" />
-              {alumnoSel?.tutores && alumnoSel.tutores.length > 0 ? "Cambiar tutor" : "Vincular tutor"}
-            </Button>
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2">
+            <div>
+              {permissions.includes("alumnos.manage") && alumnoSel?.estado !== "Baja" && (
+                <Button
+                  variant="outline"
+                  className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 w-full sm:w-auto"
+                  onClick={() => { setModalDetalle(false); handleEliminar(alumnoSel!); }}
+                >
+                  <UserMinus className="h-4 w-4 mr-2" />Dar de baja
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => { setModalDetalle(false); abrirEditar(alumnoSel!); }}>
+                <Edit className="h-4 w-4 mr-2" />Editar
+              </Button>
+              <Button onClick={() => { setModalDetalle(false); setModalTutor(true); cargarTutores(); }}
+                className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
+                <LinkIcon className="h-4 w-4 mr-2" />
+                {alumnoSel?.tutores && alumnoSel.tutores.length > 0 ? "Cambiar tutor" : "Vincular tutor"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -764,6 +870,50 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
             <Button variant="outline" onClick={() => setModalTutor(false)}>Cerrar</Button>
             <Button onClick={handleVincularTutor} disabled={savingTutor || !tutorVincSelId} className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]">
               {savingTutor ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vincular"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal confirmación de baja */}
+      <Dialog open={modalBaja} onOpenChange={(open) => { setModalBaja(open); if (!open) { setPendingBaja(null); setReauthPassword(""); setReauthError(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar baja</DialogTitle>
+            <DialogDescription>
+              Esta acción dará de baja a{" "}
+              <span className="font-semibold text-[#111827]">
+                {pendingBaja?.persona.nombre} {pendingBaja?.persona.apellidos}
+              </span>
+              . Ingresa tu contraseña para confirmar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="space-y-1.5">
+              <Label>Contraseña</Label>
+              <Input
+                type="password"
+                placeholder="Tu contraseña actual"
+                value={reauthPassword}
+                onChange={(e) => { setReauthPassword(e.target.value); setReauthError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && reauthPassword) handleConfirmarBaja(); }}
+                autoFocus
+              />
+              {reauthError && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <XCircle className="h-4 w-4 shrink-0" />{reauthError}
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalBaja(false)}>Cancelar</Button>
+            <Button
+              disabled={!reauthPassword || eliminando === pendingBaja?.id}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleConfirmarBaja}
+            >
+              {eliminando === pendingBaja?.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Dar de baja"}
             </Button>
           </DialogFooter>
         </DialogContent>

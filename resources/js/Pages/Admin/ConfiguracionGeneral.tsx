@@ -16,8 +16,8 @@ interface Config {
   nombre: string;
   numero: string;
   cct: string;
-  turno_escuela: string;
   turnos_disponibles: string;
+  turnos_en_uso: string[];
   director: string;
   telefono: string;
   correo: string;
@@ -36,8 +36,8 @@ const defaults: Config = {
   nombre: "",
   numero: "",
   cct: "",
-  turno_escuela: "Matutino",
   turnos_disponibles: "matutino",
+  turnos_en_uso: [],
   director: "",
   telefono: "",
   correo: "",
@@ -227,11 +227,20 @@ export function ConfiguracionGeneral() {
                 <Select value={config.turnos_disponibles} onValueChange={(v) => set("turnos_disponibles", v)}>
                   <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="matutino">Matutino</SelectItem>
-                    <SelectItem value="vespertino">Vespertino</SelectItem>
+                    <SelectItem value="matutino" disabled={config.turnos_en_uso.includes("vespertino")}>
+                      Matutino{config.turnos_en_uso.includes("vespertino") ? " (hay grupos vespertinos)" : ""}
+                    </SelectItem>
+                    <SelectItem value="vespertino" disabled={config.turnos_en_uso.includes("matutino")}>
+                      Vespertino{config.turnos_en_uso.includes("matutino") ? " (hay grupos matutinos)" : ""}
+                    </SelectItem>
                     <SelectItem value="ambos">Ambos</SelectItem>
                   </SelectContent>
                 </Select>
+                {config.turnos_en_uso.length > 0 && config.turnos_disponibles === "ambos" && (
+                  <p className="text-xs text-[#6B7280]">
+                    Solo puedes cambiar al turno que coincida con todos los grupos del ciclo activo.
+                  </p>
+                )}
               </div>
             </div>
             <div className="space-y-2">

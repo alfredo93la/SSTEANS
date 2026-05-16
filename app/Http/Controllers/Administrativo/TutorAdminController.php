@@ -15,7 +15,7 @@ class TutorAdminController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Tutor::with([
-            'persona:id,nombre,apellidos,curp,telefono,direccion',
+            'persona:id,nombre,apellidos,curp,telefono',
             'persona.user:id,persona_id,email,status',
             'alumnos' => fn ($q) => $q->with('persona:id,nombre,apellidos,curp')->withPivot('parentesco', 'fecha_vinculacion')->select(['alumnos.id', 'alumnos.persona_id', 'alumnos.sexo']),
         ]);

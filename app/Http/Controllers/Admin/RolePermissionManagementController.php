@@ -85,16 +85,19 @@ class RolePermissionManagementController extends Controller
             return response()->json(['message' => 'Los roles del sistema no pueden eliminarse.'], 403);
         }
 
-        $usersCount = $role->users()->count();
+        $usersCount = \App\Models\User::where('role', $role->nombre)->count()
+            + $role->users()->whereNotIn('role', [$role->nombre])->count();
 
-        $role->users()->detach();
+        if ($usersCount > 0) {
+            return response()->json([
+                'message' => "No se puede eliminar el rol \"{$role->nombre}\" porque tiene {$usersCount} usuario(s) asignado(s). Reasigna o elimina esos usuarios primero.",
+            ], 422);
+        }
+
         $role->permisos()->detach();
         $role->delete();
 
-        return response()->json([
-            'message'      => 'Rol eliminado correctamente.',
-            'users_affected' => $usersCount,
-        ]);
+        return response()->json(['message' => 'Rol eliminado correctamente.']);
     }
 
     public function update(Request $request, Role $role): JsonResponse

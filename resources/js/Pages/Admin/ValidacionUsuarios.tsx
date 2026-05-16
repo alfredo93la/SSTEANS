@@ -7,15 +7,13 @@ import { Badge } from "../../Components/ui/badge";
 import { Label } from "../../Components/ui/label";
 import { Textarea } from "../../Components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
-import { UserCheck, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Mail, Phone, MapPin, IdCard, Clock, GraduationCap } from "lucide-react";
+import { UserCheck, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Mail, IdCard, Clock, GraduationCap } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 
 interface Persona {
   nombre: string;
   apellidos: string;
   curp: string | null;
-  telefono: string | null;
-  direccion: string | null;
   tutor?: { ocupacion: string | null } | null;
   profesor?: { academia: string | null; cubiculo: string | null; hora_entrada: string | null; hora_salida: string | null } | null;
   trab_social?: { hora_entrada: string | null; hora_salida: string | null; extension: string | null } | null;
@@ -52,8 +50,7 @@ function formatFecha(dateStr: string): string {
 function DetalleExtra({ persona, role }: { persona: Persona; role: string }) {
   const items: { label: string; value: string | null | undefined }[] = [];
 
-  if (persona.curp)      items.push({ label: "CURP",      value: persona.curp });
-  if (persona.direccion) items.push({ label: "Dirección",  value: persona.direccion });
+  if (persona.curp) items.push({ label: "CURP", value: persona.curp });
 
   if (role === "Tutor" && persona.tutor)
     items.push({ label: "Ocupación", value: persona.tutor.ocupacion });
@@ -162,18 +159,6 @@ function TarjetaUsuario({
                 <Mail className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{usuario.email}</span>
               </span>
-              {p?.telefono && (
-                <span className="flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5 shrink-0" />
-                  {p.telefono}
-                </span>
-              )}
-              {p?.direccion && (
-                <span className="flex items-center gap-1.5 col-span-full">
-                  <MapPin className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{p.direccion}</span>
-                </span>
-              )}
               {p?.curp && (
                 <span className="flex items-center gap-1.5">
                   <IdCard className="h-3.5 w-3.5 shrink-0" />

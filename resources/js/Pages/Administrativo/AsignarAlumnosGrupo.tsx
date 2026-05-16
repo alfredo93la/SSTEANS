@@ -158,19 +158,25 @@ export function AsignarAlumnosGrupo() {
       <Card className="border-[#E5E7EB]">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
-              <Input placeholder="Buscar grupo..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="pl-10" />
+            <div className="flex-1">
+              <label className="text-sm text-[#6B7280] mb-2 block">Buscar</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+                <Input placeholder="Buscar grupo..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="pl-10" />
+              </div>
             </div>
-            <Select value={filtroGrado} onValueChange={setFiltroGrado}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Grado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los grados</SelectItem>
-                {grados.map((g) => <SelectItem key={g.id} value={g.id.toString()}>{g.numero}° — {g.descripcion}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="w-full sm:w-48">
+              <label className="text-sm text-[#6B7280] mb-2 block">Grado</label>
+              <Select value={filtroGrado} onValueChange={setFiltroGrado}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Grado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los grados</SelectItem>
+                  {grados.map((g) => <SelectItem key={g.id} value={g.id.toString()}>{g.numero}° — {g.descripcion}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>

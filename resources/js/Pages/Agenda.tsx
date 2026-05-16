@@ -29,8 +29,10 @@ interface Evento {
   horaInicio?: string;
   horaFin?: string;
   tipo: string;
-  grupo?: string;
-  materia?: string;
+  grupoId?: number | null;
+  grupoNombre?: string | null;
+  materiaId?: number | null;
+  materiaNombre?: string | null;
   destinatarios: string[];
 }
 
@@ -93,13 +95,13 @@ function EventoItem({ evento, formatearRango, tipoColors, pasado = false, onClic
               </span>
             )}
           </div>
-          {(evento.grupo && evento.grupo !== "General") || (evento.materia && evento.materia !== "-") ? (
+          {(evento.grupoNombre) || (evento.materiaNombre) ? (
             <div className="flex items-center gap-2 mt-1 text-xs text-[#6B7280]">
-              {evento.grupo && evento.grupo !== "General" && (
-                <span className="rounded bg-purple-50 px-1.5 py-0.5 font-medium text-[#7C3AED]">{evento.grupo}</span>
+              {evento.grupoNombre && (
+                <span className="rounded bg-purple-50 px-1.5 py-0.5 font-medium text-[#7C3AED]">{evento.grupoNombre}</span>
               )}
-              {evento.materia && evento.materia !== "-" && (
-                <span>{evento.materia}</span>
+              {evento.materiaNombre && (
+                <span>{evento.materiaNombre}</span>
               )}
             </div>
           ) : null}
@@ -1032,13 +1034,13 @@ export function Agenda({ permissions }: AgendaProps) {
               )}
 
               {/* Grupo y materia */}
-              {(eventoSeleccionado.grupo && eventoSeleccionado.grupo !== "General") || (eventoSeleccionado.materia && eventoSeleccionado.materia !== "-") ? (
+              {(eventoSeleccionado.grupoNombre || eventoSeleccionado.materiaNombre) ? (
                 <div className="flex flex-wrap gap-2">
-                  {eventoSeleccionado.grupo && eventoSeleccionado.grupo !== "General" && (
-                    <Badge className="bg-purple-50 text-[#7C3AED] border-purple-200">{eventoSeleccionado.grupo}</Badge>
+                  {eventoSeleccionado.grupoNombre && (
+                    <Badge className="bg-purple-50 text-[#7C3AED] border-purple-200">{eventoSeleccionado.grupoNombre}</Badge>
                   )}
-                  {eventoSeleccionado.materia && eventoSeleccionado.materia !== "-" && (
-                    <Badge variant="outline">{eventoSeleccionado.materia}</Badge>
+                  {eventoSeleccionado.materiaNombre && (
+                    <Badge variant="outline">{eventoSeleccionado.materiaNombre}</Badge>
                   )}
                 </div>
               ) : null}

@@ -47,9 +47,7 @@ return [
         ],
         'Personal Administrativo' => [
             'dashboard.view',
-            'agenda.view',
             'agenda.manage',
-            'circulares.view',
             'circulares.manage',
             'horarios.manage',
             'alumnos.manage',
