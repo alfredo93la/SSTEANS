@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - main  # cambia si tu rama principal se llama diferente
+      - main
 
 jobs:
   deploy:
@@ -12,12 +12,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Instalar dependencias PHP
+        run: composer install --no-dev --optimize-autoloader
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
-      - name: Install dependencies y compilar
+      - name: Instalar dependencias y compilar
         run: |
           npm ci
           npm run build
