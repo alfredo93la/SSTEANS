@@ -11,7 +11,7 @@ import { Textarea } from "../../Components/ui/textarea";
 import {
   Users, Search, Eye, Edit, Plus,
   CheckCircle, XCircle, UserX, Loader2, Mail, Phone,
-  UserPen,
+  UserPen, ShieldCheck, ShieldAlert,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -47,6 +47,7 @@ interface UsuarioItem {
   persona_id: number | null;
   status: "Pendiente" | "Activo" | "Rechazado" | "Inactivo";
   created_at: string;
+  email_verified_at: string | null;
   roles: Role[];
   persona: Persona | null;
 }
@@ -584,7 +585,11 @@ export function Usuarios() {
                       </div>
                       <div className="ml-11 space-y-1">
                         <div className="flex items-center gap-1 text-xs text-[#6B7280] min-w-0">
-                          <Mail className="h-3 w-3 shrink-0" /><span className="truncate">{u.email}</span>
+                          <Mail className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{u.email}</span>
+                          {u.email_verified_at
+                            ? <ShieldCheck className="h-3 w-3 shrink-0 text-emerald-500" aria-label="Email verificado" />
+                            : <ShieldAlert className="h-3 w-3 shrink-0 text-amber-400" aria-label="Email no verificado" />}
                         </div>
                         {u.persona?.telefono && (
                           <div className="flex items-center gap-1 text-xs text-[#6B7280] min-w-0">
@@ -698,6 +703,19 @@ export function Usuarios() {
                 <div>
                   <p className="text-[#6B7280] text-xs">Estado</p>
                   <Badge variant="outline">{usuarioSel.status}</Badge>
+                </div>
+                <div>
+                  <p className="text-[#6B7280] text-xs">Email verificado</p>
+                  {usuarioSel.email_verified_at ? (
+                    <span className="flex items-center gap-1 text-sm text-emerald-600 font-medium">
+                      <ShieldCheck className="h-4 w-4" />
+                      {new Date(usuarioSel.email_verified_at).toLocaleDateString("es-MX")}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-sm text-amber-500 font-medium">
+                      <ShieldAlert className="h-4 w-4" />No verificado
+                    </span>
+                  )}
                 </div>
                 <DetalleEspecificoRol usuario={usuarioSel} />
               </div>

@@ -26,6 +26,7 @@ class PrimerAccesoController extends Controller
         $request->user()->update([
             'password'             => Hash::make($request->string('password')),
             'must_change_password' => false,
+            'email_verified_at'    => $request->user()->email_verified_at ?? now(),
         ]);
 
         return redirect()->route('dashboard');

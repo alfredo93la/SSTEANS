@@ -189,50 +189,6 @@ CREATE TABLE `ciclos_escolares` (
   UNIQUE KEY `ciclos_escolares_nombre_unique` (`nombre`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER enforce_single_ciclo_activo_insert
-            BEFORE INSERT ON ciclos_escolares
-            FOR EACH ROW
-            BEGIN
-                IF NEW.activo = 1 THEN
-                    UPDATE ciclos_escolares SET activo = 0;
-                END IF;
-            END */;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER enforce_single_ciclo_activo_update
-            BEFORE UPDATE ON ciclos_escolares
-            FOR EACH ROW
-            BEGIN
-                IF NEW.activo = 1 AND OLD.activo = 0 THEN
-                    UPDATE ciclos_escolares SET activo = 0 WHERE id != NEW.id;
-                END IF;
-            END */;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
 DROP TABLE IF EXISTS `circular_destinatarios`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -863,3 +819,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (48,'2026_05_15_073
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (49,'2026_05_15_074340_rename_turnos_disponibles_to_turno_escuela_in_configuracion_escuela_table',27);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (50,'2026_05_15_075640_rename_turno_escuela_back_to_turnos_disponibles_in_configuracion_escuela_table',28);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (51,'2026_05_15_081105_replace_grupo_materia_strings_with_fks_in_agenda_eventos_table',29);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (52,'2026_05_16_040951_backfill_email_verified_at_for_active_users',30);

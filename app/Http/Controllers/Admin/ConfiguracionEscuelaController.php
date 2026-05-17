@@ -33,10 +33,10 @@ class ConfiguracionEscuelaController extends Controller
         $cicloActivoId = CicloEscolar::where('activo', true)->value('id');
         $turnosEnUso = $cicloActivoId
             ? Grupo::where('ciclo_escolar_id', $cicloActivoId)
-                ->distinct()
-                ->pluck('turno')
-                ->values()
-                ->all()
+            ->distinct()
+            ->pluck('turno')
+            ->values()
+            ->all()
             : [];
 
         return response()->json([...$config->toArray(), 'turnos_en_uso' => $turnosEnUso]);
@@ -120,6 +120,14 @@ class ConfiguracionEscuelaController extends Controller
 
         $path = $request->file('logo')->store('logos', 'public');
         $url  = Storage::disk('public')->url($path);
+
+        if (app()->environment('production')) {
+            $publicDir = public_path('storage/logos');
+            if (!is_dir($publicDir)) {
+                mkdir($publicDir, 0775, true);
+            }
+            copy(storage_path('app/public/' . $path), $publicDir . '/' . basename($path));
+        }
 
         $config->update(['logo_url' => $url]);
 

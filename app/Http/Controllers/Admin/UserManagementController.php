@@ -104,7 +104,7 @@ class UserManagementController extends Controller
             });
         }
 
-        $columns = ['id', 'name', 'email', 'role', 'persona_id', 'created_at'];
+        $columns = ['id', 'name', 'email', 'role', 'persona_id', 'created_at', 'email_verified_at'];
         if ($hasValidationColumns) {
             $columns = [...$columns, 'status', 'rejection_reason', 'validated_at'];
         }
