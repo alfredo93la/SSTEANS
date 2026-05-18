@@ -18,6 +18,11 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            echo "Conexión exitosa"
             cd ${{ secrets.SSH_PATH }}
-            echo "En el directorio correcto"
+            cp -r public/build ./build
+            if [ ! -L public/storage ]; then
+              ln -s /home/u760642468/domains/est75.ssteans.com/public_html/storage/app/public /home/u760642468/domains/est75.ssteans.com/public_html/public/storage
+            fi
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
