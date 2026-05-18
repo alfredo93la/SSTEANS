@@ -19,3 +19,5 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             echo "Conexión exitosa"
+            cd ${{ secrets.SSH_PATH }}
+            echo "En el directorio correcto"
