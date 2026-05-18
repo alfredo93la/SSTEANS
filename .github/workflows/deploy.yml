@@ -18,11 +18,18 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
+            set -e
             cd ${{ secrets.SSH_PATH }}
+            echo "1. cd ok"
             cp -r public/build ./build
+            echo "2. cp ok"
             if [ ! -L public/storage ]; then
               ln -s /home/u760642468/domains/est75.ssteans.com/public_html/storage/app/public /home/u760642468/domains/est75.ssteans.com/public_html/public/storage
             fi
+            echo "3. symlink ok"
             php artisan config:cache
+            echo "4. config ok"
             php artisan route:cache
+            echo "5. route ok"
             php artisan view:cache
+            echo "6. view ok"
