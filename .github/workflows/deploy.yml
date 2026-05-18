@@ -18,9 +18,4 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd ${{ secrets.SSH_PATH }}
-            cp -r public/build ./build
-            [ -L public/storage ] || ln -s /home/u760642468/domains/est75.ssteans.com/public_html/storage/app/public /home/u760642468/domains/est75.ssteans.com/public_html/public/storage
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+            echo "Conexión exitosa"
