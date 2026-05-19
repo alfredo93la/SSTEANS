@@ -29,7 +29,6 @@ Thumbs.db
 repomix-output.xml
 /storage/app/public/*
 !/storage/app/public/.gitignore
-!/storage/app/public/logos/.gitkeep
 !/storage/app/public/circulares/.gitkeep
 !/storage/app/public/tareas/.gitkeep
 !/storage/app/public/reportes_conducta/.gitkeep
