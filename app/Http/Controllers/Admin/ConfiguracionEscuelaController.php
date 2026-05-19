@@ -29,9 +29,9 @@ class ConfiguracionEscuelaController extends Controller
             ]
         );
 
-        $cicloActivoId = CicloEscolar::where('activo', true)->value('id');
+        $cicloActivoId = CicloEscolar::query()->where('activo', true)->value('id');
         $turnosEnUso = $cicloActivoId
-            ? Grupo::where('ciclo_escolar_id', $cicloActivoId)
+            ? Grupo::query()->where('ciclo_escolar_id', $cicloActivoId)
             ->distinct()
             ->pluck('turno')
             ->values()
@@ -66,10 +66,11 @@ class ConfiguracionEscuelaController extends Controller
         $nuevoTurno = $validated['turnos_disponibles'];
         if ($nuevoTurno !== $config->turnos_disponibles && $nuevoTurno !== 'ambos') {
             $turnoProhibido = $nuevoTurno === 'matutino' ? 'vespertino' : 'matutino';
-            $cicloActivoId  = CicloEscolar::where('activo', true)->value('id');
+            $cicloActivoId  = CicloEscolar::query()->where('activo', true)->value('id');
 
             if ($cicloActivoId) {
-                $count = Grupo::where('ciclo_escolar_id', $cicloActivoId)
+                /** @disregard P1005 */
+                $count = Grupo::query()->where('ciclo_escolar_id', $cicloActivoId)
                     ->where('turno', $turnoProhibido)
                     ->count();
 
@@ -105,9 +106,10 @@ class ConfiguracionEscuelaController extends Controller
             'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
         ]);
 
+        /** @var \Illuminate\Http\UploadedFile $file */
         $file     = $request->file('logo');
-        $mime     = $file->getMimeType();
-        $base64   = base64_encode(file_get_contents($file->getRealPath()));
+        $mime     = $file->getMimeType() ?? 'image/png';
+        $base64   = base64_encode((string) file_get_contents((string) $file->getRealPath()));
         $dataUrl  = "data:{$mime};base64,{$base64}";
 
         $config = ConfiguracionEscuela::firstOrCreate(['id' => 1]);
