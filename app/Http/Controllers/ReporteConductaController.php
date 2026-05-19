@@ -8,6 +8,7 @@ use App\Models\CicloEscolar;
 use App\Models\ReporteConducta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ReporteConductaController extends Controller
 {
@@ -48,7 +49,7 @@ class ReporteConductaController extends Controller
             'gravedad'       => ['nullable', 'string', 'in:Baja,Media,Alta'],
             'descripcion'    => ['required', 'string', 'max:1000'],
             'observaciones'  => ['nullable', 'string', 'max:1000'],
-            'archivo_adjunto' => ['nullable', 'file', 'max:10240'], // 10 MB
+            'archivo_adjunto' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png,gif,webp', 'max:10240'], // 10 MB
             'fecha'          => ['required', 'date'],
             'estatus'        => ['nullable', 'string', 'max:50'],
         ]);
@@ -84,12 +85,20 @@ class ReporteConductaController extends Controller
             'gravedad'        => ['sometimes', 'string', 'in:Baja,Media,Alta'],
             'descripcion'     => ['sometimes', 'string', 'max:1000'],
             'observaciones'   => ['nullable', 'string', 'max:1000'],
-            'archivo_adjunto' => ['nullable', 'file', 'max:10240'],
+            'archivo_adjunto' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png,gif,webp', 'max:10240'],
             'estatus'         => ['sometimes', 'string', 'max:50'],
         ]);
 
         if ($request->hasFile('archivo_adjunto')) {
+            if ($reporte->archivo_adjunto) {
+                Storage::disk('public')->delete($reporte->archivo_adjunto);
+            }
             $validated['archivo_adjunto'] = $request->file('archivo_adjunto')->store('reportes_conducta', 'public');
+        } elseif ($request->boolean('eliminar_adjunto')) {
+            if ($reporte->archivo_adjunto) {
+                Storage::disk('public')->delete($reporte->archivo_adjunto);
+            }
+            $validated['archivo_adjunto'] = null;
         }
 
         $reporte->update($validated);

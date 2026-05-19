@@ -72,7 +72,7 @@ class CircularController extends Controller
             'prioridad'       => ['required', 'string', 'max:255'],
             'destinatarios'   => ['required', 'array', 'min:1'],
             'destinatarios.*' => ['required', 'string', 'max:255'],
-            'archivos.*'      => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
+            'archivos.*'      => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png,gif,webp', 'max:10240'],
             'eventoFecha'     => ['nullable', 'date'],
             'eventoFechaFin'  => ['nullable', 'date', 'after_or_equal:eventoFecha'],
             'eventoHoraInicio'=> ['nullable', 'date_format:H:i'],
@@ -127,7 +127,9 @@ class CircularController extends Controller
             'eventoTipo'           => ['nullable', 'string', 'max:255'],
         ]);
 
-        $existentes = $validated['adjuntosExistentes'] ?? $circular->adjuntos ?? [];
+        $existentes = $request->boolean('adjuntosExistentesSet')
+            ? ($validated['adjuntosExistentes'] ?? [])
+            : ($circular->adjuntos ?? []);
         $nuevos = $this->subirArchivos($request);
         $adjuntos = array_values(array_merge($existentes, $nuevos));
 

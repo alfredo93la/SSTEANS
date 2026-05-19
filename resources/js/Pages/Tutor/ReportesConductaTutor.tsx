@@ -5,7 +5,7 @@ import { Badge } from "../../Components/ui/badge";
 import { Button } from "../../Components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../Components/ui/dialog";
-import { AlertTriangle, FileText, User, Calendar, Paperclip, History, Clock, XCircle } from "lucide-react";
+import { AlertTriangle, FileText, User, Calendar, Paperclip, History, Clock, XCircle, Eye, EyeOff, Download } from "lucide-react";
 import { Label } from "../../Components/ui/label";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
@@ -37,6 +37,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
   const [reporteSeleccionado, setReporteSeleccionado] = useState<ReporteData | null>(null);
   const [dialogAbierto, setDialogAbierto] = useState(false);
   const [alumnoInfo, setAlumnoInfo] = useState<{ nombre: string; grupo: string } | null>(null);
+  const [adjuntoExpandido, setAdjuntoExpandido] = useState<string | null>(null);
 
   useEffect(() => {
     if (!alumnoId) return;
@@ -111,6 +112,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
 
   const verDetalle = (reporte: ReporteData) => {
     setReporteSeleccionado(reporte);
+    setAdjuntoExpandido(null);
     setDialogAbierto(true);
   };
 
@@ -277,16 +279,9 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                               <span>Reportado por: {reporte.reportadoPorNombre}</span>
                             </div>
                             {reporte.archivoAdjunto && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 text-[#6B7280]">
                                 <Paperclip className="h-4 w-4" />
-                                <a
-                                  href={reporte.archivoAdjunto}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-[#1D4ED8] underline underline-offset-2"
-                                >
-                                  {nombreArchivo(reporte.archivoAdjunto)}
-                                </a>
+                                <span>{nombreArchivo(reporte.archivoAdjunto)}</span>
                               </div>
                             )}
                           </div>
@@ -380,20 +375,59 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                 </div>
               </div>
 
-              {reporteSeleccionado.archivoAdjunto && (
-                <div>
-                  <Label className="text-[#6B7280]">Archivos Adjuntos</Label>
-                  <a
-                    href={reporteSeleccionado.archivoAdjunto}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1 inline-flex items-center gap-2 text-sm text-[#1D4ED8] underline underline-offset-2"
-                  >
-                    <Paperclip className="h-4 w-4" />
-                    Ver archivo adjunto
-                  </a>
-                </div>
-              )}
+              {reporteSeleccionado.archivoAdjunto && (() => {
+                const urlVer = reporteSeleccionado.archivoAdjunto as string;
+                const nombre = nombreArchivo(urlVer);
+                const urlDescargar = `${urlVer}?download=1`;
+                const ext = nombre.split(".").pop()?.toLowerCase() ?? "";
+                const esPdf = ext === "pdf";
+                const esImagen = ["jpg","jpeg","png","gif","webp","svg"].includes(ext);
+                const soportaVista = esPdf || esImagen;
+                const estaExpandido = adjuntoExpandido === urlVer;
+                return (
+                  <div>
+                    <Label className="text-[#6B7280]">Archivo Adjunto</Label>
+                    <div className="mt-2 bg-gray-50 rounded-lg border border-[#E5E7EB] overflow-hidden">
+                      <div className="flex items-center justify-between p-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2 bg-red-50 rounded-lg shrink-0">
+                            <FileText className="h-4 w-4 text-[#E11D48]" />
+                          </div>
+                          <p className="text-sm font-medium text-[#111827] break-all">{nombre}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 ml-3">
+                          {soportaVista && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className={`gap-2 ${estaExpandido ? "bg-blue-50 border-[#1D4ED8] text-[#1D4ED8]" : ""}`}
+                              onClick={() => setAdjuntoExpandido(estaExpandido ? null : urlVer)}
+                            >
+                              {estaExpandido ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              {estaExpandido ? "Ocultar" : "Visualizar"}
+                            </Button>
+                          )}
+                          <a href={urlDescargar} download>
+                            <Button size="sm" variant="outline" className="gap-2">
+                              <Download className="h-4 w-4" />
+                              Descargar
+                            </Button>
+                          </a>
+                        </div>
+                      </div>
+                      {soportaVista && estaExpandido && (
+                        <div className="border-t border-[#E5E7EB]">
+                          {esPdf ? (
+                            <iframe src={urlVer} className="w-full" style={{ height: "500px" }} title={nombre} />
+                          ) : (
+                            <img src={urlVer} alt={nombre} className="w-full max-h-125 object-contain p-2" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="flex gap-2 justify-end pt-4 border-t">
                 <Button variant="outline" onClick={() => setDialogAbierto(false)}>

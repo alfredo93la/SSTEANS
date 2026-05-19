@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Badge } from "../../Components/ui/badge";
 import { Button } from "../../Components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
-import { CheckCircle2, Clock, AlertCircle, Calendar, FileText, ClipboardList, Download, Paperclip, Eye } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, Calendar, FileText, ClipboardList, Download, Paperclip, Eye, EyeOff } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 
@@ -24,9 +24,11 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
   const [estadoFiltro, setEstadoFiltro] = useState("todos");
   const [tareasConEstado, setTareasConEstado] = useState<TareaData[]>([]);
   const [tareaDetalle, setTareaDetalle] = useState<TareaData | null>(null);
+  const [adjuntoExpandido, setAdjuntoExpandido] = useState<string | null>(null);
 
   useEffect(() => {
     if (!alumnoId) return;
+    setTareasConEstado([]);
     axios.get(`/api/tutor/tareas/${alumnoId}`)
       .then(({ data }) => setTareasConEstado(data.tareas ?? []))
       .catch(() => { });
@@ -233,8 +235,8 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
         const badge = getEstadoBadge(tareaDetalle.estadoEntrega);
         const diasRestantes = calcularDiasRestantes(tareaDetalle.fechaEntrega);
         return (
-          <Dialog open={!!tareaDetalle} onOpenChange={(open) => { if (!open) setTareaDetalle(null); }}>
-            <DialogContent className="max-w-lg">
+          <Dialog open={!!tareaDetalle} onOpenChange={(open) => { if (!open) { setTareaDetalle(null); setAdjuntoExpandido(null); } }}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{tareaDetalle.titulo}</DialogTitle>
                 <DialogDescription>{tareaDetalle.materia}</DialogDescription>
@@ -284,20 +286,59 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
                 {tareaDetalle.archivos?.length > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide mb-2 flex items-center gap-1">
-                      <Paperclip className="h-3 w-3" />Archivos adjuntos
+                      <Paperclip className="h-3 w-3" />Archivos adjuntos ({tareaDetalle.archivos.length})
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      {tareaDetalle.archivos.map((path) => (
-                        <a
-                          key={path}
-                          href={`/api/tareas/${tareaDetalle.id}/adjuntos/${nombreArchivo(path)}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB] transition-colors"
-                        >
-                          <Download className="h-3 w-3" />{nombreArchivo(path)}
-                        </a>
-                      ))}
+                    <div className="space-y-2">
+                      {tareaDetalle.archivos.map((path) => {
+                        const nombre = nombreArchivo(path);
+                        const urlVer = `/storage/${path}`;
+                        const urlDescargar = `/api/tareas/${tareaDetalle.id}/adjuntos/${nombre}?download=1`;
+                        const ext = nombre.split(".").pop()?.toLowerCase() ?? "";
+                        const esPdf = ext === "pdf";
+                        const esImagen = ["jpg","jpeg","png","gif","webp","svg"].includes(ext);
+                        const soportaVista = esPdf || esImagen;
+                        const estaExpandido = adjuntoExpandido === urlVer;
+                        return (
+                          <div key={path} className="bg-gray-50 rounded-lg border border-[#E5E7EB] overflow-hidden">
+                            <div className="flex items-center justify-between p-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="p-2 bg-red-50 rounded-lg shrink-0">
+                                  <FileText className="h-4 w-4 text-[#E11D48]" />
+                                </div>
+                                <p className="text-sm font-medium text-[#111827] break-all">{nombre}</p>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0 ml-3">
+                                {soportaVista && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className={`gap-2 ${estaExpandido ? "bg-blue-50 border-[#1D4ED8] text-[#1D4ED8]" : ""}`}
+                                    onClick={() => setAdjuntoExpandido(estaExpandido ? null : urlVer)}
+                                  >
+                                    {estaExpandido ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    {estaExpandido ? "Ocultar" : "Visualizar"}
+                                  </Button>
+                                )}
+                                <a href={urlDescargar} download>
+                                  <Button size="sm" variant="outline" className="gap-2">
+                                    <Download className="h-4 w-4" />
+                                    Descargar
+                                  </Button>
+                                </a>
+                              </div>
+                            </div>
+                            {soportaVista && estaExpandido && (
+                              <div className="border-t border-[#E5E7EB]">
+                                {esPdf ? (
+                                  <iframe src={urlVer} className="w-full" style={{ height: "500px" }} title={nombre} />
+                                ) : (
+                                  <img src={urlVer} alt={nombre} className="w-full max-h-125 object-contain p-2" />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

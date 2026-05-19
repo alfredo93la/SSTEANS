@@ -59,7 +59,7 @@ class TareaController extends Controller
             'grupo_id'         => ['required', 'integer', 'exists:grupos,id'],
             'fecha_asignacion' => ['required', 'date'],
             'fecha_entrega'    => ['required', 'date', 'after:fecha_asignacion'],
-            'archivos.*'       => ['nullable', 'file', 'max:10240'],
+            'archivos.*'       => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png,gif,webp', 'max:10240'],
         ]);
 
         $cicloId = CicloEscolar::where('activo', true)->value('id');
@@ -130,9 +130,11 @@ class TareaController extends Controller
             'archivosExistentes.*' => ['nullable', 'string'],
         ]);
 
-        $existentes = $validated['archivosExistentes'] ?? $tarea->archivos ?? [];
-        $nuevos     = $this->subirArchivos($request);
-        $archivos   = array_values(array_merge($existentes, $nuevos));
+        $existentes = $request->boolean('archivosExistentesSet')
+            ? ($validated['archivosExistentes'] ?? [])
+            : ($tarea->archivos ?? []);
+        $nuevos   = $this->subirArchivos($request);
+        $archivos = array_values(array_merge($existentes, $nuevos));
 
         $tarea->update([
             'titulo'        => $validated['titulo'],
@@ -168,7 +170,7 @@ class TareaController extends Controller
     /**
      * GET /api/tareas/{tarea}/adjuntos/{archivo}
      */
-    public function descargarAdjunto(Tarea $tarea, string $archivo): mixed
+    public function descargarAdjunto(Request $request, Tarea $tarea, string $archivo): mixed
     {
         $ruta = "tareas/{$archivo}";
 
@@ -176,7 +178,11 @@ class TareaController extends Controller
             abort(404);
         }
 
-        return response()->download(Storage::disk('public')->path($ruta));
+        $path = Storage::disk('public')->path($ruta);
+
+        return $request->boolean('download')
+            ? response()->download($path)
+            : response()->file($path);
     }
 
     // ─── Helper ──────────────────────────────────────────────────────────────

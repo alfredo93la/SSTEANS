@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../..
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
 import {
-  Users, GraduationCap, Building2, UserCheck,
+  Users, GraduationCap, UserCheck,
   AlertCircle, CheckCircle2, CalendarDays, Mail, LayoutDashboard,
 } from "lucide-react";
 
@@ -83,7 +83,7 @@ export function DashboardCustomRole({ onNavigate, userRole, userName, permission
     if (has("circulares.manage")) {
       axios.get("/api/circulares").then(({ data }) => setUltimasCirculares((data.circulares ?? []).slice(0, 4))).catch(() => {});
     }
-    axios.get("/api/ciclos").then(({ data }) => setCicloActivo(data.ciclo_activo ?? null)).catch(() => {});
+    axios.get("/api/ciclo-activo").then(({ data }) => setCicloActivo(data.ciclo_activo ?? null)).catch(() => {});
 
     Promise.all(fetches).finally(() => setLoading(false));
   }, []);

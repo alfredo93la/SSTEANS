@@ -202,6 +202,14 @@ Route::middleware(['auth', 'verified', 'permission:tutores.manage'])
         Route::delete('/tutores/{tutor}/desvincular',        [TutorAdminController::class, 'desvincular']);
     });
 
+// ─── Ciclo activo: lectura para cualquier rol autenticado ─────────────────────
+Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
+    Route::get('/ciclo-activo', function () {
+        $ciclo = \App\Models\CicloEscolar::where('activo', true)->first();
+        return response()->json(['ciclo_activo' => $ciclo]);
+    });
+});
+
 // ─── Materias: lectura para cualquier rol autenticado ─────────────────────────
 Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
     Route::get('/materias', fn () => response()->json([
