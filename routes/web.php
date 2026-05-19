@@ -44,7 +44,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Servir archivos de storage sin depender de symlinks
+// Servir archivos de storage sin depender de symlinks (circulares, tareas, reportes)
 Route::get('/storage/{folder}/{filename}', function ($folder, $filename) {
     $path = storage_path('app/public/' . $folder . '/' . $filename);
 
@@ -53,7 +53,7 @@ Route::get('/storage/{folder}/{filename}', function ($folder, $filename) {
     }
 
     return response()->file($path);
-})->where('folder', 'logos|circulares|tareas|reportes_conducta');
+})->where('folder', 'circulares|tareas|reportes_conducta');
 
 
 require __DIR__.'/auth.php';

@@ -8,7 +8,6 @@ use App\Models\ConfiguracionEscuela;
 use App\Models\Grupo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ConfiguracionEscuelaController extends Controller
@@ -95,12 +94,7 @@ class ConfiguracionEscuelaController extends Controller
     public function deleteLogo(): JsonResponse
     {
         $config = ConfiguracionEscuela::firstOrCreate(['id' => 1]);
-
-        if ($config->logo_url) {
-            $storagePath = ltrim(str_replace('/storage', '', $config->logo_url), '/');
-            Storage::disk('public')->delete($storagePath);
-            $config->update(['logo_url' => null]);
-        }
+        $config->update(['logo_url' => null]);
 
         return response()->json(['message' => 'Logo eliminado correctamente.']);
     }
@@ -111,29 +105,17 @@ class ConfiguracionEscuelaController extends Controller
             'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
         ]);
 
+        $file     = $request->file('logo');
+        $mime     = $file->getMimeType();
+        $base64   = base64_encode(file_get_contents($file->getRealPath()));
+        $dataUrl  = "data:{$mime};base64,{$base64}";
+
         $config = ConfiguracionEscuela::firstOrCreate(['id' => 1]);
-
-        if ($config->logo_url) {
-            $storagePath = ltrim(str_replace('/storage', '', $config->logo_url), '/');
-            Storage::disk('public')->delete($storagePath);
-        }
-
-        $path = $request->file('logo')->store('logos', 'public');
-        $url  = Storage::disk('public')->url($path);
-
-        if (app()->environment('production')) {
-            $publicDir = public_path('storage/logos');
-            if (!is_dir($publicDir)) {
-                mkdir($publicDir, 0775, true);
-            }
-            copy(storage_path('app/public/' . $path), $publicDir . '/' . basename($path));
-        }
-
-        $config->update(['logo_url' => $url]);
+        $config->update(['logo_url' => $dataUrl]);
 
         return response()->json([
             'message'  => 'Logo actualizado correctamente.',
-            'logo_url' => $url,
+            'logo_url' => $dataUrl,
         ]);
     }
 }
