@@ -29,6 +29,9 @@ jobs:
       - name: Instalar dependencias JS
         run: npm ci
 
+      - name: Crear .env para build
+        run: echo "${{ secrets.ENV_PRODUCTION }}" > .env
+
       - name: Build frontend
         run: npm run build
 
