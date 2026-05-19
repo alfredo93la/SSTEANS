@@ -95,10 +95,6 @@ function CamposEspecificosRol({ rolNombre, form, setForm }: {
           <Label>Ocupación</Label>
           <Input value={form.ocupacion} onChange={(e) => setForm({ ...form, ocupacion: e.target.value })} placeholder="Profesión u ocupación" />
         </div>
-        <div className="space-y-1.5">
-          <Label>Teléfono</Label>
-          <Input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} placeholder="10 dígitos" />
-        </div>
       </>
     );
   }
@@ -216,6 +212,10 @@ function FormUsuario({ form, setForm, roles, isEdit = false }: {
         <div className="space-y-1.5">
           <Label>CURP {rolNombre === "Tutor" && <span className="text-red-500">*</span>}</Label>
           <Input value={form.curp} onChange={(e) => setForm({ ...form, curp: e.target.value.toUpperCase() })} placeholder="18 caracteres" maxLength={18} className="uppercase" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Teléfono</Label>
+          <Input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} placeholder="10 dígitos" />
         </div>
         {/* Rol y estado */}
         <div className="space-y-1.5">

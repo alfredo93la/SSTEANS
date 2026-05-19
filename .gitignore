@@ -5,6 +5,7 @@ _ide_helper_models.php
 .DS_Store
 .env
 .env.backup
+.env.production
 .phpactor.json
 .phpunit.result.cache
 /.fleet
