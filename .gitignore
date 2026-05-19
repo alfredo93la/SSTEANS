@@ -18,6 +18,7 @@ _ide_helper_models.php
 /bootstrap/ssr
 /node_modules
 /public/hot
+/public/storage
 /storage/*.key
 /storage/pail
 /vendor
@@ -25,3 +26,9 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 repomix-output.xml
+/storage/app/public/*
+!/storage/app/public/.gitignore
+!/storage/app/public/logos/.gitkeep
+!/storage/app/public/circulares/.gitkeep
+!/storage/app/public/tareas/.gitkeep
+!/storage/app/public/reportes_conducta/.gitkeep

@@ -3,7 +3,9 @@ import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { Badge } from "../../Components/ui/badge";
-import { CheckCircle2, Clock, AlertCircle, Calendar, FileText, ClipboardList, Download, Paperclip } from "lucide-react";
+import { Button } from "../../Components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
+import { CheckCircle2, Clock, AlertCircle, Calendar, FileText, ClipboardList, Download, Paperclip, Eye } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 
@@ -21,6 +23,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
   const [materiaFiltro, setMateriaFiltro] = useState("todas");
   const [estadoFiltro, setEstadoFiltro] = useState("todos");
   const [tareasConEstado, setTareasConEstado] = useState<TareaData[]>([]);
+  const [tareaDetalle, setTareaDetalle] = useState<TareaData | null>(null);
 
   useEffect(() => {
     if (!alumnoId) return;
@@ -185,112 +188,39 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
                 const diasRestantes = calcularDiasRestantes(tarea.fechaEntrega);
 
                 return (
-                  <Card key={tarea.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        {/* Indicador de estado */}
-                        <div className="shrink-0">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${badge.bg}`}>
-                            <IconEstado className={`h-6 w-6 ${badge.color}`} />
-                          </div>
-                        </div>
-
-                        {/* Información de la tarea */}
-                        <div className="flex-1 space-y-3">
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                            <div>
-                              <h3 className="font-semibold text-[#111827] text-lg">{tarea.titulo}</h3>
-                              <p className="text-sm text-[#6B7280] mt-1">{tarea.descripcion}</p>
-                            </div>
-                            <Badge className={badge.className}>
-                              {badge.text}
-                            </Badge>
-                          </div>
-
-                          <div className="flex flex-wrap gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-[#7C3AED]" />
-                              <span className="text-[#6B7280]">{tarea.materia}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-[#1D4ED8]" />
-                              <span className="text-[#6B7280]">Fecha límite: {tarea.fechaEntrega}</span>
-                            </div>
-                          </div>
-
+                  <div
+                    key={tarea.id}
+                    className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => setTareaDetalle(tarea)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${badge.bg}`}>
+                        <IconEstado className={`h-5 w-5 ${badge.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-[#111827] truncate">{tarea.titulo}</h3>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-[#6B7280] flex-wrap">
+                          <span className="flex items-center gap-1"><FileText className="h-3 w-3" />{tarea.materia}</span>
+                          <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{tarea.fechaEntrega}</span>
                           {tarea.archivos?.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              <span className="flex items-center gap-1 text-xs text-[#6B7280]">
-                                <Paperclip className="h-3 w-3" />Adjuntos:
-                              </span>
-                              {tarea.archivos.map((path) => (
-                                <a
-                                  key={path}
-                                  href={`/api/tareas/${tarea.id}/adjuntos/${nombreArchivo(path)}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB] transition-colors"
-                                >
-                                  <Download className="h-3 w-3" />
-                                  {nombreArchivo(path)}
-                                </a>
-                              ))}
-                            </div>
+                            <span className="flex items-center gap-1"><Paperclip className="h-3 w-3" />{tarea.archivos.length} adjunto(s)</span>
                           )}
-
-                          {/* Información adicional según el estado */}
-                          {tarea.estadoEntrega === "Pendiente" && diasRestantes >= 0 && (
-                            <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                              <Clock className="h-4 w-4 text-[#D97706]" />
-                              <span className="text-sm text-[#D97706] font-medium">
-                                {diasRestantes === 0
-                                  ? "¡Vence hoy!"
-                                  : diasRestantes === 1
-                                    ? "Vence mañana"
-                                    : `Faltan ${diasRestantes} días`}
-                              </span>
-                            </div>
-                          )}
-
-                          {tarea.estadoEntrega === "Pendiente" && diasRestantes < 0 && (
-                            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
-                              <AlertCircle className="h-4 w-4 text-[#E11D48]" />
-                              <span className="text-sm text-[#E11D48] font-medium">
-                                Tarea vencida hace {Math.abs(diasRestantes)} días
-                              </span>
-                            </div>
-                          )}
-
-                          {tarea.estadoEntrega === "Entregada" && tarea.fechaEntregaAlumno && (
-                            <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <CheckCircle2 className="h-4 w-4 text-[#059669]" />
-                              <span className="text-sm text-[#059669] font-medium">
-                                Entregada el {tarea.fechaEntregaAlumno}
-                              </span>
-                            </div>
-                          )}
-
-                          {tarea.estadoEntrega === "Tarde" && (
-                            <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                              <Clock className="h-4 w-4 text-[#D97706]" />
-                              <span className="text-sm text-[#D97706] font-medium">
-                                Entregada fuera de tiempo{tarea.fechaEntregaAlumno ? ` el ${tarea.fechaEntregaAlumno}` : ""}
-                              </span>
-                            </div>
-                          )}
-
-                          {tarea.estadoEntrega === "No Entregada" && (
-                            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
-                              <AlertCircle className="h-4 w-4 text-[#E11D48]" />
-                              <span className="text-sm text-[#E11D48] font-medium">
-                                Tarea no entregada
-                              </span>
-                            </div>
+                          {tarea.estadoEntrega === "Pendiente" && (
+                            <span className={`flex items-center gap-1 font-medium ${diasRestantes < 0 ? "text-[#E11D48]" : diasRestantes <= 2 ? "text-[#D97706]" : ""}`}>
+                              <Clock className="h-3 w-3" />
+                              {diasRestantes < 0 ? `Vencida hace ${Math.abs(diasRestantes)} días` : diasRestantes === 0 ? "¡Vence hoy!" : `Faltan ${diasRestantes} días`}
+                            </span>
                           )}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge className={badge.className}>{badge.text}</Badge>
+                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setTareaDetalle(tarea); }}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 );
               })
             )}
@@ -298,6 +228,87 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
         </CardContent>
       </Card>
 
+      {/* Dialog detalle */}
+      {tareaDetalle && (() => {
+        const badge = getEstadoBadge(tareaDetalle.estadoEntrega);
+        const diasRestantes = calcularDiasRestantes(tareaDetalle.fechaEntrega);
+        return (
+          <Dialog open={!!tareaDetalle} onOpenChange={(open) => { if (!open) setTareaDetalle(null); }}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>{tareaDetalle.titulo}</DialogTitle>
+                <DialogDescription>{tareaDetalle.materia}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 text-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[#6B7280]">
+                    <Calendar className="h-4 w-4 text-[#1D4ED8]" />
+                    <span>Fecha límite: <strong className="text-[#111827]">{tareaDetalle.fechaEntrega}</strong></span>
+                  </div>
+                  <Badge className={badge.className}>{badge.text}</Badge>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#F9FAFB] border border-[#E5E7EB]">
+                  <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide mb-1">Instrucciones</p>
+                  <p className="text-[#374151]">{tareaDetalle.descripcion}</p>
+                </div>
+
+                {/* Banner de estado */}
+                {tareaDetalle.estadoEntrega === "Pendiente" && (
+                  <div className={`flex items-center gap-2 p-3 rounded-lg border ${diasRestantes < 0 ? "bg-red-50 border-red-200" : "bg-amber-50 border-amber-200"}`}>
+                    {diasRestantes < 0
+                      ? <><AlertCircle className="h-4 w-4 text-[#E11D48]" /><span className="text-[#E11D48] font-medium">Vencida hace {Math.abs(diasRestantes)} días</span></>
+                      : <><Clock className="h-4 w-4 text-[#D97706]" /><span className="text-[#D97706] font-medium">{diasRestantes === 0 ? "¡Vence hoy!" : diasRestantes === 1 ? "Vence mañana" : `Faltan ${diasRestantes} días`}</span></>
+                    }
+                  </div>
+                )}
+                {tareaDetalle.estadoEntrega === "Entregada" && tareaDetalle.fechaEntregaAlumno && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-[#059669]" />
+                    <span className="text-[#059669] font-medium">Entregada el {tareaDetalle.fechaEntregaAlumno}</span>
+                  </div>
+                )}
+                {tareaDetalle.estadoEntrega === "Tarde" && (
+                  <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <Clock className="h-4 w-4 text-[#D97706]" />
+                    <span className="text-[#D97706] font-medium">Entregada fuera de tiempo{tareaDetalle.fechaEntregaAlumno ? ` el ${tareaDetalle.fechaEntregaAlumno}` : ""}</span>
+                  </div>
+                )}
+                {tareaDetalle.estadoEntrega === "No Entregada" && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+                    <AlertCircle className="h-4 w-4 text-[#E11D48]" />
+                    <span className="text-[#E11D48] font-medium">Tarea no entregada</span>
+                  </div>
+                )}
+
+                {tareaDetalle.archivos?.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide mb-2 flex items-center gap-1">
+                      <Paperclip className="h-3 w-3" />Archivos adjuntos
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {tareaDetalle.archivos.map((path) => (
+                        <a
+                          key={path}
+                          href={`/api/tareas/${tareaDetalle.id}/adjuntos/${nombreArchivo(path)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB] transition-colors"
+                        >
+                          <Download className="h-3 w-3" />{nombreArchivo(path)}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setTareaDetalle(null)}>Cerrar</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
     </div>
   );
 }

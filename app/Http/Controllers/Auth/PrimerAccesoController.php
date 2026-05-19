@@ -23,11 +23,16 @@ class PrimerAccesoController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        $request->user()->update([
+        $user = $request->user();
+
+        $user->update([
             'password'             => Hash::make($request->string('password')),
             'must_change_password' => false,
-            'email_verified_at'    => $request->user()->email_verified_at ?? now(),
         ]);
+
+        if (! $user->email_verified_at) {
+            $user->forceFill(['email_verified_at' => now()])->save();
+        }
 
         return redirect()->route('dashboard');
     }

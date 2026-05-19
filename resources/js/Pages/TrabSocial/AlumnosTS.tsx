@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../../Components/ui/pagination";
 import { PageTitle } from "../../Layouts/PageTitle";
 
 interface Alumno {
@@ -45,7 +46,9 @@ export function AlumnosTS({ onNavigate }: AlumnosTSProps) {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroGrupoId, setFiltroGrupoId] = useState<string>("todos");
-  const [grupoSeleccionadoId, setGrupoSeleccionadoId] = useState<number | null>(null);
+  const [grupoSeleccionadoId] = useState<number | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 10;
 
   useEffect(() => {
     axios.get<{ alumnos: Alumno[]; grupos: GrupoApi[] }>("/api/trabajador-social/alumnos")
@@ -91,6 +94,11 @@ export function AlumnosTS({ onNavigate }: AlumnosTSProps) {
   const grupoActual = grupoSeleccionadoId !== null
     ? grupos.find((g) => g.id === grupoSeleccionadoId)
     : null;
+
+  const totalPaginas = Math.ceil(alumnosFiltrados.length / POR_PAGINA);
+  const alumnosPagina = alumnosFiltrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
+
+  useEffect(() => { setPagina(1); }, [busqueda, filtroGrupoId]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -177,7 +185,7 @@ export function AlumnosTS({ onNavigate }: AlumnosTSProps) {
             <p className="text-sm text-[#6B7280] text-center py-8">No se encontraron alumnos.</p>
           ) : (
             <div className="space-y-3">
-              {alumnosFiltrados.map((alumno) => {
+              {alumnosPagina.map((alumno) => {
                 const nombre_grupo = grupoNombre(alumno.grupo_id);
                 return (
                   <div
@@ -235,6 +243,51 @@ export function AlumnosTS({ onNavigate }: AlumnosTSProps) {
                   </div>
                 );
               })}
+            </div>
+          )}
+          {totalPaginas > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+              <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, alumnosFiltrados.length)} de {alumnosFiltrados.length}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }}
+                      className={pagina === 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === "ellipsis" ? (
+                        <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                      ) : (
+                        <PaginationItem key={item}>
+                          <PaginationLink
+                            href="#"
+                            isActive={pagina === item}
+                            onClick={(e) => { e.preventDefault(); setPagina(item as number); }}
+                          >
+                            {item}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(totalPaginas, p + 1)); }}
+                      className={pagina === totalPaginas ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </CardContent>
