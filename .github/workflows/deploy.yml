@@ -51,6 +51,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.SSH_PATH }}
+            cp -r public/build ./build
             echo "${{ secrets.ENV_PRODUCTION }}" > .env
             php artisan config:cache
             php artisan route:cache
