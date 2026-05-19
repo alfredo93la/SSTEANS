@@ -63,8 +63,17 @@ export function Grupos() {
 
   useEffect(() => { cargar(); }, []);
 
+  const validarGrupo = () => {
+    if (!form.grado_id) { toast.error("Debes seleccionar un grado."); return false; }
+    if (!form.nombre.trim()) { toast.error("El nombre/letra del grupo es obligatorio."); return false; }
+    if (form.nombre.trim().length > 3) { toast.error("El nombre del grupo no puede tener más de 3 caracteres."); return false; }
+    const cap = Number(form.capacidad_maxima);
+    if (isNaN(cap) || cap < 1 || cap > 60) { toast.error("La capacidad máxima debe ser entre 1 y 60."); return false; }
+    return true;
+  };
+
   const handleGuardar = () => {
-    if (!form.grado_id || !form.nombre) { toast.error("Grado y nombre son obligatorios."); return; }
+    if (!validarGrupo()) return;
     setSaving(true);
     axios.post("/api/administrativo/grupos", form)
       .then(({ data }) => {
@@ -78,7 +87,7 @@ export function Grupos() {
   };
 
   const handleEditar = () => {
-    if (!grupoSel) return;
+    if (!grupoSel || !validarGrupo()) return;
     setSaving(true);
     axios.put(`/api/administrativo/grupos/${grupoSel.id}`, form)
       .then(({ data }) => {

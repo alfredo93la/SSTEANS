@@ -338,6 +338,10 @@ export function Horarios() {
         toast.error("Completa las horas de todas las sesiones.");
         return;
       }
+      if (s.hora_inicio >= s.hora_fin) {
+        toast.error(`La hora de fin debe ser mayor que la hora de inicio en ${DIAS_LABEL[s.dia_semana]}.`);
+        return;
+      }
     }
 
     for (let i = 0; i < formNuevo.sesiones.length; i++) {
@@ -385,6 +389,12 @@ export function Horarios() {
 
   const handleEditar = () => {
     if (!claseSel) return;
+    if (!formEdit.materia_id || !formEdit.profesor_user_id) {
+      toast.error("Materia y profesor son obligatorios."); return;
+    }
+    if (formEdit.hora_inicio && formEdit.hora_fin && formEdit.hora_inicio >= formEdit.hora_fin) {
+      toast.error("La hora de fin debe ser mayor que la hora de inicio."); return;
+    }
     setSaving(true);
     axios.put(`/api/administrativo/clases/${claseSel.id}`, { ...formEdit, salon_id: formEdit.salon_id || null })
       .then(({ data }) => {

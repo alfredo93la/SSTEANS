@@ -168,6 +168,7 @@ export function Roles() {
 
   const guardarEdicion = async () => {
     if (!rolSeleccionado) return;
+    if (!editarNombre.trim()) { toast.error("El nombre del rol es obligatorio."); return; }
 
     setSaving(true);
 
@@ -213,7 +214,7 @@ export function Roles() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="nombre-rol">Nombre del Rol</Label>
-                  <Input id="nombre-rol" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} />
+                  <Input id="nombre-rol" value={nuevoNombre} maxLength={100} onChange={(e) => setNuevoNombre(e.target.value)} />
                 </div>
 
                 <div>
@@ -366,7 +367,7 @@ export function Roles() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-nombre">Nombre</Label>
-                  <Input id="edit-nombre" value={editarNombre} onChange={(e) => setEditarNombre(e.target.value)} disabled={SYSTEM_ROLES.includes(rolSeleccionado.nombre)} />
+                  <Input id="edit-nombre" value={editarNombre} maxLength={100} onChange={(e) => setEditarNombre(e.target.value)} disabled={SYSTEM_ROLES.includes(rolSeleccionado.nombre)} />
                 </div>
                 <div>
                   <Label>Usuarios Asignados</Label>

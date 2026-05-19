@@ -404,6 +404,7 @@ export function Notificaciones() {
                   id="asunto"
                   className="mt-1"
                   placeholder="Escribe el asunto de la notificación"
+                  maxLength={255}
                   value={titulo}
                   onChange={(e) => setTitulo(e.target.value)}
                 />
@@ -416,6 +417,7 @@ export function Notificaciones() {
                   className="mt-1"
                   placeholder="Escribe el contenido de la notificación"
                   rows={4}
+                  maxLength={2000}
                   value={mensaje}
                   onChange={(e) => setMensaje(e.target.value)}
                 />

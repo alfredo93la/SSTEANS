@@ -77,6 +77,8 @@ export function ReportesTS() {
   const [guardando, setGuardando] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [busquedaAlumnoModal, setBusquedaAlumnoModal] = useState("");
+  const [archivoExistenteEdit, setArchivoExistenteEdit] = useState<string | null>(null);
+  const [adjuntoEliminado, setAdjuntoEliminado] = useState(false);
 
   useEffect(() => {
     cargarDatos();
@@ -231,6 +233,8 @@ export function ReportesTS() {
       setFormulario(initialForm);
       setArchivosAdjuntos([]);
       setBusquedaAlumnoModal("");
+      setArchivoExistenteEdit(null);
+      setAdjuntoEliminado(false);
     }
   };
 
@@ -245,6 +249,8 @@ export function ReportesTS() {
       estatus: reporte.estatus.toLowerCase().replace(/\s+/g, "_"),
     });
     setArchivosAdjuntos([]);
+    setArchivoExistenteEdit(reporte.archivoAdjunto);
+    setAdjuntoEliminado(false);
     setModalDetalle(false);
     setModalNuevo(true);
   };
@@ -276,9 +282,11 @@ export function ReportesTS() {
   };
 
   const guardarReporte = async () => {
-    if (!formulario.alumnoId || !formulario.tipoReporte || !formulario.gravedad || !formulario.descripcion.trim()) {
-      toast.error("Completa todos los campos obligatorios.");
-      return;
+    if (!formulario.alumnoId) { toast.error("Debes seleccionar un alumno."); return; }
+    if (!formulario.tipoReporte) { toast.error("Selecciona el tipo de reporte."); return; }
+    if (!formulario.gravedad) { toast.error("Selecciona la gravedad del reporte."); return; }
+    if (!formulario.descripcion.trim() || formulario.descripcion.trim().length < 10) {
+      toast.error("La descripción debe tener al menos 10 caracteres."); return;
     }
 
     setGuardando(true);
@@ -295,6 +303,8 @@ export function ReportesTS() {
 
       if (archivosAdjuntos[0]) {
         payload.append("archivo_adjunto", archivosAdjuntos[0]);
+      } else if (editandoId && adjuntoEliminado) {
+        payload.append("eliminar_adjunto", "1");
       }
 
       if (editandoId) {
@@ -528,6 +538,7 @@ export function ReportesTS() {
                   rows={4}
                   value={formulario.descripcion}
                   onChange={(e) => actualizarCampo("descripcion", e.target.value)}
+                  maxLength={2000}
                 />
               </div>
 
@@ -539,6 +550,7 @@ export function ReportesTS() {
                   rows={3}
                   value={formulario.acciones}
                   onChange={(e) => actualizarCampo("acciones", e.target.value)}
+                  maxLength={1000}
                 />
               </div>
 
@@ -548,6 +560,27 @@ export function ReportesTS() {
                   Puedes adjuntar evidencias, fotografías, documentos, etc.
                 </p>
                 <div className="space-y-3">
+                  {editandoId && archivoExistenteEdit && (
+                    <div className="space-y-2">
+                      <Label>Archivos actuales</Label>
+                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-[#E5E7EB]">
+                        <div className="flex items-center gap-2 text-sm text-[#111827] min-w-0">
+                          <FileText className="h-4 w-4 text-[#6B7280] shrink-0" />
+                          <span className="truncate">{archivoExistenteEdit.split("/").pop()}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-[#6B7280] hover:text-[#E11D48] shrink-0"
+                          onClick={() => { setArchivoExistenteEdit(null); setAdjuntoEliminado(true); }}
+                          title="Quitar adjunto"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <label
                       htmlFor="file-upload"
@@ -562,10 +595,10 @@ export function ReportesTS() {
                       multiple
                       className="hidden"
                       onChange={handleFileChange}
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp"
                     />
                     <span className="text-xs text-[#6B7280]">
-                      Formatos: PDF, Word, Imágenes
+                      PDF, Word, imágenes (jpg, png, gif, webp)
                     </span>
                   </div>
 

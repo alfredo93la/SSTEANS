@@ -65,7 +65,7 @@ function FormMateria({ form, setForm, grados }: {
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2 space-y-2">
           <Label>Nombre de la materia *</Label>
-          <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: Matemáticas IV" />
+          <Input value={form.nombre} maxLength={255} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: Matemáticas IV" />
         </div>
         <div className="space-y-2">
           <Label>Grado *</Label>
@@ -117,11 +117,20 @@ export function Materias() {
 
   useEffect(() => { cargar(); }, []);
 
-  const handleGuardar = () => {
-    if (!form.grado_id || !form.nombre) {
-      toast.error("Nombre y grado son obligatorios.");
-      return;
+  const validarMateria = () => {
+    if (!form.nombre.trim() || form.nombre.trim().length < 2) {
+      toast.error("El nombre de la materia debe tener al menos 2 caracteres."); return false;
     }
+    if (!form.grado_id) { toast.error("Debes seleccionar un grado."); return false; }
+    const horas = Number(form.horas_semanales);
+    if (isNaN(horas) || horas < 1 || horas > 10) {
+      toast.error("Las horas por semana deben ser entre 1 y 10."); return false;
+    }
+    return true;
+  };
+
+  const handleGuardar = () => {
+    if (!validarMateria()) return;
     setSaving(true);
     axios.post("/api/admin/materias", form)
       .then(({ data }) => {
@@ -135,11 +144,7 @@ export function Materias() {
   };
 
   const handleEditar = () => {
-    if (!editando) return;
-    if (!form.grado_id || !form.nombre) {
-      toast.error("Nombre y grado son obligatorios.");
-      return;
-    }
+    if (!editando || !validarMateria()) return;
     setSaving(true);
     axios.put(`/api/admin/materias/${editando.id}`, form)
       .then(({ data }) => {

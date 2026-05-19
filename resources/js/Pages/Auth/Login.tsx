@@ -5,6 +5,7 @@ import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { Alert, AlertDescription } from "../../Components/ui/alert";
 import { AlertCircle, GraduationCap, ArrowRight, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { emailValido } from "../../lib/validators";
 
 interface Props {
   canResetPassword: boolean;
@@ -14,6 +15,7 @@ interface Props {
 
 export default function Login({ canResetPassword, status, canRegister }: Props) {
   const [showPassword, setShowPassword] = useState(false);
+  const [clientErrors, setClientErrors] = useState<{ email?: string; password?: string }>({});
   const { data, setData, post, processing, errors, reset } = useForm({
     email: "",
     password: "",
@@ -21,7 +23,12 @@ export default function Login({ canResetPassword, status, canRegister }: Props) 
 
   const handleSubmit: FormEventHandler = (e) => {
     e.preventDefault();
-    
+    const errs: typeof clientErrors = {};
+    if (!data.email.trim()) errs.email = "El correo es obligatorio.";
+    else if (!emailValido(data.email)) errs.email = "Ingresa un correo electrónico válido.";
+    if (!data.password) errs.password = "La contraseña es obligatoria.";
+    if (Object.keys(errs).length) { setClientErrors(errs); return; }
+    setClientErrors({});
     post('/login', {
       onFinish: () => reset('password'),
     });
@@ -65,10 +72,10 @@ export default function Login({ canResetPassword, status, canRegister }: Props) 
               </Alert>
             )}
 
-            {errors.email && (
+            {(errors.email || clientErrors.email) && (
               <Alert variant="destructive" className="animate-scale-in">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{errors.email}</AlertDescription>
+                <AlertDescription>{clientErrors.email ?? errors.email}</AlertDescription>
               </Alert>
             )}
 
@@ -76,12 +83,12 @@ export default function Login({ canResetPassword, status, canRegister }: Props) 
               <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
-                type="text"
+                type="email"
                 name="email"
                 placeholder="Ingresa tu correo electrónico"
                 value={data.email}
-                onChange={(e) => setData("email", e.target.value)}
-                className={`h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all ${errors.email ? 'border-red-500' : ''}`}
+                onChange={(e) => { setData("email", e.target.value); setClientErrors((p) => ({ ...p, email: undefined })); }}
+                className={`h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all ${errors.email || clientErrors.email ? 'border-red-500' : ''}`}
                 disabled={processing}
                 autoComplete="username"
               />
@@ -96,8 +103,8 @@ export default function Login({ canResetPassword, status, canRegister }: Props) 
                   name="password"
                   placeholder="Ingresa tu contraseña"
                   value={data.password}
-                  onChange={(e) => setData("password", e.target.value)}
-                  className={`h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all pr-12 ${errors.password ? 'border-red-500' : ''}`}
+                  onChange={(e) => { setData("password", e.target.value); setClientErrors((p) => ({ ...p, password: undefined })); }}
+                  className={`h-12 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all pr-12 ${errors.password || clientErrors.password ? 'border-red-500' : ''}`}
                   disabled={processing}
                   autoComplete="current-password"
                 />
@@ -110,7 +117,9 @@ export default function Login({ canResetPassword, status, canRegister }: Props) 
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
+              {(errors.password || clientErrors.password) && (
+                <p className="text-sm text-red-500 mt-1">{clientErrors.password ?? errors.password}</p>
+              )}
             </div>
 
             {canResetPassword && (

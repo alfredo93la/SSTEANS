@@ -9,6 +9,7 @@ import { Textarea } from "../../Components/ui/textarea";
 import { Switch } from "../../Components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 import { School, Settings2, CheckCircle, Loader2, Upload, X } from "lucide-react";
+import { emailValido, telefonoValido } from "../../lib/validators";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { toast } from "sonner";
 
@@ -70,6 +71,9 @@ export function ConfiguracionGeneral() {
   }, []);
 
   const handleGuardar = () => {
+    if (!config.nombre.trim()) { toast.error("El nombre de la escuela es obligatorio."); return; }
+    if (config.correo && !emailValido(config.correo)) { toast.error("El correo electrónico no tiene un formato válido."); return; }
+    if (config.telefono && !telefonoValido(config.telefono)) { toast.error("El teléfono debe tener exactamente 10 dígitos."); return; }
     setSaving(true);
     axios.put("/api/admin/configuracion", config)
       .then(() => {
@@ -190,6 +194,7 @@ export function ConfiguracionGeneral() {
                 value={config.nombre}
                 onChange={(e) => set("nombre", e.target.value)}
                 className="rounded-lg"
+                maxLength={255}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -200,6 +205,7 @@ export function ConfiguracionGeneral() {
                   value={config.numero}
                   onChange={(e) => set("numero", e.target.value)}
                   className="rounded-lg"
+                  maxLength={255}
                 />
               </div>
               <div className="space-y-2">
@@ -209,6 +215,7 @@ export function ConfiguracionGeneral() {
                   value={config.cct}
                   onChange={(e) => set("cct", e.target.value)}
                   className="rounded-lg"
+                  maxLength={20}
                 />
               </div>
               <div className="space-y-2">
@@ -250,6 +257,7 @@ export function ConfiguracionGeneral() {
                 value={config.director}
                 onChange={(e) => set("director", e.target.value)}
                 className="rounded-lg"
+                maxLength={255}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -260,6 +268,7 @@ export function ConfiguracionGeneral() {
                   value={config.telefono}
                   onChange={(e) => set("telefono", e.target.value)}
                   className="rounded-lg"
+                  maxLength={30}
                 />
               </div>
               <div className="space-y-2">
@@ -270,6 +279,7 @@ export function ConfiguracionGeneral() {
                   value={config.correo}
                   onChange={(e) => set("correo", e.target.value)}
                   className="rounded-lg"
+                  maxLength={255}
                 />
               </div>
             </div>

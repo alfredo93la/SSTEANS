@@ -5,6 +5,7 @@ import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { Alert, AlertDescription } from "../../Components/ui/alert";
 import { AlertCircle, GraduationCap, KeyRound, Eye, EyeOff } from "lucide-react";
+import { passwordFuerte, passwordsCoinciden } from "../../lib/validators";
 
 interface Props {
   email: string;
@@ -22,8 +23,19 @@ export default function ResetPassword({ email, token }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  const [pwdError, setPwdError] = useState<string | null>(null);
+
   const handleSubmit: FormEventHandler = (e) => {
     e.preventDefault();
+    if (!passwordFuerte(data.password)) {
+      setPwdError("La contraseña debe tener mínimo 12 caracteres, una mayúscula, un número y un símbolo.");
+      return;
+    }
+    if (!passwordsCoinciden(data.password, data.password_confirmation)) {
+      setPwdError("Las contraseñas no coinciden.");
+      return;
+    }
+    setPwdError(null);
     post("/reset-password", {
       onFinish: () => reset("password", "password_confirmation"),
     });
@@ -99,7 +111,7 @@ export default function ResetPassword({ email, token }: Props) {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
+                {(pwdError || errors.password) && <p className="text-sm text-red-500">{pwdError ?? errors.password}</p>}
               </div>
 
               <div className="space-y-2">

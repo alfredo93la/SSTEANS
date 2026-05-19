@@ -38,11 +38,11 @@ function FormSalon({ form, setForm }: { form: typeof formVacio; setForm: (f: typ
     <div className="grid grid-cols-2 gap-4">
       <div className="col-span-2 space-y-2">
         <Label>Nombre / Número *</Label>
-        <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: Salón 1, Aula 102" />
+        <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: Salón 1, Aula 102" maxLength={255} />
       </div>
       <div className="space-y-2">
         <Label>Edificio</Label>
-        <Input value={form.edificio} onChange={(e) => setForm({ ...form, edificio: e.target.value })} placeholder="Ej: Edificio A" />
+        <Input value={form.edificio} onChange={(e) => setForm({ ...form, edificio: e.target.value })} placeholder="Ej: Edificio A" maxLength={50} />
       </div>
       <div className="space-y-2">
         <Label>Capacidad *</Label>
@@ -85,8 +85,17 @@ export function Salones() {
 
   useEffect(() => { cargar(); }, []);
 
+  const validarSalon = () => {
+    if (!form.nombre.trim()) { toast.error("El nombre del salón es obligatorio."); return false; }
+    const cap = Number(form.capacidad);
+    if (!form.capacidad || isNaN(cap) || cap < 1 || cap > 100) {
+      toast.error("La capacidad debe ser un número entre 1 y 100."); return false;
+    }
+    return true;
+  };
+
   const handleGuardar = () => {
-    if (!form.nombre) { toast.error("El nombre es obligatorio."); return; }
+    if (!validarSalon()) return;
     setSaving(true);
     axios.post("/api/administrativo/salones", form)
       .then(({ data }) => {
@@ -104,7 +113,7 @@ export function Salones() {
   };
 
   const handleEditar = () => {
-    if (!salonSel || !form.nombre) { toast.error("El nombre es obligatorio."); return; }
+    if (!salonSel || !validarSalon()) return;
     setSaving(true);
     axios.put(`/api/administrativo/salones/${salonSel.id}`, form)
       .then(({ data }) => {

@@ -66,10 +66,12 @@ export function CiclosEscolares() {
   useEffect(() => { cargar(); }, []);
 
   const handleGuardarCiclo = () => {
-    if (!nuevo.nombre || !nuevo.fecha_inicio || !nuevo.fecha_fin) {
-      toast.error("Por favor completa todos los campos obligatorios");
-      return;
-    }
+    if (!nuevo.nombre.trim()) { toast.error("El nombre del ciclo es obligatorio."); return; }
+    if (!nuevo.fecha_inicio || !nuevo.fecha_fin) { toast.error("Las fechas de inicio y fin son obligatorias."); return; }
+    if (nuevo.fecha_inicio >= nuevo.fecha_fin) { toast.error("La fecha de fin debe ser posterior a la fecha de inicio."); return; }
+    const gMat = nuevo.grupos_matutino !== "" ? parseInt(nuevo.grupos_matutino) : 0;
+    const gVes = nuevo.grupos_vespertino !== "" ? parseInt(nuevo.grupos_vespertino) : 0;
+    if (gMat < 0 || gVes < 0) { toast.error("El número de grupos no puede ser negativo."); return; }
     setSaving(true);
     axios.post("/api/admin/ciclos", {
       nombre:            nuevo.nombre,
@@ -229,6 +231,7 @@ export function CiclosEscolares() {
                     <Input
                       id="ncNombre"
                       value={nuevo.nombre}
+                      maxLength={255}
                       onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })}
                       placeholder="Ej. 2026-2027"
                       className="rounded-lg"

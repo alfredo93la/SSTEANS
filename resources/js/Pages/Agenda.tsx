@@ -190,12 +190,20 @@ export function Agenda({ permissions }: AgendaProps) {
   };
 
   const handleCrearEvento = () => {
-    if (!nuevoEvento.titulo || !nuevoEvento.fecha || !nuevoEvento.tipo) {
-      toast.error("Por favor completa los campos obligatorios");
+    if (!nuevoEvento.titulo.trim() || nuevoEvento.titulo.trim().length < 3) {
+      toast.error("El título debe tener al menos 3 caracteres.");
+      return;
+    }
+    if (!nuevoEvento.fecha || !nuevoEvento.tipo) {
+      toast.error("Por favor completa los campos obligatorios.");
       return;
     }
     if (nuevoEvento.destinatarios.length === 0) {
-      toast.error("Selecciona al menos un destinatario");
+      toast.error("Selecciona al menos un destinatario.");
+      return;
+    }
+    if (nuevoEvento.horaInicio && nuevoEvento.horaFin && nuevoEvento.horaInicio >= nuevoEvento.horaFin) {
+      toast.error("La hora de fin debe ser mayor que la hora de inicio.");
       return;
     }
 
@@ -419,6 +427,7 @@ export function Agenda({ permissions }: AgendaProps) {
                         value={nuevoEvento.titulo}
                         onChange={(e) => setNuevoEvento({ ...nuevoEvento, titulo: e.target.value })}
                         className="rounded-lg"
+                        maxLength={255}
                       />
                     </div>
                     <div className="space-y-2">
@@ -517,6 +526,7 @@ export function Agenda({ permissions }: AgendaProps) {
                         value={nuevoEvento.descripcion}
                         onChange={(e) => setNuevoEvento({ ...nuevoEvento, descripcion: e.target.value })}
                         className="rounded-lg min-h-20"
+                        maxLength={2000}
                       />
                     </div>
                   </div>

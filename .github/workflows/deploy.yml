@@ -12,6 +12,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Instalar dependencias JS
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -19,6 +31,16 @@ jobs:
 
       - name: Instalar dependencias PHP
         run: composer install --no-dev --optimize-autoloader
+
+      - name: Copiar assets al servidor
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "public/build"
+          target: ${{ secrets.SSH_PATH }}
 
       - name: Desplegar
         uses: appleboy/ssh-action@v1.0.3
@@ -29,7 +51,6 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.SSH_PATH }}
-            cp -r public/build ./build
             echo "${{ secrets.ENV_PRODUCTION }}" > .env
             php artisan config:cache
             php artisan route:cache

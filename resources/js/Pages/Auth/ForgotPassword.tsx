@@ -71,6 +71,7 @@ export default function ForgotPassword({ status }: Props) {
                     type="email"
                     name="email"
                     placeholder="Ingresa tu correo electrónico"
+                    maxLength={255}
                     value={data.email}
                     onChange={(e) => setData("email", e.target.value)}
                     className={`h-12 pl-10 rounded-xl border-[#E5E7EB] bg-white/80 backdrop-blur-sm focus:bg-white transition-all ${errors.email ? "border-red-500" : ""}`}

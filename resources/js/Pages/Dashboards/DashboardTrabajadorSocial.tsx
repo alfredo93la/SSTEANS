@@ -83,7 +83,7 @@ export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSoc
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-[#E5E7EB] bg-linear-to-br from-red-50 to-red-100 hover:shadow-lg transition-all">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-red-50 to-red-100 hover:shadow-lg transition-all cursor-pointer" onClick={() => onNavigate("#/reportes")}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -98,7 +98,7 @@ export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSoc
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100 hover:shadow-lg transition-all">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100 hover:shadow-lg transition-all cursor-pointer" onClick={() => onNavigate("#/reportes")}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -113,7 +113,7 @@ export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSoc
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all cursor-pointer" onClick={() => onNavigate("#/alumnos")}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -128,7 +128,7 @@ export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSoc
           </CardContent>
         </Card>
 
-        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100 hover:shadow-lg transition-all">
+        <Card className="border-[#E5E7EB] bg-linear-to-br from-green-50 to-green-100 hover:shadow-lg transition-all cursor-pointer" onClick={() => onNavigate("#/reportes")}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl">
@@ -156,7 +156,7 @@ export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSoc
                 <CardTitle>Reportes Recientes</CardTitle>
                 <CardDescription>Últimos incidentes registrados</CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={() => onNavigate("#/trabajador-social/reportes")}>
+              <Button variant="outline" size="sm" onClick={() => onNavigate("#/reportes")}>
                 Ver todos
               </Button>
             </div>
@@ -169,7 +169,7 @@ export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSoc
                 return (
                   <button
                     key={reporte.id}
-                    onClick={() => onNavigate("")}
+                    onClick={() => onNavigate("#/reportes")}
                     className="w-full text-left p-3 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all bg-white"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -206,7 +206,7 @@ export function DashboardTrabajadorSocial({ onNavigate }: DashboardTrabajadorSoc
                 {casosPrioritarios.map((caso, idx) => (
                   <button
                     key={idx}
-                    onClick={() => onNavigate("#/comunicacion")}
+                    onClick={() => onNavigate("#/reportes")}
                     className="w-full text-left p-4 rounded-lg bg-linear-to-br from-red-50 to-white border border-red-200 hover:shadow-lg transition-all"
                   >
                     <div className="flex items-start justify-between gap-3">

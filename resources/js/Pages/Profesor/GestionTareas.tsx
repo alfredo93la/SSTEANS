@@ -102,13 +102,17 @@ export function GestionTareas() {
   };
 
   const validarNuevaTarea = () => {
-    if (!tituloNueva.trim()) { toast.error("El título es obligatorio"); return false; }
-    if (!descripcionNueva.trim()) { toast.error("Las instrucciones son obligatorias"); return false; }
-    if (!grupoNueva) { toast.error("Debes seleccionar un grupo"); return false; }
-    if (!materiaNueva) { toast.error("Debes seleccionar una materia"); return false; }
-    if (!fechaEntregaNueva) { toast.error("Debes establecer una fecha de entrega"); return false; }
+    if (!tituloNueva.trim() || tituloNueva.trim().length < 3) {
+      toast.error("El título debe tener al menos 3 caracteres."); return false;
+    }
+    if (!descripcionNueva.trim() || descripcionNueva.trim().length < 10) {
+      toast.error("Las instrucciones deben tener al menos 10 caracteres."); return false;
+    }
+    if (!grupoNueva) { toast.error("Debes seleccionar un grupo."); return false; }
+    if (!materiaNueva) { toast.error("Debes seleccionar una materia."); return false; }
+    if (!fechaEntregaNueva) { toast.error("Debes establecer una fecha de entrega."); return false; }
     if (new Date(fechaEntregaNueva) <= new Date(fechaAsignacionNueva)) {
-      toast.error("La fecha de entrega debe ser posterior a la fecha de asignación");
+      toast.error("La fecha de entrega debe ser posterior a la fecha de asignación.");
       return false;
     }
     return true;
@@ -179,8 +183,12 @@ export function GestionTareas() {
   const guardarEdicion = () => {
     if (!tareaEditar) return;
 
-    if (!tituloEdit.trim() || !fechaEntregaEdit) {
-      toast.error("El título y la fecha de entrega son obligatorios");
+    if (!tituloEdit.trim() || tituloEdit.trim().length < 3) {
+      toast.error("El título debe tener al menos 3 caracteres.");
+      return;
+    }
+    if (!fechaEntregaEdit) {
+      toast.error("La fecha de entrega es obligatoria.");
       return;
     }
 
@@ -191,6 +199,7 @@ export function GestionTareas() {
     fd.append("titulo", tituloEdit);
     fd.append("descripcion", descripcionEdit);
     fd.append("fecha_entrega", fechaEntregaEdit);
+    fd.append("archivosExistentesSet", "1");
     archivosExistentesEdit.forEach(a => fd.append("archivosExistentes[]", a));
     archivosEdit.forEach(f => fd.append("archivos[]", f));
 
@@ -591,6 +600,7 @@ export function GestionTareas() {
                 value={tituloNueva}
                 onChange={(e) => setTituloNueva(e.target.value)}
                 className="rounded-lg"
+                maxLength={255}
               />
             </div>
 
@@ -606,6 +616,7 @@ export function GestionTareas() {
                 onChange={(e) => setDescripcionNueva(e.target.value)}
                 rows={4}
                 className="rounded-lg resize-none"
+                maxLength={2000}
               />
               <p className="text-xs text-[#6B7280]">{descripcionNueva.length}/500 caracteres</p>
             </div>
@@ -682,10 +693,12 @@ export function GestionTareas() {
                 <Paperclip className="h-4 w-4 text-[#6B7280]" />
                 Archivos adjuntos <span className="text-[#9CA3AF] font-normal">(opcional)</span>
               </Label>
+              <p className="text-xs text-[#6B7280]">PDF, Word, imágenes (jpg, png, gif, webp)</p>
               <input
                 ref={archivoNuevaRef}
                 type="file"
                 multiple
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp"
                 onChange={(e) => setArchivosNueva(Array.from(e.target.files ?? []))}
                 className="block w-full text-sm text-[#6B7280] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-[#F3F4F6] file:text-[#374151] hover:file:bg-[#E5E7EB] cursor-pointer"
               />
@@ -877,6 +890,7 @@ export function GestionTareas() {
                 value={tituloEdit}
                 onChange={(e) => setTituloEdit(e.target.value)}
                 className="rounded-lg"
+                maxLength={255}
               />
             </div>
 
@@ -888,6 +902,7 @@ export function GestionTareas() {
                 onChange={(e) => setDescripcionEdit(e.target.value)}
                 rows={4}
                 className="rounded-lg resize-none"
+                maxLength={2000}
               />
             </div>
 
@@ -907,29 +922,39 @@ export function GestionTareas() {
                 <Paperclip className="h-4 w-4 text-[#6B7280]" />
                 Archivos adjuntos <span className="text-[#9CA3AF] font-normal">(opcional)</span>
               </Label>
+              <p className="text-xs text-[#6B7280]">PDF, Word, imágenes (jpg, png, gif, webp)</p>
 
               {archivosExistentesEdit.length > 0 && (
-                <ul className="text-xs text-[#6B7280] space-y-1">
-                  {archivosExistentesEdit.map((path) => (
-                    <li key={path} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#F3F4F6]">
-                      <Paperclip className="h-3 w-3 shrink-0" />
-                      <span className="flex-1 truncate">{nombreArchivo(path)}</span>
-                      <button
-                        type="button"
-                        onClick={() => setArchivosExistentesEdit(prev => prev.filter(a => a !== path))}
-                        className="text-[#E11D48] shrink-0"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <div className="space-y-2">
+                  <Label>Archivos actuales</Label>
+                  <div className="space-y-1">
+                    {archivosExistentesEdit.map((path) => (
+                      <div key={path} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-[#E5E7EB]">
+                        <div className="flex items-center gap-2 text-sm text-[#111827] min-w-0">
+                          <FileText className="h-4 w-4 text-[#6B7280] shrink-0" />
+                          <span className="truncate">{nombreArchivo(path)}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-[#6B7280] hover:text-[#E11D48] shrink-0"
+                          onClick={() => setArchivosExistentesEdit(prev => prev.filter(a => a !== path))}
+                          title="Quitar adjunto"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
 
               <input
                 ref={archivoEditRef}
                 type="file"
                 multiple
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp"
                 onChange={(e) => setArchivosEdit(Array.from(e.target.files ?? []))}
                 className="block w-full text-sm text-[#6B7280] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-[#F3F4F6] file:text-[#374151] hover:file:bg-[#E5E7EB] cursor-pointer"
               />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { curpValido, fechaNacimientoValida, telefonoValido } from "../../lib/validators";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
@@ -57,11 +58,11 @@ function FormAlumno({ form, setForm }: { form: AlumnoForm; setForm: (f: AlumnoFo
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Nombre(s) *</Label>
-          <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
+          <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} maxLength={255} />
         </div>
         <div className="space-y-2">
           <Label>Apellidos *</Label>
-          <Input value={form.apellidos} onChange={(e) => setForm({ ...form, apellidos: e.target.value })} />
+          <Input value={form.apellidos} onChange={(e) => setForm({ ...form, apellidos: e.target.value })} maxLength={255} />
         </div>
         <div className="space-y-2">
           <Label>CURP *</Label>
@@ -84,11 +85,11 @@ function FormAlumno({ form, setForm }: { form: AlumnoForm; setForm: (f: AlumnoFo
         </div>
         <div className="space-y-2">
           <Label>Teléfono</Label>
-          <Input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} />
+          <Input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} maxLength={30} />
         </div>
         <div className="space-y-2">
           <Label>Dirección</Label>
-          <Input value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} />
+          <Input value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} maxLength={255} />
         </div>
       </div>
     </div>
@@ -169,11 +170,19 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
     }
   };
 
+  const validarAlumno = () => {
+    if (!form.nombre.trim()) { toast.error("El nombre es obligatorio."); return false; }
+    if (!form.apellidos.trim()) { toast.error("Los apellidos son obligatorios."); return false; }
+    if (!form.curp.trim()) { toast.error("El CURP es obligatorio."); return false; }
+    if (!curpValido(form.curp)) { toast.error("El CURP no tiene el formato correcto (18 caracteres)."); return false; }
+    if (!form.fecha_nacimiento) { toast.error("La fecha de nacimiento es obligatoria."); return false; }
+    if (!fechaNacimientoValida(form.fecha_nacimiento)) { toast.error("La fecha de nacimiento no es válida."); return false; }
+    if (form.telefono && !telefonoValido(form.telefono)) { toast.error("El teléfono debe tener exactamente 10 dígitos."); return false; }
+    return true;
+  };
+
   const handleGuardar = async () => {
-    if (!form.nombre || !form.apellidos || !form.curp || !form.fecha_nacimiento) {
-      toast.error("Nombre, apellidos, CURP y fecha de nacimiento son obligatorios.");
-      return;
-    }
+    if (!validarAlumno()) return;
     setSaving(true);
     try {
       const { data } = await axios.post("/api/administrativo/alumnos", form);
@@ -210,7 +219,7 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   };
 
   const handleEditar = () => {
-    if (!alumnoSel) return;
+    if (!alumnoSel || !validarAlumno()) return;
     setSaving(true);
     axios.put(`/api/administrativo/alumnos/${alumnoSel.id}`, form)
       .then(({ data }) => {

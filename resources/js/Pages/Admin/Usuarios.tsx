@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePage } from "@inertiajs/react";
 import type { PageProps } from "../../types";
 import axios from "axios";
+import { emailValido, curpValido, telefonoValido, horaFinMayorQueInicio } from "../../lib/validators";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
@@ -93,7 +94,7 @@ function CamposEspecificosRol({ rolNombre, form, setForm }: {
         {header("Tutor")}
         <div className="space-y-1.5">
           <Label>Ocupación</Label>
-          <Input value={form.ocupacion} onChange={(e) => setForm({ ...form, ocupacion: e.target.value })} placeholder="Profesión u ocupación" />
+          <Input value={form.ocupacion} onChange={(e) => setForm({ ...form, ocupacion: e.target.value })} placeholder="Profesión u ocupación" maxLength={255} />
         </div>
       </>
     );
@@ -105,11 +106,11 @@ function CamposEspecificosRol({ rolNombre, form, setForm }: {
         {header("Profesor")}
         <div className="space-y-1.5">
           <Label>Academia</Label>
-          <Input value={form.academia} onChange={(e) => setForm({ ...form, academia: e.target.value })} placeholder="Ej. Ciencias Naturales" />
+          <Input value={form.academia} onChange={(e) => setForm({ ...form, academia: e.target.value })} placeholder="Ej. Ciencias Naturales" maxLength={100} />
         </div>
         <div className="space-y-1.5">
           <Label>Cubículo</Label>
-          <Input value={form.cubiculo} onChange={(e) => setForm({ ...form, cubiculo: e.target.value })} placeholder="Ej. C-12" />
+          <Input value={form.cubiculo} onChange={(e) => setForm({ ...form, cubiculo: e.target.value })} placeholder="Ej. C-12" maxLength={50} />
         </div>
         <div className="space-y-1.5">
           <Label>Hora de entrada</Label>
@@ -137,7 +138,7 @@ function CamposEspecificosRol({ rolNombre, form, setForm }: {
         </div>
         <div className="space-y-1.5">
           <Label>Extensión telefónica</Label>
-          <Input value={form.extension} onChange={(e) => setForm({ ...form, extension: e.target.value })} placeholder="Ej. 101" />
+          <Input value={form.extension} onChange={(e) => setForm({ ...form, extension: e.target.value })} placeholder="Ej. 101" maxLength={20} />
         </div>
       </>
     );
@@ -152,15 +153,15 @@ function CamposEspecificosRol({ rolNombre, form, setForm }: {
         {header(isCustomRole ? rolNombre : "Personal Administrativo")}
         <div className="space-y-1.5">
           <Label>Cargo</Label>
-          <Input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })} placeholder="Ej. Secretaria, Prefecto" />
+          <Input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })} placeholder="Ej. Secretaria, Prefecto" maxLength={100} />
         </div>
         <div className="space-y-1.5">
           <Label>Departamento</Label>
-          <Input value={form.departamento} onChange={(e) => setForm({ ...form, departamento: e.target.value })} placeholder="Ej. Dirección, Control Escolar" />
+          <Input value={form.departamento} onChange={(e) => setForm({ ...form, departamento: e.target.value })} placeholder="Ej. Dirección, Control Escolar" maxLength={100} />
         </div>
         <div className="space-y-1.5">
           <Label>Extensión telefónica</Label>
-          <Input value={form.extension} onChange={(e) => setForm({ ...form, extension: e.target.value })} placeholder="Ej. 102" />
+          <Input value={form.extension} onChange={(e) => setForm({ ...form, extension: e.target.value })} placeholder="Ej. 102" maxLength={20} />
         </div>
       </>
     );
@@ -194,15 +195,15 @@ function FormUsuario({ form, setForm, roles, isEdit = false }: {
         {/* Datos comunes */}
         <div className="space-y-1.5">
           <Label>Nombre(s) *</Label>
-          <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Escribe el(los) nombre(s)" />
+          <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Escribe el(los) nombre(s)" maxLength={255} />
         </div>
         <div className="space-y-1.5">
           <Label>Apellidos *</Label>
-          <Input value={form.apellidos} onChange={(e) => setForm({ ...form, apellidos: e.target.value })} placeholder="Escribe los apellidos" />
+          <Input value={form.apellidos} onChange={(e) => setForm({ ...form, apellidos: e.target.value })} placeholder="Escribe los apellidos" maxLength={255} />
         </div>
         <div className="col-span-2 space-y-1.5">
           <Label>Correo electrónico *</Label>
-          <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="correo@ejemplo.com" />
+          <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="correo@ejemplo.com" maxLength={255} />
         </div>
         {!isEdit && (
           <div className="col-span-2 p-3 rounded-xl bg-blue-50 border border-blue-200 text-sm text-blue-700">
@@ -215,7 +216,7 @@ function FormUsuario({ form, setForm, roles, isEdit = false }: {
         </div>
         <div className="space-y-1.5">
           <Label>Teléfono</Label>
-          <Input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} placeholder="10 dígitos" />
+          <Input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} placeholder="10 dígitos" maxLength={30} />
         </div>
         {/* Rol y estado */}
         <div className="space-y-1.5">
@@ -352,11 +353,30 @@ export function Usuarios() {
     }
   };
 
-  const handleCrear = () => {
-    if (!form.nombre || !form.apellidos || !form.email || !form.rolId) {
-      toast.error("Nombre, apellidos, correo y rol son obligatorios.");
-      return;
+  const validarFormUsuario = () => {
+    if (!form.nombre.trim()) { toast.error("El nombre es obligatorio."); return false; }
+    if (!form.apellidos.trim()) { toast.error("Los apellidos son obligatorios."); return false; }
+    if (!form.email.trim()) { toast.error("El correo es obligatorio."); return false; }
+    if (!emailValido(form.email)) { toast.error("El correo electrónico no tiene un formato válido."); return false; }
+    if (!form.rolId) { toast.error("Debes seleccionar un rol."); return false; }
+    const rolNombreCheck = roles.find((r) => String(r.id) === form.rolId)?.nombre ?? "";
+    if (rolNombreCheck === "Tutor" && form.curp && !curpValido(form.curp)) {
+      toast.error("El CURP no tiene el formato correcto (18 caracteres)."); return false;
     }
+    if (form.curp && form.curp.length > 0 && !curpValido(form.curp)) {
+      toast.error("El CURP no tiene el formato correcto (18 caracteres)."); return false;
+    }
+    if (form.telefono && !telefonoValido(form.telefono)) {
+      toast.error("El teléfono debe tener exactamente 10 dígitos."); return false;
+    }
+    if (form.hora_entrada && form.hora_salida && !horaFinMayorQueInicio(form.hora_entrada, form.hora_salida)) {
+      toast.error("La hora de salida debe ser mayor que la hora de entrada."); return false;
+    }
+    return true;
+  };
+
+  const handleCrear = () => {
+    if (!validarFormUsuario()) return;
     const rolNombre = roles.find((r) => String(r.id) === form.rolId)?.nombre ?? "";
     setSaving(true);
     axios.post("/admin/usuarios", {
@@ -373,10 +393,7 @@ export function Usuarios() {
 
   const handleEditar = () => {
     if (!usuarioSel) return;
-    if (!form.nombre || !form.apellidos || !form.email || !form.rolId) {
-      toast.error("Nombre, apellidos, correo y rol son obligatorios.");
-      return;
-    }
+    if (!validarFormUsuario()) return;
     const rolNombre = roles.find((r) => String(r.id) === form.rolId)?.nombre ?? "";
     setSaving(true);
     axios.put(`/admin/usuarios/${usuarioSel.id}`, {

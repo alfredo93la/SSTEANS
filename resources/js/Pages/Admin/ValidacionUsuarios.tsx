@@ -358,6 +358,7 @@ export function ValidacionUsuarios() {
             <Textarea
               id="motivo-validacion"
               value={motivo}
+              maxLength={500}
               onChange={(e) => setMotivo(e.target.value)}
               rows={4}
               placeholder="Ej. La información proporcionada no corresponde a un docente registrado..."

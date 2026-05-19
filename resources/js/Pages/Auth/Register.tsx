@@ -1,6 +1,7 @@
 import { FormEventHandler, useCallback, useState } from "react";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { AlertCircle, CheckCircle2, GraduationCap, Loader2, Plus, Trash2, User, Users } from "lucide-react";
+import { curpValido, telefonoValido, fechaNacimientoValida } from "../../lib/validators";
 import { Alert, AlertDescription } from "../../Components/ui/alert";
 import { Button } from "../../Components/ui/button";
 import { Input } from "../../Components/ui/input";
@@ -72,6 +73,28 @@ export default function Register() {
 
   const handleSubmit: FormEventHandler = (e) => {
     e.preventDefault();
+
+    if (!data.nombre.trim() || data.nombre.trim().length < 2)
+      return void alert("El nombre debe tener al menos 2 caracteres.");
+    if (!data.apellidos.trim() || data.apellidos.trim().length < 2)
+      return void alert("Los apellidos deben tener al menos 2 caracteres.");
+    if (data.curp && !curpValido(data.curp))
+      return void alert("El CURP del tutor no tiene el formato correcto (18 caracteres).");
+    if (data.telefono && !telefonoValido(data.telefono))
+      return void alert("El teléfono debe tener exactamente 10 dígitos.");
+
+    for (let i = 0; i < data.hijos.length; i++) {
+      const h = data.hijos[i];
+      if (!h.nombre.trim() || h.nombre.trim().length < 2)
+        return void alert(`Alumno ${i + 1}: el nombre debe tener al menos 2 caracteres.`);
+      if (!h.apellidos.trim() || h.apellidos.trim().length < 2)
+        return void alert(`Alumno ${i + 1}: los apellidos deben tener al menos 2 caracteres.`);
+      if (h.curp && !curpValido(h.curp))
+        return void alert(`Alumno ${i + 1}: el CURP no tiene el formato correcto.`);
+      if (h.fecha_nacimiento && !fechaNacimientoValida(h.fecha_nacimiento))
+        return void alert(`Alumno ${i + 1}: la fecha de nacimiento no es válida.`);
+    }
+
     post("/register");
   };
 
@@ -130,6 +153,7 @@ export default function Register() {
                     <Input
                       id="nombre"
                       value={data.nombre}
+                      maxLength={255}
                       onChange={(e) => setData("nombre", e.target.value)}
                       className={`h-11 rounded-xl ${errors.nombre ? "border-red-500" : ""}`}
                     />
@@ -141,6 +165,7 @@ export default function Register() {
                     <Input
                       id="apellidos"
                       value={data.apellidos}
+                      maxLength={255}
                       onChange={(e) => setData("apellidos", e.target.value)}
                       className={`h-11 rounded-xl ${errors.apellidos ? "border-red-500" : ""}`}
                     />
@@ -153,6 +178,7 @@ export default function Register() {
                       id="email"
                       type="email"
                       value={data.email}
+                      maxLength={255}
                       onChange={(e) => setData("email", e.target.value)}
                       className={`h-11 rounded-xl ${errors.email ? "border-red-500" : ""}`}
                     />
@@ -191,6 +217,7 @@ export default function Register() {
                     <Input
                       id="telefono"
                       value={data.telefono}
+                      maxLength={30}
                       onChange={(e) => setData("telefono", e.target.value)}
                       className="h-11 rounded-xl"
                     />
@@ -201,6 +228,7 @@ export default function Register() {
                     <Input
                       id="ocupacion"
                       value={data.ocupacion}
+                      maxLength={255}
                       onChange={(e) => setData("ocupacion", e.target.value)}
                       className="h-11 rounded-xl"
                     />
@@ -249,6 +277,7 @@ export default function Register() {
                           <Label>Nombre(s) *</Label>
                           <Input
                             value={hijo.nombre}
+                            maxLength={255}
                             onChange={(e) => updateHijo(idx, "nombre", e.target.value)}
                             className={`h-11 rounded-xl ${fieldError(`hijos.${idx}.nombre`) ? "border-red-500" : ""}`}
                           />
@@ -261,6 +290,7 @@ export default function Register() {
                           <Label>Apellidos *</Label>
                           <Input
                             value={hijo.apellidos}
+                            maxLength={255}
                             onChange={(e) => updateHijo(idx, "apellidos", e.target.value)}
                             className={`h-11 rounded-xl ${fieldError(`hijos.${idx}.apellidos`) ? "border-red-500" : ""}`}
                           />

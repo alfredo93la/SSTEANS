@@ -5,6 +5,7 @@ import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { Alert, AlertDescription } from "../../Components/ui/alert";
 import { AlertCircle, GraduationCap, KeyRound, Eye, EyeOff } from "lucide-react";
+import { passwordFuerte, passwordsCoinciden } from "../../lib/validators";
 
 export default function CambiarPasswordInicial() {
   const { data, setData, post, processing, errors } = useForm({
@@ -14,9 +15,19 @@ export default function CambiarPasswordInicial() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [pwdError, setPwdError] = useState<string | null>(null);
 
   const handleSubmit: FormEventHandler = (e) => {
     e.preventDefault();
+    if (!passwordFuerte(data.password)) {
+      setPwdError("La contraseña debe tener mínimo 12 caracteres, una mayúscula, un número y un símbolo.");
+      return;
+    }
+    if (!passwordsCoinciden(data.password, data.password_confirmation)) {
+      setPwdError("Las contraseñas no coinciden.");
+      return;
+    }
+    setPwdError(null);
     post("/primer-acceso");
   };
 
@@ -48,11 +59,11 @@ export default function CambiarPasswordInicial() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {(errors.password || errors.password_confirmation) && (
+              {(pwdError || errors.password || errors.password_confirmation) && (
                 <Alert variant="destructive" className="animate-scale-in">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    {errors.password || errors.password_confirmation}
+                    {pwdError ?? errors.password ?? errors.password_confirmation}
                   </AlertDescription>
                 </Alert>
               )}

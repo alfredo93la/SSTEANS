@@ -54,10 +54,9 @@ export function PeriodosEvaluacion() {
   };
 
   const handleGuardar = () => {
-    if (!form.nombre || !form.fechaInicio || !form.fechaFin) {
-      toast.error("Completa todos los campos obligatorios");
-      return;
-    }
+    if (!form.nombre.trim()) { toast.error("El nombre del periodo es obligatorio."); return; }
+    if (!form.fechaInicio || !form.fechaFin) { toast.error("Las fechas de inicio y fin son obligatorias."); return; }
+    if (form.fechaInicio >= form.fechaFin) { toast.error("La fecha de fin debe ser posterior a la fecha de inicio."); return; }
     submitGuardar(async () => {
       if (editandoId !== null) {
         const { data } = await axios.put(`/api/periodos/${editandoId}`, form);
@@ -215,6 +214,7 @@ export function PeriodosEvaluacion() {
                       <Input
                         id="npNombre"
                         value={form.nombre}
+                        maxLength={255}
                         onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                         placeholder="Ej. 1er Parcial"
                         className="rounded-lg"

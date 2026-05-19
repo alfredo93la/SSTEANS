@@ -87,6 +87,7 @@ function RubrosEditor({
           <div key={i} className="flex gap-2 items-center">
             <Input
               placeholder="Nombre del rubro (ej. Examen)"
+              maxLength={255}
               value={rubro.nombre}
               onChange={e => cambiar(i, "nombre", e.target.value)}
               className="flex-1"

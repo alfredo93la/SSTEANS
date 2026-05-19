@@ -90,7 +90,6 @@ export function Circulares({ permissions }: CircularesProps) {
   const esPublicador = permissions.includes("circulares.manage");
 
   const [circulares, setCirculares] = useState<CircularItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [circularSeleccionada, setCircularSeleccionada] = useState<CircularItem | null>(null);
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
   const [filtroPrioridad, setFiltroPrioridad] = useState<string>("todas");
@@ -123,8 +122,6 @@ export function Circulares({ permissions }: CircularesProps) {
       setCirculares(data.circulares || []);
     } catch (error) {
       toast.error("No se pudieron cargar las circulares");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -187,8 +184,8 @@ export function Circulares({ permissions }: CircularesProps) {
       setFormaEvento({
         fecha: circular.evento.fecha,
         fechaFin: circular.evento.fechaFin ?? "",
-        horaInicio: circular.evento.horaInicio ?? "",
-        horaFin: circular.evento.horaFin ?? "",
+        horaInicio: circular.evento.horaInicio?.substring(0, 5) ?? "",
+        horaFin: circular.evento.horaFin?.substring(0, 5) ?? "",
         tipo: circular.evento.tipo,
       });
     } else {
@@ -223,6 +220,10 @@ export function Circulares({ permissions }: CircularesProps) {
       toast.error("Completa la fecha y el tipo de evento para agregarlo a la agenda");
       return;
     }
+    if (agregarAgenda && formaEvento.horaInicio && formaEvento.horaFin && formaEvento.horaInicio >= formaEvento.horaFin) {
+      toast.error("La hora de fin del evento debe ser mayor que la hora de inicio.");
+      return;
+    }
     submitGuardar(async () => {
     const fd = new FormData();
     fd.append("titulo", forma.titulo);
@@ -242,6 +243,7 @@ export function Circulares({ permissions }: CircularesProps) {
 
     try {
       if (modoEdicion && circularEditandoId !== null) {
+        fd.append("adjuntosExistentesSet", "1");
         adjuntosExistentes.forEach(adj => fd.append("adjuntosExistentes[]", adj));
         fd.append("_method", "PUT");
         await axios.post(`/api/circulares/${circularEditandoId}`, fd, {
@@ -258,8 +260,11 @@ export function Circulares({ permissions }: CircularesProps) {
       await cargarCirculares();
       setDialogOpen(false);
       resetDialog();
-    } catch (error) {
-      toast.error("No se pudo guardar la circular");
+    } catch (error: any) {
+      const msg = error?.response?.data?.message ?? error?.response?.data?.errors
+        ? Object.values(error.response.data.errors as Record<string, string[]>).flat().join(" | ")
+        : null;
+      toast.error(msg ?? "No se pudo guardar la circular");
     }
     });
   };
@@ -751,6 +756,7 @@ export function Circulares({ permissions }: CircularesProps) {
                 onChange={(e) => setForma({ ...forma, titulo: e.target.value })}
                 placeholder="Ej. Calendario de Exámenes del Tercer Trimestre"
                 className="rounded-lg"
+                maxLength={255}
               />
             </div>
 
@@ -763,6 +769,7 @@ export function Circulares({ permissions }: CircularesProps) {
                 onChange={(e) => setForma({ ...forma, descripcion: e.target.value })}
                 placeholder="Escribe el contenido de la circular..."
                 className="rounded-lg min-h-30"
+                maxLength={5000}
               />
             </div>
 
@@ -883,7 +890,7 @@ export function Circulares({ permissions }: CircularesProps) {
                   {adjuntosExistentes.map((adj) => (
                     <div key={adj} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-[#E5E7EB]">
                       <div className="flex items-center gap-2 text-sm text-[#111827] min-w-0">
-                        <FileText className="h-4 w-4 text-[#E11D48] shrink-0" />
+                        <FileText className="h-4 w-4 text-[#6B7280] shrink-0" />
                         <span className="truncate">{nombreArchivo(adj)}</span>
                       </div>
                       <Button
@@ -905,12 +912,13 @@ export function Circulares({ permissions }: CircularesProps) {
             {/* Archivo adjunto — nuevo(s) */}
             <div className="space-y-2">
               <Label htmlFor="archivo">
-                {modoEdicion ? "Agregar archivos (.pdf, .doc, .docx)" : "Archivo adjunto (.pdf, .doc, .docx)"}
+                {modoEdicion ? "Agregar archivos" : "Archivo adjunto"}
               </Label>
+              <p className="text-xs text-[#6B7280]">PDF, Word, imágenes (jpg, png, gif, webp)</p>
               <Input
                 id="archivo"
                 type="file"
-                accept=".pdf,.doc,.docx"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp"
                 multiple
                 ref={archivoInputRef}
                 onChange={(e) => setArchivos(Array.from(e.target.files ?? []))}

@@ -232,9 +232,14 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   };
 
   const handleGuardar = () => {
-    if (!forma.titulo || !forma.tipo || !forma.fecha || !forma.grupoId || !forma.materiaId) {
-      toast.error("Completa todos los campos obligatorios");
-      return;
+    if (!forma.titulo.trim() || forma.titulo.trim().length < 3) {
+      toast.error("El título debe tener al menos 3 caracteres."); return;
+    }
+    if (!forma.tipo || !forma.fecha || !forma.grupoId || !forma.materiaId) {
+      toast.error("Completa todos los campos obligatorios."); return;
+    }
+    if (forma.horaInicio && forma.horaFin && forma.horaInicio >= forma.horaFin) {
+      toast.error("La hora de fin debe ser mayor que la hora de inicio."); return;
     }
     const payload = {
       titulo: forma.titulo,
@@ -546,6 +551,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                 onChange={(e) => setForma({ ...forma, titulo: e.target.value })}
                 placeholder="Ej. Examen Parcial 1"
                 className="rounded-lg"
+                maxLength={255}
               />
             </div>
 
@@ -705,6 +711,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                 onChange={(e) => setForma({ ...forma, descripcion: e.target.value })}
                 placeholder="Temas a evaluar, instrucciones adicionales..."
                 className="rounded-lg min-h-20"
+                maxLength={2000}
               />
             </div>
 
