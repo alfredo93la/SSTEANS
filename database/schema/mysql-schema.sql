@@ -396,33 +396,45 @@ CREATE TABLE `migrations` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `notificacion_destinatarios`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `notificacion_destinatarios` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `notificacion_id` bigint(20) unsigned NOT NULL,
+  `destinatario_user_id` bigint(20) unsigned NOT NULL,
+  `alumno_id` bigint(20) unsigned DEFAULT NULL,
+  `grupo_id` bigint(20) unsigned DEFAULT NULL,
+  `leida` tinyint(1) NOT NULL DEFAULT 0,
+  `leida_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `notif_dest_unique` (`notificacion_id`,`destinatario_user_id`),
+  KEY `notificacion_destinatarios_destinatario_user_id_foreign` (`destinatario_user_id`),
+  KEY `notificacion_destinatarios_alumno_id_foreign` (`alumno_id`),
+  KEY `notificacion_destinatarios_grupo_id_foreign` (`grupo_id`),
+  CONSTRAINT `notificacion_destinatarios_alumno_id_foreign` FOREIGN KEY (`alumno_id`) REFERENCES `alumnos` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `notificacion_destinatarios_destinatario_user_id_foreign` FOREIGN KEY (`destinatario_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `notificacion_destinatarios_grupo_id_foreign` FOREIGN KEY (`grupo_id`) REFERENCES `grupos` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `notificacion_destinatarios_notificacion_id_foreign` FOREIGN KEY (`notificacion_id`) REFERENCES `notificaciones` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `notificaciones`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `notificaciones` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `remitente_user_id` bigint(20) unsigned NOT NULL,
-  `destinatario_user_id` bigint(20) unsigned NOT NULL,
-  `alumno_id` bigint(20) unsigned DEFAULT NULL,
-  `grupo_id` bigint(20) unsigned DEFAULT NULL,
-  `grupo_envio` varchar(36) DEFAULT NULL,
   `titulo` varchar(255) NOT NULL,
   `mensaje` text NOT NULL,
   `tipo` enum('Reporte','Alerta','Recordatorio','Información') NOT NULL DEFAULT 'Información',
   `categoria` enum('Académico','Asistencia','Conducta','Citatorio','Administrativo','Aviso','Orientación','Evento') NOT NULL,
   `prioridad` enum('Alta','Media','Baja') NOT NULL DEFAULT 'Media',
-  `leida` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `notificaciones_remitente_user_id_foreign` (`remitente_user_id`),
-  KEY `notificaciones_destinatario_user_id_foreign` (`destinatario_user_id`),
-  KEY `notificaciones_alumno_id_foreign` (`alumno_id`),
-  KEY `notificaciones_grupo_id_foreign` (`grupo_id`),
-  KEY `notificaciones_grupo_envio_index` (`grupo_envio`),
-  CONSTRAINT `notificaciones_alumno_id_foreign` FOREIGN KEY (`alumno_id`) REFERENCES `alumnos` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `notificaciones_destinatario_user_id_foreign` FOREIGN KEY (`destinatario_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `notificaciones_grupo_id_foreign` FOREIGN KEY (`grupo_id`) REFERENCES `grupos` (`id`) ON DELETE SET NULL,
   CONSTRAINT `notificaciones_remitente_user_id_foreign` FOREIGN KEY (`remitente_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -821,3 +833,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (50,'2026_05_15_075
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (51,'2026_05_15_081105_replace_grupo_materia_strings_with_fks_in_agenda_eventos_table',29);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (52,'2026_05_16_040951_backfill_email_verified_at_for_active_users',30);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (53,'2026_05_19_052933_change_logo_url_to_longtext_in_configuracion_escuela',31);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (54,'2026_05_19_070000_refactor_notificaciones_normalizar_destinatarios',32);

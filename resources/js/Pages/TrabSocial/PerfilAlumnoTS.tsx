@@ -585,7 +585,11 @@ export function PerfilAlumnoTS({ alumnoId, onNavigate }: PerfilAlumnoTSProps) {
                 const gravedadBadge = getGravedadBadge(reporte.gravedad);
 
                 return (
-                  <Card key={reporte.id} className="border-[#E5E7EB] hover:shadow-md transition-all">
+                  <Card
+                    key={reporte.id}
+                    className="border-[#E5E7EB] hover:shadow-md hover:border-[#A5B4FC] transition-all cursor-pointer"
+                    onClick={() => { setReporteSeleccionado(reporte); setDialogAbierto(true); }}
+                  >
                     <CardContent className="pt-5">
                       <div className="flex flex-col sm:flex-row gap-4">
                         <div className="shrink-0">
@@ -612,14 +616,6 @@ export function PerfilAlumnoTS({ alumnoId, onNavigate }: PerfilAlumnoTSProps) {
                               <User className="h-3.5 w-3.5" />Por: {reporte.reportadoPorNombre}
                             </span>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={() => { setReporteSeleccionado(reporte); setDialogAbierto(true); }}
-                          >
-                            Ver detalles
-                          </Button>
                         </div>
                       </div>
                     </CardContent>
