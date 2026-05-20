@@ -18,9 +18,11 @@ import {
   Plus,
   Paperclip,
   X,
-  Loader2
+  Loader2,
+  Archive
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "../../Components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../Components/ui/alert-dialog";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
 
@@ -78,6 +80,8 @@ export function ReportesTS() {
   const [busquedaAlumnoModal, setBusquedaAlumnoModal] = useState("");
   const [archivoExistenteEdit, setArchivoExistenteEdit] = useState<string | null>(null);
   const [adjuntoEliminado, setAdjuntoEliminado] = useState(false);
+  const [confirmarCrear, setConfirmarCrear] = useState(false);
+  const [confirmarArchivar, setConfirmarArchivar] = useState<ReporteData | null>(null);
 
   useEffect(() => {
     cargarDatos();
@@ -186,6 +190,8 @@ export function ReportesTS() {
         return "bg-green-100 text-green-700 border-green-200";
       case "cerrado":
         return "bg-gray-100 text-gray-700 border-gray-200";
+      case "archivado":
+        return "bg-amber-100 text-amber-700 border-amber-200";
       default:
         return "bg-gray-100 text-gray-700 border-gray-200";
     }
@@ -199,6 +205,8 @@ export function ReportesTS() {
         return "En Seguimiento";
       case "cerrado":
         return "Cerrado";
+      case "archivado":
+        return "Archivado";
       default:
         return estado;
     }
@@ -207,6 +215,29 @@ export function ReportesTS() {
   const verDetalle = (reporte: ReporteData) => {
     setReporteSeleccionado(reporte);
     setModalDetalle(true);
+  };
+
+  const archivarReporte = async (reporte: ReporteData) => {
+    try {
+      const payload = new FormData();
+      payload.append("_method", "PUT");
+      payload.append("alumno_id", reporte.alumnoId.toString());
+      payload.append("tipo_reporte", reporte.tipoReporte);
+      payload.append("gravedad", reporte.gravedad);
+      payload.append("descripcion", reporte.descripcion);
+      payload.append("observaciones", reporte.observaciones ?? "");
+      payload.append("fecha", reporte.fecha);
+      payload.append("estatus", "Archivado");
+      await axios.post(`/api/reportes-conducta/${reporte.id}`, payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Reporte archivado.");
+      setModalDetalle(false);
+      setConfirmarArchivar(null);
+      await cargarDatos();
+    } catch {
+      toast.error("No se pudo archivar el reporte.");
+    }
   };
 
   const alumnosFiltradosModal = useMemo(() => {
@@ -382,13 +413,27 @@ export function ReportesTS() {
                       <span>{reporte.seguimientos} seguimiento(s)</span>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); abrirEdicion(reporte); }}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); abrirEdicion(reporte); }}
+                      title="Editar reporte"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    {reporte.estadoVista !== "archivado" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="hover:text-amber-600"
+                        onClick={(e) => { e.stopPropagation(); setConfirmarArchivar(reporte); }}
+                        title="Archivar reporte"
+                      >
+                        <Archive className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -426,15 +471,17 @@ export function ReportesTS() {
                           {alumnoSeleccionado.grupo}{alumnoSeleccionado.curp ? ` · ${alumnoSeleccionado.curp}` : ""}
                         </p>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => { actualizarCampo("alumnoId", ""); setBusquedaAlumnoModal(""); }}
-                        className="hover:text-red-500"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      {!editandoId && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { actualizarCampo("alumnoId", ""); setBusquedaAlumnoModal(""); }}
+                          className="hover:text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="mt-1 space-y-2">
@@ -641,7 +688,21 @@ export function ReportesTS() {
                 <Button variant="outline" onClick={() => abrirNuevoReporte(false)}>
                   Cancelar
                 </Button>
-                <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]" onClick={guardarReporte} disabled={guardando}>
+                <Button
+                  className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]"
+                  onClick={() => {
+                    if (!editandoId) {
+                      if (!formulario.alumnoId) { toast.error("Debes seleccionar un alumno."); return; }
+                      if (!formulario.tipoReporte) { toast.error("Selecciona el tipo de reporte."); return; }
+                      if (!formulario.gravedad) { toast.error("Selecciona la gravedad del reporte."); return; }
+                      if (!formulario.descripcion.trim() || formulario.descripcion.trim().length < 10) { toast.error("La descripción debe tener al menos 10 caracteres."); return; }
+                      setConfirmarCrear(true);
+                    } else {
+                      guardarReporte();
+                    }
+                  }}
+                  disabled={guardando}
+                >
                   {guardando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {guardando ? "Guardando..." : editandoId ? "Actualizar Reporte" : "Crear Reporte"}
                 </Button>
@@ -733,6 +794,7 @@ export function ReportesTS() {
                 <SelectItem value="abierto">Abiertos</SelectItem>
                 <SelectItem value="en_seguimiento">En Seguimiento</SelectItem>
                 <SelectItem value="cerrado">Cerrados</SelectItem>
+                <SelectItem value="archivado">Archivados</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -740,6 +802,46 @@ export function ReportesTS() {
       </Card>
 
       {renderListaReportes("todos")}
+
+      <AlertDialog open={confirmarCrear} onOpenChange={setConfirmarCrear}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar apertura de reporte?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Una vez creado, el reporte <strong>no podrá eliminarse</strong>. Solo podrá editarse o archivarse. ¿Deseas continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]"
+              onClick={() => { setConfirmarCrear(false); guardarReporte(); }}
+            >
+              Sí, abrir reporte
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!confirmarArchivar} onOpenChange={(open) => { if (!open) setConfirmarArchivar(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Archivar reporte?</AlertDialogTitle>
+            <AlertDialogDescription>
+              El reporte quedará archivado. Podrás consultarlo pero ya no aparecerá en los listados activos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-amber-600 hover:bg-amber-700"
+              onClick={() => { if (confirmarArchivar) archivarReporte(confirmarArchivar); }}
+            >
+              Archivar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={modalDetalle} onOpenChange={setModalDetalle}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -839,6 +941,16 @@ export function ReportesTS() {
                 <Button variant="outline" onClick={() => setModalDetalle(false)}>
                   Cerrar
                 </Button>
+                {reporteSeleccionado.estatus.toLowerCase() !== "archivado" && (
+                  <Button
+                    variant="outline"
+                    className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                    onClick={() => setConfirmarArchivar(reporteSeleccionado)}
+                  >
+                    <Archive className="h-4 w-4 mr-2" />
+                    Archivar
+                  </Button>
+                )}
                 <Button className="bg-linear-to-r from-[#1D4ED8] to-[#7C3AED]" onClick={() => abrirEdicion(reporteSeleccionado)}>
                   Editar Reporte
                 </Button>

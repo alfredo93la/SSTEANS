@@ -367,7 +367,7 @@ export function Circulares({ permissions }: CircularesProps) {
       {/* Filtros */}
       <Card className="border-[#E5E7EB]">
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="text-sm text-[#6B7280] mb-2 block">Buscar</label>
               <Input
@@ -397,15 +397,6 @@ export function Circulares({ permissions }: CircularesProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end">
-              <Button
-                variant="outline"
-                onClick={() => { setBusqueda(""); setFiltroCategoria("todas"); setFiltroPrioridad("todas"); }}
-                className="w-full"
-              >
-                Limpiar filtros
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -414,7 +405,7 @@ export function Circulares({ permissions }: CircularesProps) {
       <Card className="border-[#E5E7EB]">
         <CardHeader>
           <CardTitle>Historial de Circulares</CardTitle>
-          <CardDescription>Últimas circulares publicadas</CardDescription>
+          <CardDescription>Selecciona una circular publicada para ver su detalle</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4">

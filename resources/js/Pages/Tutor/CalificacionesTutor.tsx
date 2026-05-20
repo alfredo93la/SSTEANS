@@ -74,6 +74,14 @@ export function CalificacionesTutor({ alumnoId }: CalificacionesTutorProps) {
       .catch(() => {});
   }, [alumnoId, periodoSeleccionado, cicloSeleccionado]);
 
+  const getBadgeCalificacion = (valor: number | null) => {
+    if (valor === null) return "bg-gray-100 text-gray-500";
+    if (valor >= 9)  return "bg-green-100 text-green-700";
+    if (valor >= 7)  return "bg-blue-100 text-blue-700";
+    if (valor >= 6)  return "bg-yellow-100 text-yellow-700";
+    return "bg-red-100 text-red-700";
+  };
+
   const cicloActivo = ciclos.find((c) => c.activo);
   const esHistorico = cicloSeleccionado && cicloSeleccionado !== cicloActivo?.id.toString();
 
@@ -222,20 +230,22 @@ export function CalificacionesTutor({ alumnoId }: CalificacionesTutorProps) {
                     <TableRow key={cal.id} className="hover:bg-gray-50">
                       <TableCell className="font-medium align-top whitespace-nowrap">{cal.materia}</TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        <div className="flex flex-wrap gap-1.5">
                           {cal.rubros.map(r => (
-                            <span key={r.nombre} className="text-sm">
-                              <span className="text-[#6B7280]">{r.nombre}</span>
-                              <span className="text-[#9CA3AF] text-xs ml-1">({r.ponderacion}%)</span>
-                              <span className="font-semibold ml-1">
-                                {r.valor !== null ? r.valor.toFixed(1) : '—'}
-                              </span>
-                            </span>
+                            <Badge
+                              key={r.nombre}
+                              className={`${getBadgeCalificacion(r.valor)} border-0 text-xs font-medium`}
+                              title={`${r.ponderacion}% de la calificación`}
+                            >
+                              {r.nombre}: {r.valor !== null ? r.valor.toFixed(1) : '—'}
+                            </Badge>
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell className="text-center font-bold align-top whitespace-nowrap">
-                        {cal.promedio !== null ? cal.promedio.toFixed(1) : '—'}
+                      <TableCell className="text-center align-top">
+                        <Badge className={`${getBadgeCalificacion(cal.promedio)} border-0 text-sm font-bold px-3`}>
+                          {cal.promedio !== null ? cal.promedio.toFixed(1) : '—'}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))

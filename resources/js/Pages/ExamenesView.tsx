@@ -85,6 +85,9 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   const [eliminarId, setEliminarId] = useState<number | null>(null);
   const [guardando, submitGuardar] = useSubmit();
   const [eliminando, setEliminando] = useState(false);
+  const [vistaExamenes, setVistaExamenes] = useState<"proximos" | "pasados">("proximos");
+  const [examenSeleccionado, setExamenSeleccionado] = useState<ExamenData | null>(null);
+  const [modalDetalle, setModalDetalle] = useState(false);
 
   // Opciones del formulario (grupos/materias asignados al profesor)
   const [grupos, setGrupos] = useState<GrupoOption[]>([]);
@@ -169,10 +172,8 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   const hoy = new Date().toISOString().split("T")[0]!;
 
   const examenesFiltrados = examenes
-    .filter((e) => e.fecha >= hoy)
-    .filter(
-      (e) => filtroMateria === "Todas las materias" || e.materiaNombre === filtroMateria
-    )
+    .filter((e) => vistaExamenes === "proximos" ? e.fecha >= hoy : e.fecha < hoy)
+    .filter((e) => filtroMateria === "Todas las materias" || e.materiaNombre === filtroMateria)
     .filter(
       (e) =>
         busqueda === "" ||
@@ -180,7 +181,11 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
         e.descripcion.toLowerCase().includes(busqueda.toLowerCase()) ||
         (e.materiaNombre ?? "").toLowerCase().includes(busqueda.toLowerCase())
     )
-    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+    .sort((a, b) =>
+      vistaExamenes === "proximos"
+        ? a.fecha.localeCompare(b.fecha)
+        : b.fecha.localeCompare(a.fecha)
+    );
 
   const getBadgeColor = (tipo: string) => {
     switch (tipo) {
@@ -325,17 +330,33 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                 <Clock className="h-6 w-6 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-[#6B7280]">Próximos 7 días</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {examenesFiltrados.filter((e) => {
-                    const fecha = new Date(e.fecha + "T00:00:00");
-                    const hoy = new Date();
-                    hoy.setHours(0, 0, 0, 0);
-                    const fin = new Date(hoy);
-                    fin.setDate(hoy.getDate() + 7);
-                    return fecha >= hoy && fecha <= fin;
-                  }).length}
-                </p>
+                {vistaExamenes === "proximos" ? (
+                  <>
+                    <p className="text-sm text-[#6B7280]">Próximos 30 días</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {examenesFiltrados.filter((e) => {
+                        const fecha = new Date(e.fecha + "T00:00:00");
+                        const hoyDate = new Date();
+                        hoyDate.setHours(0, 0, 0, 0);
+                        const fin = new Date(hoyDate);
+                        fin.setDate(hoyDate.getDate() + 30);
+                        return fecha >= hoyDate && fecha <= fin;
+                      }).length}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-[#6B7280]">Último mes</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {examenesFiltrados.filter((e) => {
+                        const fecha = new Date(e.fecha + "T00:00:00");
+                        const hace30 = new Date();
+                        hace30.setDate(hace30.getDate() - 30);
+                        return fecha >= hace30;
+                      }).length}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </CardContent>
@@ -362,29 +383,37 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
       <Card className="border-[#E5E7EB]">
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
-              <input
-                type="text"
-                placeholder="Buscar por título, materia o descripción..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] focus:border-transparent"
-              />
+            <div className="flex-1">
+              <label className="text-sm text-[#6B7280] mb-2 block">Buscar</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B7280]" />
+                <Input
+                  type="text"
+                  placeholder="Buscar por título, materia o descripción..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  className="pl-9 rounded-lg"
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-[#6B7280]" />
-              <select
-                value={filtroMateria}
-                onChange={(e) => setFiltroMateria(e.target.value)}
-                className="px-auto py-2 border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] focus:border-transparent"
-              >
-                {materiasUnicas.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm text-[#6B7280] block">Materia</label>
+              <Select value={filtroMateria} onValueChange={setFiltroMateria}>
+                <SelectTrigger className="rounded-lg w-48"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {materiasUnicas.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm text-[#6B7280] block">Vista</label>
+              <Select value={vistaExamenes} onValueChange={(v) => setVistaExamenes(v as "proximos" | "pasados")}>
+                <SelectTrigger className="rounded-lg w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="proximos">Próximos</SelectItem>
+                  <SelectItem value="pasados">Pasados</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -393,133 +422,202 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
       {/* Lista de exámenes */}
       <Card className="border-[#E5E7EB]">
         <CardHeader>
-          <CardTitle>Lista de Exámenes</CardTitle>
-          <CardDescription>Últimos exámenes registrados</CardDescription>
+          <CardTitle>Lista de Exámenes Programados</CardTitle>
+          <CardDescription>Selecciona un examen para ver sus detalles</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4">
-        {loading ? (
-          <Card className="border-[#E5E7EB]">
-            <CardContent className="pt-6">
-              <div className="text-center py-8 text-[#6B7280]">
-                Cargando exámenes...
-              </div>
-            </CardContent>
-          </Card>
-        ) : examenesFiltrados.length > 0 ? (
-          examenesFiltrados.map((examen) => (
-            <Card
-              key={examen.id}
-              className="border-[#E5E7EB] hover:shadow-lg transition-all"
-            >
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-4">
-                  {/* Fecha */}
-                  <div className="w-16 h-16 rounded-xl bg-linear-to-br from-red-100 to-red-200 flex flex-col items-center justify-center shrink-0">
-                    <span className="text-xs text-[#E11D48]">
-                      {getMesAbrev(examen.fecha)}
-                    </span>
-                    <span className="text-xl font-bold text-[#E11D48]">
-                      {getDia(examen.fecha)}
-                    </span>
+            {loading ? (
+              <Card className="border-[#E5E7EB]">
+                <CardContent className="pt-6">
+                  <div className="text-center py-8 text-[#6B7280]">
+                    Cargando exámenes...
                   </div>
+                </CardContent>
+              </Card>
+            ) : examenesFiltrados.length > 0 ? (
+              examenesFiltrados.map((examen) => (
+                <Card
+                  key={examen.id}
+                  className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer"
+                  onClick={() => { setExamenSeleccionado(examen); setModalDetalle(true); }}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      {/* Fecha */}
+                      <div className="w-16 h-16 rounded-xl bg-linear-to-br from-red-100 to-red-200 flex flex-col items-center justify-center shrink-0">
+                        <span className="text-xs text-[#E11D48]">
+                          {getMesAbrev(examen.fecha)}
+                        </span>
+                        <span className="text-xl font-bold text-[#E11D48]">
+                          {getDia(examen.fecha)}
+                        </span>
+                      </div>
 
-                  {/* Detalles */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4 mb-2">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-[#111827] text-lg">
-                            {examen.materiaNombre ?? examen.titulo}
-                          </h3>
-                          {examen.grupoNombre && (
-                            <Badge variant="outline" className="text-xs">
-                              {examen.grupoNombre}
+                      {/* Detalles */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-[#111827] text-lg">
+                                {examen.materiaNombre ?? examen.titulo}
+                              </h3>
+                              {examen.grupoNombre && (
+                                <Badge variant="outline" className="text-xs">
+                                  {examen.grupoNombre}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-[#6B7280]">{examen.titulo}</p>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Badge
+                              variant="secondary"
+                              className={getBadgeColor(examen.tipo)}
+                            >
+                              {examen.tipo}
                             </Badge>
+                            {puedeGestionar && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-[#1D4ED8] hover:text-[#1E40AF]"
+                                  onClick={(e) => { e.stopPropagation(); abrirEditar(examen); }}
+                                  title="Editar"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-[#E11D48] hover:text-[#BE123C]"
+                                  onClick={(e) => { e.stopPropagation(); setEliminarId(examen.id); }}
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-4 mt-2 text-sm text-[#6B7280]">
+                          {examen.horaInicio && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              <span>
+                                {examen.horaInicio}
+                                {examen.horaFin && ` - ${examen.horaFin}`}
+                              </span>
+                            </div>
+                          )}
+                          {examen.descripcion && (
+                            <span className="truncate">{examen.descripcion}</span>
                           )}
                         </div>
-                        <p className="text-sm text-[#6B7280]">{examen.titulo}</p>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Badge
-                          variant="secondary"
-                          className={getBadgeColor(examen.tipo)}
-                        >
-                          {examen.tipo}
-                        </Badge>
-                        {puedeGestionar && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-[#1D4ED8] hover:text-[#1E40AF]"
-                              onClick={() => abrirEditar(examen)}
-                              title="Editar"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-[#E11D48] hover:text-[#BE123C]"
-                              onClick={() => setEliminarId(examen.id)}
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
                       </div>
                     </div>
-
-                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-[#6B7280]">
-                      {examen.horaInicio && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          <span>
-                            {examen.horaInicio}
-                            {examen.horaFin && ` - ${examen.horaFin}`}
-                          </span>
-                        </div>
-                      )}
-                      {examen.descripcion && (
-                        <span className="truncate">{examen.descripcion}</span>
-                      )}
-                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card className="border-[#E5E7EB]">
+                <CardContent className="pt-6">
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-[#6B7280] mx-auto mb-3" />
+                    <p className="text-[#6B7280]">No se encontraron exámenes</p>
+                    <p className="text-sm text-[#9CA3AF] mt-1">
+                      {busqueda
+                        ? "Intenta con otros términos de búsqueda"
+                        : vistaExamenes === "proximos"
+                          ? "No hay exámenes programados próximamente"
+                          : "No hay exámenes pasados registrados"}
+                    </p>
+                    {puedeGestionar && !busqueda && (
+                      <Button
+                        onClick={abrirNuevo}
+                        className="mt-4 bg-[#E11D48] hover:bg-[#BE123C] gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Programar primer examen
+                      </Button>
+                    )}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+
+      {/* Dialog detalle */}
+      <Dialog open={modalDetalle} onOpenChange={setModalDetalle}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-[#E11D48]" />
+              {examenSeleccionado?.materiaNombre ?? examenSeleccionado?.titulo}
+            </DialogTitle>
+            <DialogDescription>Detalle del examen programado</DialogDescription>
+          </DialogHeader>
+          {examenSeleccionado && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <Badge className={getBadgeColor(examenSeleccionado.tipo)}>{examenSeleccionado.tipo}</Badge>
+                {examenSeleccionado.grupoNombre && (
+                  <Badge variant="outline">{examenSeleccionado.grupoNombre}</Badge>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[#6B7280]">Título</Label>
+                  <p className="mt-1 text-sm text-[#111827]">{examenSeleccionado.titulo}</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <Card className="border-[#E5E7EB]">
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-[#6B7280] mx-auto mb-3" />
-                <p className="text-[#6B7280]">No se encontraron exámenes</p>
-                <p className="text-sm text-[#9CA3AF] mt-1">
-                  {busqueda
-                    ? "Intenta con otros términos de búsqueda"
-                    : "No hay exámenes programados"}
-                </p>
-                {puedeGestionar && !busqueda && (
+                <div>
+                  <Label className="text-[#6B7280]">Materia</Label>
+                  <p className="mt-1 text-sm text-[#111827]">{examenSeleccionado.materiaNombre ?? "—"}</p>
+                </div>
+                <div>
+                  <Label className="text-[#6B7280]">Fecha</Label>
+                  <p className="mt-1 text-sm text-[#111827]">{formatFecha(examenSeleccionado.fecha)}</p>
+                </div>
+                <div>
+                  <Label className="text-[#6B7280]">Horario</Label>
+                  <p className="mt-1 text-sm text-[#111827]">
+                    {examenSeleccionado.horaInicio
+                      ? `${examenSeleccionado.horaInicio}${examenSeleccionado.horaFin ? ` - ${examenSeleccionado.horaFin}` : ""}`
+                      : "Sin horario"}
+                  </p>
+                </div>
+              </div>
+
+              {examenSeleccionado.descripcion && (
+                <div>
+                  <Label className="text-[#6B7280]">Descripción</Label>
+                  <p className="mt-1 text-sm text-[#111827] whitespace-pre-wrap">{examenSeleccionado.descripcion}</p>
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-end pt-4 border-t border-[#E5E7EB]">
+                <Button variant="outline" onClick={() => setModalDetalle(false)}>Cerrar</Button>
+                {puedeGestionar && (
                   <Button
-                    onClick={abrirNuevo}
-                    className="mt-4 bg-[#E11D48] hover:bg-[#BE123C] gap-2"
+                    className="bg-[#E11D48] hover:bg-[#BE123C]"
+                    onClick={() => { setModalDetalle(false); abrirEditar(examenSeleccionado); }}
                   >
-                    <Plus className="h-4 w-4" />
-                    Programar primer examen
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Editar
                   </Button>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-        </CardContent>
-      </Card>
-      
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog crear / editar */}
       <Dialog
@@ -597,8 +695,8 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                       !forma.grupoId
                         ? "Selecciona un grupo primero"
                         : loadingMaterias
-                        ? "Cargando materias..."
-                        : "Seleccionar materia"
+                          ? "Cargando materias..."
+                          : "Seleccionar materia"
                     }
                   />
                 </SelectTrigger>

@@ -225,7 +225,7 @@ export function NotificacionesTutor({ alumnoId, notifIdParaAbrir, onNotifAbierta
       <Card className="border-[#E5E7EB]">
         <CardHeader>
           <CardTitle>Historial de Notificaciones</CardTitle>
-          <CardDescription>Últimas notificaciones recibidas</CardDescription>
+          <CardDescription>Selecciona una notificación para ver su detalle</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">

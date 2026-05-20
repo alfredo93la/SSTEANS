@@ -218,7 +218,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
       <Card className="border-[#E5E7EB]">
         <CardHeader>
           <CardTitle>Historial de Reportes</CardTitle>
-          <CardDescription>Últimos reportes registrados</CardDescription>
+          <CardDescription>Selecciona un reporte de conducta para ver su detalle</CardDescription>
         </CardHeader>
         <CardContent>
           {reportes.length === 0 ? (

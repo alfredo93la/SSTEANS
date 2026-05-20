@@ -139,6 +139,21 @@ class NotificacionController extends Controller
     }
 
     /**
+     * DELETE /api/notificaciones/{notificacion}
+     * Eliminar una notificación enviada (solo el remitente).
+     */
+    public function destroy(Request $request, Notificacion $notificacion): JsonResponse
+    {
+        if ($notificacion->remitente_user_id !== $request->user()->id) {
+            return response()->json(['message' => 'No autorizado.'], 403);
+        }
+
+        $notificacion->delete();
+
+        return response()->json(['message' => 'Notificación eliminada.']);
+    }
+
+    /**
      * GET /api/notificaciones/tutores
      */
     public function tutores(): JsonResponse

@@ -132,7 +132,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-[#6B7280] mb-2 block">Filtrar por materia</label>
+                <label className="text-sm text-[#6B7280] mb-2 block">Materia</label>
                 <Select value={materiaFiltro} onValueChange={setMateriaFiltro}>
                   <SelectTrigger className="rounded-lg">
                     <SelectValue />
@@ -147,7 +147,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
               </div>
 
               <div>
-                <label className="text-sm text-[#6B7280] mb-2 block">Filtrar por estado</label>
+                <label className="text-sm text-[#6B7280] mb-2 block">Estado</label>
                 <Select value={estadoFiltro} onValueChange={setEstadoFiltro}>
                   <SelectTrigger className="rounded-lg">
                     <SelectValue />
@@ -172,7 +172,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
       <Card className="border-[#E5E7EB]">
         <CardHeader>
           <CardTitle>Lista de Tareas</CardTitle>
-          <CardDescription>Últimas tareas asignadas</CardDescription>
+          <CardDescription>Selecciona una tarea para ver su detalle</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

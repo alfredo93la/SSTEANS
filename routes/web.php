@@ -354,6 +354,8 @@ Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
         ->middleware('permission:notificaciones.manage');
     Route::post('/notificaciones',                             [NotificacionController::class, 'store'])
         ->middleware('permission:notificaciones.manage');
+    Route::delete('/notificaciones/{notificacion}',            [NotificacionController::class, 'destroy'])
+        ->middleware('permission:notificaciones.manage');
 
     // Común: lista de tutores para el selector
     Route::get('/notificaciones/tutores',                      [NotificacionController::class, 'tutores'])

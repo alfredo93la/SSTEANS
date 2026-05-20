@@ -9,9 +9,10 @@ import { Textarea } from "../Components/ui/textarea";
 import { Label } from "../Components/ui/label";
 import {
   Bell, Send, Search, Filter, AlertCircle, CheckCircle,
-  Clock, User, Loader2, Users, X,
+  Clock, User, Loader2, Users, X, Trash2,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../Components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../Components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
 import { PageTitle } from "../Layouts/PageTitle";
 import { toast } from "sonner";
@@ -79,6 +80,7 @@ export function Notificaciones() {
   const [modalEnviar, setModalEnviar] = useState(false);
   const [modalDetalle, setModalDetalle] = useState(false);
   const [notifSeleccionada, setNotifSeleccionada] = useState<NotificacionEnviada | null>(null);
+  const [confirmarEliminar, setConfirmarEliminar] = useState<NotificacionEnviada | null>(null);
 
   // Selector de destinatarios
   const [tabSelector, setTabSelector] = useState<"alumno" | "grupo">("alumno");
@@ -178,6 +180,18 @@ export function Notificaciones() {
       .then((res) => { if (res) setNotificaciones(res.data.notificaciones ?? []); })
       .catch(() => toast.error("Error al enviar la notificación."))
       .finally(() => setEnviando(false));
+  };
+
+  const eliminarNotificacion = async (notif: NotificacionEnviada) => {
+    try {
+      await axios.delete(`/api/notificaciones/${notif.id}`);
+      toast.success("Notificación eliminada.");
+      setConfirmarEliminar(null);
+      setModalDetalle(false);
+      setNotificaciones((prev) => prev.filter((n) => n.id !== notif.id));
+    } catch {
+      toast.error("No se pudo eliminar la notificación.");
+    }
   };
 
   const notificacionesFiltradas = notificaciones.filter((n) => {
@@ -579,14 +593,25 @@ export function Notificaciones() {
                         )}
                       </div>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={notif.estado === "leída"
-                        ? "text-green-600 border-green-300"
-                        : "text-blue-600 border-blue-300"}
-                    >
-                      {notif.estado}
-                    </Badge>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge
+                        variant="outline"
+                        className={notif.estado === "leída"
+                          ? "text-green-600 border-green-300"
+                          : "text-blue-600 border-blue-300"}
+                      >
+                        {notif.estado}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:text-red-600 hover:bg-red-50"
+                        title="Eliminar notificación"
+                        onClick={(e) => { e.stopPropagation(); setConfirmarEliminar(notif); }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -594,6 +619,26 @@ export function Notificaciones() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!confirmarEliminar} onOpenChange={(open) => { if (!open) setConfirmarEliminar(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar notificación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará la notificación "<strong>{confirmarEliminar?.titulo}</strong>" para todos los destinatarios. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => { if (confirmarEliminar) eliminarNotificacion(confirmarEliminar); }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Dialog detalle de notificación */}
       <Dialog open={modalDetalle} onOpenChange={setModalDetalle}>
@@ -607,12 +652,23 @@ export function Notificaciones() {
           </DialogHeader>
           {notifSeleccionada && (
             <div className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                <Badge className={getBadgeColor(notifSeleccionada.prioridad)}>{notifSeleccionada.prioridad}</Badge>
-                <Badge variant="outline" className={notifSeleccionada.estado === "leída" ? "text-green-600 border-green-300" : "text-blue-600 border-blue-300"}>
-                  {notifSeleccionada.estado}
-                </Badge>
-                <Badge variant="secondary">{notifSeleccionada.categoria}</Badge>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Badge className={getBadgeColor(notifSeleccionada.prioridad)}>{notifSeleccionada.prioridad}</Badge>
+                  <Badge variant="outline" className={notifSeleccionada.estado === "leída" ? "text-green-600 border-green-300" : "text-blue-600 border-blue-300"}>
+                    {notifSeleccionada.estado}
+                  </Badge>
+                  <Badge variant="secondary">{notifSeleccionada.categoria}</Badge>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-red-200 text-red-600 hover:bg-red-50"
+                  onClick={() => setConfirmarEliminar(notifSeleccionada)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  Eliminar
+                </Button>
               </div>
 
               <div>

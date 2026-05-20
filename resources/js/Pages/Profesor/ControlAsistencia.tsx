@@ -351,7 +351,6 @@ export function ControlAsistencia() {
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
                   <TableHead>Nombre del Alumno</TableHead>
-                  <TableHead>Grupo</TableHead>
                   <TableHead className="text-center">Estado</TableHead>
                   <TableHead className="text-center">Acciones</TableHead>
                 </TableRow>
@@ -359,7 +358,7 @@ export function ControlAsistencia() {
               <TableBody>
                 {alumnosDelGrupo.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-[#6B7280] py-8">
+                    <TableCell colSpan={4} className="text-center text-[#6B7280] py-8">
                       No hay alumnos en este grupo
                     </TableCell>
                   </TableRow>
@@ -375,7 +374,6 @@ export function ControlAsistencia() {
                           {index + 1}
                         </TableCell>
                         <TableCell className="font-medium">{alumno.nombre}</TableCell>
-                        <TableCell className="text-[#6B7280]">{alumno.grupo}</TableCell>
                         <TableCell className="text-center">
                           <Badge className={badge.className}>
                             {IconEstado && <IconEstado className="h-3 w-3 mr-1" />}
