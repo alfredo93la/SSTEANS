@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Notificacion extends Model
 {
@@ -11,20 +12,11 @@ class Notificacion extends Model
 
     protected $fillable = [
         'remitente_user_id',
-        'destinatario_user_id',
-        'alumno_id',
-        'grupo_id',
-        'grupo_envio',
         'titulo',
         'mensaje',
         'tipo',
         'categoria',
         'prioridad',
-        'leida',
-    ];
-
-    protected $casts = [
-        'leida' => 'boolean',
     ];
 
     public function remitente(): BelongsTo
@@ -32,18 +24,8 @@ class Notificacion extends Model
         return $this->belongsTo(User::class, 'remitente_user_id');
     }
 
-    public function destinatario(): BelongsTo
+    public function destinatarios(): HasMany
     {
-        return $this->belongsTo(User::class, 'destinatario_user_id');
-    }
-
-    public function alumno(): BelongsTo
-    {
-        return $this->belongsTo(Alumno::class);
-    }
-
-    public function grupo(): BelongsTo
-    {
-        return $this->belongsTo(Grupo::class);
+        return $this->hasMany(NotificacionDestinatario::class);
     }
 }

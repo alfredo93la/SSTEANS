@@ -4,69 +4,62 @@ namespace App\Http\Controllers;
 
 use App\Events\BadgeActualizado;
 use App\Models\Notificacion;
+use App\Models\NotificacionDestinatario;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class NotificacionController extends Controller
 {
     /**
      * GET /api/notificaciones
-     * Tutor: notificaciones recibidas.
+     * Notificaciones recibidas del usuario autenticado.
      */
     public function index(Request $request): JsonResponse
     {
-        $notificaciones = Notificacion::where('destinatario_user_id', $request->user()->id)
+        $userId = $request->user()->id;
+
+        $notificaciones = Notificacion::whereHas('destinatarios', fn ($q) => $q->where('destinatario_user_id', $userId))
             ->with([
                 'remitente:id,name',
-                'alumno.persona:id,nombre,apellidos',
-                'grupo:id,nombre,grado_id',
-                'grupo.grado:id,numero',
+                'destinatarios' => fn ($q) => $q
+                    ->where('destinatario_user_id', $userId)
+                    ->with([
+                        'alumno.persona:id,nombre,apellidos',
+                        'grupo:id,nombre,grado_id',
+                        'grupo.grado:id,numero',
+                    ]),
             ])
             ->latest()
             ->get()
-            ->map(fn ($n) => $this->format($n));
+            ->map(fn ($n) => $this->format($n, $n->destinatarios->first()));
 
         return response()->json(['notificaciones' => $notificaciones]);
     }
 
     /**
      * GET /api/notificaciones/enviadas
-     * Profesor / Trabajador Social: notificaciones enviadas (una fila por envío).
+     * Notificaciones enviadas por el usuario autenticado.
      */
     public function enviadas(Request $request): JsonResponse
     {
-        $remitenteId = $request->user()->id;
+        $userId = $request->user()->id;
 
-        // Conteos por grupo_envio
-        $conteos = DB::table('notificaciones')
-            ->where('remitente_user_id', $remitenteId)
-            ->selectRaw('grupo_envio, COUNT(*) as total, SUM(leida) as leidas_count')
-            ->groupBy('grupo_envio')
-            ->get()
-            ->keyBy('grupo_envio');
-
-        // Un representante por grupo_envio (el de menor id)
-        $notificaciones = Notificacion::whereIn('id', function ($q) use ($remitenteId) {
-            $q->from('notificaciones')
-                ->selectRaw('MIN(id)')
-                ->where('remitente_user_id', $remitenteId)
-                ->groupBy('grupo_envio');
-        })
-            ->with('destinatario:id,name', 'alumno.persona:id,nombre,apellidos')
+        $notificaciones = Notificacion::where('remitente_user_id', $userId)
+            ->withCount('destinatarios as total_destinatarios')
+            ->withCount(['destinatarios as leidas_count' => fn ($q) => $q->where('leida', true)])
+            ->with(['destinatarios' => fn ($q) => $q->with('alumno.persona:id,nombre,apellidos')->limit(1)])
             ->latest()
             ->get()
-            ->map(fn ($n) => $this->formatEnviada($n, $conteos->get($n->grupo_envio)));
+            ->map(fn ($n) => $this->formatEnviada($n));
 
         return response()->json(['notificaciones' => $notificaciones]);
     }
 
     /**
      * POST /api/notificaciones
-     * Enviar notificación a uno o varios tutores.
-     * Body: destinatarios = [{ userId, alumnoId? }] o [userId, ...]
+     * Enviar una notificación a uno o varios destinatarios.
      */
     public function store(Request $request): JsonResponse
     {
@@ -81,62 +74,72 @@ class NotificacionController extends Controller
             'prioridad'                => ['required', 'string', 'in:Alta,Media,Baja'],
         ]);
 
-        $remitenteId = $request->user()->id;
-        $grupoEnvio  = (string) Str::uuid();
-        $creadas     = 0;
+        $notificacion = DB::transaction(function () use ($validated, $request): Notificacion {
+            $notificacion = Notificacion::create([
+                'remitente_user_id' => $request->user()->id,
+                'titulo'            => $validated['titulo'],
+                'mensaje'           => $validated['mensaje'],
+                'categoria'         => $validated['categoria'],
+                'prioridad'         => $validated['prioridad'],
+            ]);
+
+            foreach ($validated['destinatarios'] as $dest) {
+                NotificacionDestinatario::create([
+                    'notificacion_id'      => $notificacion->id,
+                    'destinatario_user_id' => $dest['userId'],
+                    'alumno_id'            => $dest['alumnoId'] ?? null,
+                    'grupo_id'             => $dest['grupoId'] ?? null,
+                ]);
+            }
+
+            return $notificacion;
+        });
 
         foreach ($validated['destinatarios'] as $dest) {
-            Notificacion::create([
-                'remitente_user_id'    => $remitenteId,
-                'destinatario_user_id' => $dest['userId'],
-                'alumno_id'            => $dest['alumnoId'] ?? null,
-                'grupo_id'             => $dest['grupoId'] ?? null,
-                'grupo_envio'          => $grupoEnvio,
-                'titulo'               => $validated['titulo'],
-                'mensaje'              => $validated['mensaje'],
-                'categoria'            => $validated['categoria'],
-                'prioridad'            => $validated['prioridad'],
-            ]);
             broadcast(new BadgeActualizado($dest['userId'], 'notificaciones'));
-            $creadas++;
         }
 
+        $total = count($validated['destinatarios']);
+
         return response()->json([
-            'message' => "Notificación enviada a {$creadas} destinatario(s).",
+            'message' => "Notificación enviada a {$total} destinatario(s).",
         ], 201);
     }
 
     /**
      * PATCH /api/notificaciones/{notificacion}/leer
-     * Marcar una notificación como leída (solo el destinatario).
+     * Marcar como leída (solo el destinatario).
      */
     public function marcarLeida(Request $request, Notificacion $notificacion): JsonResponse
     {
-        if ($notificacion->destinatario_user_id !== $request->user()->id) {
+        $dest = NotificacionDestinatario::where('notificacion_id', $notificacion->id)
+            ->where('destinatario_user_id', $request->user()->id)
+            ->first();
+
+        if (! $dest) {
             return response()->json(['message' => 'No autorizado.'], 403);
         }
 
-        $notificacion->update(['leida' => true]);
+        $dest->update(['leida' => true, 'leida_at' => now()]);
 
         return response()->json(['message' => 'Marcada como leída.']);
     }
 
     /**
      * PATCH /api/notificaciones/leer-todas
-     * Marcar todas las notificaciones del tutor autenticado como leídas.
+     * Marcar todas las notificaciones del usuario como leídas.
      */
     public function marcarTodasLeidas(Request $request): JsonResponse
     {
-        Notificacion::where('destinatario_user_id', $request->user()->id)
+        NotificacionDestinatario::where('destinatario_user_id', $request->user()->id)
             ->where('leida', false)
-            ->update(['leida' => true]);
+            ->update(['leida' => true, 'leida_at' => now()]);
 
         return response()->json(['message' => 'Todas marcadas como leídas.']);
     }
 
     /**
      * GET /api/notificaciones/tutores
-     * Lista plana de tutores (compatibilidad).
      */
     public function tutores(): JsonResponse
     {
@@ -151,16 +154,14 @@ class NotificacionController extends Controller
 
     /**
      * GET /api/notificaciones/destinatarios
-     * Alumnos (con sus tutores user_id) y grupos (con tutores únicos de sus alumnos activos).
-     * Profesor: solo sus grupos asignados. Trabajador Social: todos.
+     * Alumnos (con sus tutores) y grupos disponibles según el rol del usuario.
      */
     public function destinatarios(Request $request): JsonResponse
     {
         $cicloId = \App\Models\CicloEscolar::where('activo', true)->value('id');
         $user    = $request->user();
 
-        // Grupos permitidos para el usuario
-        $grupoIdsPermitidos = null; // null = sin restricción (Trabajador Social)
+        $grupoIdsPermitidos = null;
         if ($user->role === 'Profesor') {
             $grupoIdsPermitidos = \App\Models\Clase::where('profesor_user_id', $user->id)
                 ->when($cicloId, fn ($q) => $q->where('ciclo_escolar_id', $cicloId))
@@ -170,7 +171,6 @@ class NotificacionController extends Controller
                 ->all();
         }
 
-        // ── Alumnos con tutor vinculado ───────────────────────────────────────
         $alumnos = \App\Models\Alumno::with([
             'persona:id,nombre,apellidos',
             'tutores.persona:id,nombre,apellidos',
@@ -185,11 +185,10 @@ class NotificacionController extends Controller
         ->map(function ($alumno) use ($grupoIdsPermitidos) {
             $asignacion = $alumno->asignaciones->first();
 
-            // Para Profesor: omitir alumnos que no tengan asignación en sus grupos
             if ($grupoIdsPermitidos !== null && ! $asignacion) return null;
 
-            $grupo      = $asignacion?->grupo;
-            $grado      = $grupo?->grado;
+            $grupo       = $asignacion?->grupo;
+            $grado       = $grupo?->grado;
             $grupoNombre = $grado && $grupo ? "{$grado->numero}°{$grupo->nombre}" : null;
 
             $tutores = $alumno->tutores
@@ -217,7 +216,6 @@ class NotificacionController extends Controller
         ->filter()
         ->values();
 
-        // ── Grupos con tutores únicos de sus alumnos activos ──────────────────
         $grupos = \App\Models\Grupo::with([
             'grado:id,numero',
             'asignaciones' => fn ($q) => $q
@@ -245,10 +243,10 @@ class NotificacionController extends Controller
             if (empty($tutoresMap)) return null;
 
             return [
-                'id'          => $grupo->id,
-                'nombre'      => $grupo->grado ? "{$grupo->grado->numero}°{$grupo->nombre}" : $grupo->nombre,
-                'numAlumnos'  => $grupo->asignaciones->count(),
-                'tutores'     => array_values($tutoresMap),
+                'id'         => $grupo->id,
+                'nombre'     => $grupo->grado ? "{$grupo->grado->numero}°{$grupo->nombre}" : $grupo->nombre,
+                'numAlumnos' => $grupo->asignaciones->count(),
+                'tutores'    => array_values($tutoresMap),
             ];
         })
         ->filter()
@@ -259,42 +257,46 @@ class NotificacionController extends Controller
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private function alumnoNombre(Notificacion $n): ?string
+    private function format(Notificacion $n, ?NotificacionDestinatario $dest): array
     {
-        $a = $n->alumno;
-        if (! $a || ! $a->persona) return null;
-        return trim("{$a->persona->nombre} {$a->persona->apellidos}");
-    }
-
-    private function format(Notificacion $n): array
-    {
-        $grupo = $n->grupo;
+        $grupo       = $dest?->grupo;
         $grupoNombre = $grupo
             ? ($grupo->grado ? "{$grupo->grado->numero}°{$grupo->nombre}" : $grupo->nombre)
             : null;
 
+        $alumno      = $dest?->alumno;
+        $alumnoNombre = $alumno?->persona
+            ? trim("{$alumno->persona->nombre} {$alumno->persona->apellidos}")
+            : null;
+
         return [
-            'id'           => $n->id,
-            'titulo'       => $n->titulo,
-            'mensaje'      => $n->mensaje,
-            'tipo'         => $n->tipo,
-            'categoria'    => $n->categoria,
-            'prioridad'    => $n->prioridad,
-            'leida'        => $n->leida,
-            'remitente'    => $n->remitente?->name ?? 'Sistema',
-            'alumnoId'     => $n->alumno_id,
-            'alumno'       => $this->alumnoNombre($n),
-            'grupoId'      => $n->grupo_id,
-            'grupo'        => $grupoNombre,
-            'fecha'        => $n->created_at->format('d/m/Y'),
-            'hora'         => $n->created_at->format('H:i'),
+            'id'        => $n->id,
+            'titulo'    => $n->titulo,
+            'mensaje'   => $n->mensaje,
+            'tipo'      => $n->tipo,
+            'categoria' => $n->categoria,
+            'prioridad' => $n->prioridad,
+            'leida'     => $dest?->leida ?? false,
+            'remitente' => $n->remitente?->name ?? 'Sistema',
+            'alumnoId'  => $dest?->alumno_id,
+            'alumno'    => $alumnoNombre,
+            'grupoId'   => $dest?->grupo_id,
+            'grupo'     => $grupoNombre,
+            'fecha'     => $n->created_at->format('d/m/Y'),
+            'hora'      => $n->created_at->format('H:i'),
         ];
     }
 
-    private function formatEnviada(Notificacion $n, ?object $conteo = null): array
+    private function formatEnviada(Notificacion $n): array
     {
-        $total       = (int) ($conteo?->total ?? 1);
-        $leidasCount = (int) ($conteo?->leidas_count ?? ($n->leida ? 1 : 0));
+        $total       = (int) ($n->total_destinatarios ?? 0);
+        $leidasCount = (int) ($n->leidas_count ?? 0);
+
+        $primerDest  = $n->destinatarios->first();
+        $alumno      = $primerDest?->alumno;
+        $alumnoNombre = $alumno?->persona
+            ? trim("{$alumno->persona->nombre} {$alumno->persona->apellidos}")
+            : null;
 
         return [
             'id'                 => $n->id,
@@ -302,10 +304,10 @@ class NotificacionController extends Controller
             'mensaje'            => $n->mensaje,
             'categoria'          => $n->categoria,
             'prioridad'          => $n->prioridad,
-            'destinatario'       => $total > 1 ? "{$total} destinatarios" : ($n->destinatario?->name ?? '—'),
+            'destinatario'       => $total > 1 ? "{$total} destinatarios" : ($primerDest?->destinatario?->name ?? '—'),
             'totalDestinatarios' => $total,
             'leidasCount'        => $leidasCount,
-            'alumno'             => $this->alumnoNombre($n),
+            'alumno'             => $alumnoNombre,
             'estado'             => $leidasCount >= $total ? 'leída' : 'enviada',
             'fecha'              => $n->created_at->format('d/m/Y'),
         ];

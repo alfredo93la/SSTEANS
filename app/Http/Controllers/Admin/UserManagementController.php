@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Asistencia;
+use App\Models\Clase;
 use App\Models\PersAdmin;
 use App\Models\Persona;
 use App\Models\Profesor;
+use App\Models\ReporteConducta;
 use App\Models\Role;
+use App\Models\Tarea;
 use App\Models\TrabSocial;
 use App\Models\Tutor;
 use App\Models\User;
@@ -304,6 +308,38 @@ class UserManagementController extends Controller
             return response()->json(['message' => 'No puedes eliminar tu propia cuenta.'], 403);
         }
 
+        if ($user->status !== 'Inactivo') {
+            return response()->json(['message' => 'Solo se pueden eliminar usuarios inactivos.'], 422);
+        }
+
+        $bloqueadores = [];
+
+        if ($user->persona_id) {
+            $tutor = Tutor::where('persona_id', $user->persona_id)->first();
+            if ($tutor && $tutor->alumnos()->exists()) {
+                $bloqueadores[] = 'alumnos vinculados (desvincúlalos primero desde la gestión de tutores)';
+            }
+        }
+
+        if (Clase::where('profesor_user_id', $user->id)->exists()) {
+            $bloqueadores[] = 'clases impartidas';
+        }
+        if (Asistencia::where('registrado_por', $user->id)->exists()) {
+            $bloqueadores[] = 'registros de asistencia';
+        }
+        if (Tarea::where('asignado_por', $user->id)->exists()) {
+            $bloqueadores[] = 'tareas asignadas';
+        }
+        if (ReporteConducta::where('reportado_por', $user->id)->exists()) {
+            $bloqueadores[] = 'reportes de conducta';
+        }
+
+        if (! empty($bloqueadores)) {
+            return response()->json([
+                'message' => 'No se puede eliminar: tiene historial registrado (' . implode(', ', $bloqueadores) . '). El usuario puede permanecer inactivo pero sus datos históricos deben conservarse.',
+            ], 422);
+        }
+
         DB::transaction(function () use ($user): void {
             $personaId = $user->persona_id;
             $user->roles()->detach();
@@ -312,7 +348,7 @@ class UserManagementController extends Controller
             if ($personaId) {
                 $persona = Persona::query()->find($personaId);
                 if ($persona && ! $persona->alumno) {
-                    $persona->delete(); // cascade eliminará los registros específicos
+                    $persona->delete();
                 }
             }
         });

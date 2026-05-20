@@ -11,7 +11,7 @@ import { Label } from "../../Components/ui/label";
 import { Textarea } from "../../Components/ui/textarea";
 import {
   Users, Search, Eye, Edit, Plus,
-  CheckCircle, XCircle, UserX, Loader2, Mail, Phone,
+  CheckCircle, XCircle, UserX, UserCheck, Trash2, Loader2, Mail, Phone,
   UserPen, ShieldCheck, ShieldAlert,
 } from "lucide-react";
 import {
@@ -309,8 +309,10 @@ export function Usuarios() {
 
   const [modalValidar, setModalValidar] = useState(false);
   const [modalRechazo, setModalRechazo] = useState(false);
+  const [modalEliminar, setModalEliminar] = useState(false);
   const [aprobando, setAprobando] = useState(false);
   const [rechazando, setRechazando] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
   const [motivoRechazo, setMotivoRechazo] = useState("");
 
   const cargar = () => {
@@ -422,6 +424,38 @@ export function Usuarios() {
     })
       .then(({ data }) => { setUsers((prev) => prev.map((x) => x.id === data.user.id ? data.user : x)); toast.success("Usuario desactivado."); })
       .catch(() => toast.error("No se pudo desactivar el usuario."));
+  };
+
+  const handleReactivar = (u: UsuarioItem) => {
+    if (!confirm(`¿Reactivar a ${u.persona ? `${u.persona.nombre} ${u.persona.apellidos}` : u.name}? Su cuenta volverá a estar activa.`)) return;
+    const rolId = u.roles[0]?.id;
+    if (!rolId) { toast.error("No se pudo determinar el rol del usuario."); return; }
+    axios.put(`/admin/usuarios/${u.id}`, {
+      nombre: u.persona?.nombre ?? u.name,
+      apellidos: u.persona?.apellidos ?? "",
+      email: u.email,
+      curp: u.persona?.curp ?? undefined,
+      roles: [rolId],
+      status: "Activo",
+    })
+      .then(({ data }) => { setUsers((prev) => prev.map((x) => x.id === data.user.id ? data.user : x)); toast.success("Usuario reactivado."); })
+      .catch(() => toast.error("No se pudo reactivar el usuario."));
+  };
+
+  const handleEliminar = async (u: UsuarioItem) => {
+    setEliminando(true);
+    try {
+      await axios.delete(`/admin/usuarios/${u.id}`);
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      setModalEliminar(false);
+      setModalDetalle(false);
+      setUsuarioSel(null);
+      toast.success("Usuario eliminado correctamente.");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? "No se pudo eliminar el usuario.");
+    } finally {
+      setEliminando(false);
+    }
   };
 
   const abrirEditar = (u: UsuarioItem) => {
@@ -627,6 +661,11 @@ export function Usuarios() {
                           <CheckCircle className="h-4 w-4" />Validar
                         </Button>
                       )}
+                      {u.status === "Inactivo" && u.id !== currentUserId && (
+                        <Button variant="outline" size="sm" className="text-emerald-600 hover:text-emerald-700 border-emerald-200 hover:bg-emerald-50" onClick={() => handleReactivar(u)}>
+                          <UserCheck className="h-4 w-4" />Reactivar
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -743,6 +782,16 @@ export function Usuarios() {
                       <UserX className="h-4 w-4 mr-1" />Desactivar
                     </Button>
                   )}
+                  {usuarioSel.id !== currentUserId && usuarioSel.status === "Inactivo" && (
+                    <div className="flex gap-2 flex-wrap">
+                      <Button variant="outline" className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700" onClick={() => { setModalDetalle(false); handleReactivar(usuarioSel); }}>
+                        <UserCheck className="h-4 w-4 mr-1" />Reactivar
+                      </Button>
+                      <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => setModalEliminar(true)}>
+                        <Trash2 className="h-4 w-4 mr-1" />Eliminar
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={() => { setModalDetalle(false); abrirEditar(usuarioSel); }}>
@@ -795,6 +844,31 @@ export function Usuarios() {
                 <Button variant="destructive" disabled={aprobando} onClick={() => { setMotivoRechazo(""); setModalRechazo(true); }}>Rechazar</Button>
                 <Button disabled={aprobando} onClick={() => handleAprobar(usuarioSel.id)}>
                   {aprobando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}Aprobar
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal confirmar eliminación */}
+      <Dialog open={modalEliminar} onOpenChange={setModalEliminar}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar usuario</DialogTitle>
+            <DialogDescription>Esta acción es irreversible.</DialogDescription>
+          </DialogHeader>
+          {usuarioSel && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 space-y-1">
+                <p className="font-semibold">¿Eliminar permanentemente a {usuarioSel.persona ? `${usuarioSel.persona.nombre} ${usuarioSel.persona.apellidos}` : usuarioSel.name}?</p>
+                <p>Se borrarán su cuenta, datos personales y vinculaciones. Si el sistema detecta historial académico (clases, asistencias, tareas o reportes), la eliminación será bloqueada automáticamente.</p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" disabled={eliminando} onClick={() => setModalEliminar(false)}>Cancelar</Button>
+                <Button variant="destructive" disabled={eliminando} onClick={() => handleEliminar(usuarioSel)}>
+                  {eliminando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                  Eliminar definitivamente
                 </Button>
               </DialogFooter>
             </div>
