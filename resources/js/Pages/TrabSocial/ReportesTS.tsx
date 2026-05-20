@@ -12,7 +12,6 @@ import {
   Search,
   Filter,
   FileText,
-  Eye,
   Edit,
   Clock,
   XCircle,
@@ -357,7 +356,8 @@ export function ReportesTS() {
             {lista.map((reporte) => (
               <div
                 key={reporte.id}
-                className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all"
+                className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer"
+                onClick={() => verDetalle(reporte)}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
@@ -382,18 +382,13 @@ export function ReportesTS() {
                       <span>{reporte.seguimientos} seguimiento(s)</span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => verDetalle(reporte)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => abrirEdicion(reporte)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); abrirEdicion(reporte); }}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             ))}

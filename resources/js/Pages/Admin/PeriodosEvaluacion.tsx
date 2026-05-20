@@ -14,7 +14,7 @@ import { Plus, BookKey, Pencil, Trash2, CheckCircle, CalendarRange, Loader2 } fr
 import { PageTitle } from "../../Layouts/PageTitle";
 import { toast } from "sonner";
 
-interface CicloData { id: number; nombre: string; fecha_inicio: string; fecha_fin: string; }
+interface CicloData { id: number; nombre: string; fecha_inicio: string; fecha_fin: string; activo: boolean; }
 interface PeriodoData { id: number; cicloId: number; nombre: string; fechaInicio: string; fechaFin: string; capturaAbierta: boolean; }
 
 export function PeriodosEvaluacion() {
@@ -33,7 +33,8 @@ export function PeriodosEvaluacion() {
       .then(({ data }) => {
         const lista: CicloData[] = data.ciclos ?? [];
         setCiclos(lista);
-        if (lista.length > 0) setFiltroCiclo(lista[0].id.toString());
+        const activo = lista.find((c) => c.activo) ?? lista[0];
+        if (activo) setFiltroCiclo(activo.id.toString());
       })
       .catch(() => {});
   }, []);

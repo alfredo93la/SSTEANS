@@ -21,7 +21,6 @@ import {
   UserMinus,
   CheckCircle2,
   XCircle,
-  Clock,
   ShieldUser,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "../../Components/ui/dialog";
@@ -512,10 +511,10 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
         <Card className="border-[#E5E7EB] bg-linear-to-br from-amber-50 to-amber-100">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-white rounded-xl"><Clock className="h-6 w-6 text-[#D97706]" /></div>
+              <div className="p-3 bg-white rounded-xl"><Unlink className="h-6 w-6 text-[#D97706]" /></div>
               <div>
-                <p className="text-sm text-[#6B7280]">Pendientes</p>
-                <p className="text-2xl font-bold text-[#D97706]">{alumnos.filter((a) => a.estado === "Pendiente").length}</p>
+                <p className="text-sm text-[#6B7280]">Sin Tutor</p>
+                <p className="text-2xl font-bold text-[#D97706]">{alumnos.filter((a) => (a.tutores?.length ?? 0) === 0).length}</p>
               </div>
             </div>
           </CardContent>

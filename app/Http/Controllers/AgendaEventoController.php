@@ -41,7 +41,10 @@ class AgendaEventoController extends Controller
 
             if ($user->role === 'Tutor') {
                 /** @var \App\Models\User $user */
-                $gruposHijos = $this->getGruposDelTutor($user);
+                $alumnoId    = request()->integer('alumno_id') ?: null;
+                $gruposHijos = $alumnoId
+                    ? $this->getGrupoDeAlumno($alumnoId)
+                    : $this->getGruposDelTutor($user);
                 $query->where(function ($q) use ($gruposHijos, $TIPOS_EXAMEN) {
                     $q->where(function ($inner) use ($gruposHijos, $TIPOS_EXAMEN) {
                         $inner->whereIn('tipo', $TIPOS_EXAMEN)
@@ -185,6 +188,19 @@ class AgendaEventoController extends Controller
             'tipo'          => $evento->tipo,
             'destinatarios' => $evento->destinatarios->pluck('rol')->values()->all(),
         ];
+    }
+
+    private function getGrupoDeAlumno(int $alumnoId): array
+    {
+        $cicloId = \App\Models\CicloEscolar::where('activo', true)->value('id');
+        if (! $cicloId) return [];
+
+        $grupoId = \App\Models\AsignacionGrupo::where('alumno_id', $alumnoId)
+            ->where('ciclo_escolar_id', $cicloId)
+            ->where('estado', 'activo')
+            ->value('grupo_id');
+
+        return $grupoId ? [$grupoId] : [];
     }
 
     private function getGruposDelTutor(\App\Models\User $user): array

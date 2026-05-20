@@ -77,6 +77,8 @@ export function Notificaciones() {
   const [busqueda, setBusqueda] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todas");
   const [modalEnviar, setModalEnviar] = useState(false);
+  const [modalDetalle, setModalDetalle] = useState(false);
+  const [notifSeleccionada, setNotifSeleccionada] = useState<NotificacionEnviada | null>(null);
 
   // Selector de destinatarios
   const [tabSelector, setTabSelector] = useState<"alumno" | "grupo">("alumno");
@@ -542,7 +544,8 @@ export function Notificaciones() {
               {notificacionesFiltradas.map((notif) => (
                 <div
                   key={notif.id}
-                  className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all"
+                  className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => { setNotifSeleccionada(notif); setModalDetalle(true); }}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -591,6 +594,58 @@ export function Notificaciones() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog detalle de notificación */}
+      <Dialog open={modalDetalle} onOpenChange={setModalDetalle}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {notifSeleccionada && getEstadoIcon(notifSeleccionada.estado)}
+              {notifSeleccionada?.titulo}
+            </DialogTitle>
+            <DialogDescription>Detalle de la notificación enviada</DialogDescription>
+          </DialogHeader>
+          {notifSeleccionada && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <Badge className={getBadgeColor(notifSeleccionada.prioridad)}>{notifSeleccionada.prioridad}</Badge>
+                <Badge variant="outline" className={notifSeleccionada.estado === "leída" ? "text-green-600 border-green-300" : "text-blue-600 border-blue-300"}>
+                  {notifSeleccionada.estado}
+                </Badge>
+                <Badge variant="secondary">{notifSeleccionada.categoria}</Badge>
+              </div>
+
+              <div>
+                <Label className="text-[#6B7280]">Mensaje</Label>
+                <p className="mt-1 text-sm text-[#111827] whitespace-pre-wrap">{notifSeleccionada.mensaje}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-3 border-t border-[#E5E7EB]">
+                <div>
+                  <Label className="text-[#6B7280]">Destinatario</Label>
+                  <p className="mt-1 text-sm text-[#111827]">{notifSeleccionada.destinatario}</p>
+                </div>
+                <div>
+                  <Label className="text-[#6B7280]">Fecha</Label>
+                  <p className="mt-1 text-sm text-[#111827]">{notifSeleccionada.fecha}</p>
+                </div>
+                {notifSeleccionada.alumno && (
+                  <div>
+                    <Label className="text-[#6B7280]">Alumno</Label>
+                    <p className="mt-1 text-sm text-[#111827]">{notifSeleccionada.alumno}</p>
+                  </div>
+                )}
+                {notifSeleccionada.totalDestinatarios > 1 && (
+                  <div>
+                    <Label className="text-[#6B7280]">Lecturas</Label>
+                    <p className="mt-1 text-sm text-[#111827]">{notifSeleccionada.leidasCount} / {notifSeleccionada.totalDestinatarios} leídas</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

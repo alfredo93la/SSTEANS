@@ -271,7 +271,7 @@ DROP TABLE IF EXISTS `configuracion_escuela`;
 CREATE TABLE `configuracion_escuela` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `nombre` varchar(255) NOT NULL DEFAULT '',
-  `logo_url` varchar(255) DEFAULT NULL,
+  `logo_url` longtext DEFAULT NULL,
   `numero` varchar(255) DEFAULT NULL,
   `cct` varchar(20) DEFAULT NULL,
   `turnos_disponibles` enum('matutino','vespertino','ambos') NOT NULL DEFAULT 'matutino',
@@ -820,3 +820,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (49,'2026_05_15_074
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (50,'2026_05_15_075640_rename_turno_escuela_back_to_turnos_disponibles_in_configuracion_escuela_table',28);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (51,'2026_05_15_081105_replace_grupo_materia_strings_with_fks_in_agenda_eventos_table',29);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (52,'2026_05_16_040951_backfill_email_verified_at_for_active_users',30);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (53,'2026_05_19_052933_change_logo_url_to_longtext_in_configuracion_escuela',31);

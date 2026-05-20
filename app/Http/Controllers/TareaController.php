@@ -230,6 +230,22 @@ class TareaController extends Controller
      */
     public function entregas(Tarea $tarea): JsonResponse
     {
+        // Alumnos activos en el grupo al momento de consultar
+        $alumnosGrupo = AsignacionGrupo::where('grupo_id', $tarea->grupo_id)
+            ->where('ciclo_escolar_id', $tarea->ciclo_escolar_id)
+            ->where('estado', 'activo')
+            ->pluck('alumno_id');
+
+        // Crear registros pendientes para alumnos que se agregaron después de crear la tarea
+        $existentes = $tarea->entregas()->pluck('alumno_id');
+        foreach ($alumnosGrupo->diff($existentes) as $alumnoId) {
+            TareaEntrega::create([
+                'tarea_id'  => $tarea->id,
+                'alumno_id' => $alumnoId,
+                'estado'    => 'Pendiente',
+            ]);
+        }
+
         $entregas = $tarea->entregas()
             ->with('alumno:id,persona_id', 'alumno.persona:id,nombre,apellidos')
             ->get()

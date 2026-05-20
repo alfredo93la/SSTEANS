@@ -318,7 +318,7 @@ export function ResponsiveLayout({
               </div>
             </div>
 
-            {userRole === "Tutor" && onHijoChange && hijosDelTutor.length > 0 && currentRoute !== "#/agenda" && currentRoute !== "#/circulares" && currentRoute !== "#/dashboard" && (
+            {userRole === "Tutor" && onHijoChange && hijosDelTutor.length > 0 && currentRoute !== "#/agenda" && currentRoute !== "#/circulares" && (
               <div className="ml-2 md:hidden">
                 <Select
                   value={hijoSeleccionado?.toString() || hijosDelTutor[0].id.toString()}
@@ -355,7 +355,7 @@ export function ResponsiveLayout({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            {userRole === "Tutor" && onHijoChange && hijosDelTutor.length > 0 && currentRoute !== "#/agenda" && currentRoute !== "#/circulares" && currentRoute !== "#/dashboard" && (
+            {userRole === "Tutor" && onHijoChange && hijosDelTutor.length > 0 && currentRoute !== "#/agenda" && currentRoute !== "#/circulares" && (
               <div className="mr-2 hidden min-w-45 md:flex lg:min-w-55">
                 <Select
                   value={hijoSeleccionado?.toString() || hijosDelTutor[0].id.toString()}

@@ -196,14 +196,14 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
       {cicloActivo !== undefined && (
         cicloActivo ? (
           <Card
-            className="border-green-200 bg-linear-to-br from-green-50 to-emerald-50 cursor-pointer hover:shadow-md transition-all"
+            className="border-blue-200 bg-linear-to-br from-blue-50 to-indigo-50 cursor-pointer hover:shadow-md transition-all"
             onClick={() => onNavigate("#/ciclos")}
           >
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-green-100 rounded-xl">
-                    <CalendarDays className="h-5 w-5 text-[#059669]" />
+                  <div className="p-2.5 bg-blue-100 rounded-xl">
+                    <CalendarDays className="h-5 w-5 text-[#1D4ED8]" />
                   </div>
                   <div>
                     <p className="text-xs text-[#6B7280] font-medium uppercase tracking-wide">Ciclo Escolar Activo</p>
@@ -212,7 +212,7 @@ export function DashboardAdmin({ onNavigate }: DashboardAdminProps) {
                 </div>
                 <div className="flex items-center gap-4 text-sm text-[#6B7280]">
                   <span>{formatDate(cicloActivo.fecha_inicio)} — {formatDate(cicloActivo.fecha_fin)}</span>
-                  <Badge className="bg-green-100 text-[#059669]">Activo</Badge>
+                  <Badge className="bg-blue-100 text-[#1D4ED8]">En curso</Badge>
                 </div>
               </div>
             </CardContent>

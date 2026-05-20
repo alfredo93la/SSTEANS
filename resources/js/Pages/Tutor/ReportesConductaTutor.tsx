@@ -240,7 +240,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                 const gravedadBadge = getGravedadBadge(reporte.gravedad);
 
                 return (
-                  <Card key={reporte.id} className="border-[#E5E7EB] hover:shadow-lg transition-all">
+                  <Card key={reporte.id} className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" onClick={() => verDetalle(reporte)}>
                     <CardContent className="pt-6">
                       <div className="flex flex-col sm:flex-row gap-4">
                         <div className="shrink-0">
@@ -286,14 +286,6 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                             )}
                           </div>
 
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => verDetalle(reporte)}
-                            className="w-full sm:w-auto"
-                          >
-                            Ver detalles completos
-                          </Button>
                         </div>
                       </div>
                     </CardContent>

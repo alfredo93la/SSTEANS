@@ -7,7 +7,7 @@ import { Input } from "../../Components/ui/input";
 import { Label } from "../../Components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../../Components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../Components/ui/alert-dialog";
-import { Plus, CalendarRange, CheckCircle, Lock, Trash2, Loader2, Archive, XCircle, AlertTriangle } from "lucide-react";
+import { Plus, CalendarRange, CheckCircle, Lock, Trash2, Loader2, Archive, XCircle, AlertTriangle, Pencil } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { toast } from "sonner";
 
@@ -48,6 +48,11 @@ export function CiclosEscolares() {
   const [cerrando, setCerrando] = useState(false);
   const [alertCerrar, setAlertCerrar] = useState(false);
   const [eliminando, setEliminando] = useState<number | null>(null);
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [cicloAEditar, setCicloAEditar] = useState<Ciclo | null>(null);
+  const [editData, setEditData] = useState({ nombre: "", fecha_inicio: "", fecha_fin: "" });
+  const [editSaving, setEditSaving] = useState(false);
 
   const nuevoVacio = { nombre: "", fecha_inicio: "", fecha_fin: "", grupos_matutino: "", grupos_vespertino: "" };
 
@@ -139,6 +144,28 @@ export function CiclosEscolares() {
       .catch((err) => toast.error(err.response?.data?.message ?? "Error al archivar el ciclo."));
   };
 
+  const abrirEditar = (ciclo: Ciclo) => {
+    setCicloAEditar(ciclo);
+    setEditData({ nombre: ciclo.nombre, fecha_inicio: ciclo.fecha_inicio.slice(0, 10), fecha_fin: ciclo.fecha_fin.slice(0, 10) });
+    setEditDialogOpen(true);
+  };
+
+  const handleGuardarEdicion = () => {
+    if (!cicloAEditar) return;
+    if (!editData.nombre.trim()) { toast.error("El nombre es obligatorio."); return; }
+    if (!editData.fecha_inicio || !editData.fecha_fin) { toast.error("Las fechas son obligatorias."); return; }
+    if (editData.fecha_inicio >= editData.fecha_fin) { toast.error("La fecha de fin debe ser posterior a la de inicio."); return; }
+    setEditSaving(true);
+    axios.put(`/api/admin/ciclos/${cicloAEditar.id}`, editData)
+      .then(({ data }) => {
+        setCiclos((prev) => prev.map((c) => c.id === cicloAEditar.id ? data.ciclo : c));
+        setEditDialogOpen(false);
+        toast.success(data.message ?? "Ciclo actualizado.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "Error al actualizar el ciclo."))
+      .finally(() => setEditSaving(false));
+  };
+
   const handleEliminar = (id: number) => {
     setEliminando(id);
     axios.delete(`/api/admin/ciclos/${id}`)
@@ -151,6 +178,14 @@ export function CiclosEscolares() {
   };
 
   const cicloActivo = ciclos.find((c) => c.activo);
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const estadoCiclo = (ciclo: Ciclo) => {
+    if (ciclo.activo)  return "activo";
+    if (ciclo.cerrado) return "cerrado";
+    if (ciclo.fecha_inicio > todayStr) return "proximo";
+    return "finalizado";
+  };
 
   return (
     <div className="space-y-6">
@@ -372,20 +407,22 @@ export function CiclosEscolares() {
             <p className="text-sm text-[#6B7280] text-center py-8">No hay ciclos registrados.</p>
           ) : (
             <div className="space-y-3">
-              {ciclos.map((ciclo) => (
+              {ciclos.map((ciclo) => {
+                const estado = estadoCiclo(ciclo);
+                return (
                 <div
                   key={ciclo.id}
                   className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border transition-all ${
-                    ciclo.activo
+                    estado === "activo"
                       ? "border-[#1D4ED8] bg-blue-50/50"
-                      : ciclo.cerrado
-                      ? "border-[#E5E7EB] bg-[#F9FAFB] opacity-60"
-                      : "border-[#E5E7EB] bg-white hover:bg-[#F9FAFB]"
+                      : estado === "proximo"
+                      ? "border-[#E5E7EB] bg-white hover:bg-[#F9FAFB]"
+                      : "border-[#E5E7EB] bg-[#F9FAFB] opacity-60"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${ciclo.activo ? "bg-blue-100" : "bg-gray-100"}`}>
-                      <CalendarRange className={`h-4 w-4 ${ciclo.activo ? "text-[#1D4ED8]" : "text-[#6B7280]"}`} />
+                    <div className={`p-2 rounded-lg ${estado === "activo" ? "bg-blue-100" : "bg-gray-100"}`}>
+                      <CalendarRange className={`h-4 w-4 ${estado === "activo" ? "text-[#1D4ED8]" : "text-[#6B7280]"}`} />
                     </div>
                     <div>
                       <p className="font-medium text-[#111827]">{ciclo.nombre}</p>
@@ -398,15 +435,30 @@ export function CiclosEscolares() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge
                       className={
-                        ciclo.activo
+                        estado === "activo"
                           ? "bg-[#DBEAFE] text-[#1D4ED8] border-0"
+                          : estado === "proximo"
+                          ? "bg-purple-100 text-[#7C3AED] border-0"
                           : "bg-[#F3F4F6] text-[#6B7280] border-0"
                       }
                     >
-                      {ciclo.activo ? "Activo" : ciclo.cerrado ? "Cerrado" : "Inactivo"}
+                      {estado === "activo"     ? "En curso"
+                     : estado === "proximo"    ? "Próximo"
+                     : estado === "cerrado"    ? "Cerrado"
+                     :                          "Finalizado"}
                     </Badge>
 
-                    {!ciclo.activo && !ciclo.cerrado && (
+                    {estado !== "cerrado" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-lg text-[#6B7280] border-[#E5E7EB] hover:bg-gray-50 text-xs h-7"
+                        onClick={() => abrirEditar(ciclo)}
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1" />Editar
+                      </Button>
+                    )}
+                    {(estado === "proximo" || estado === "finalizado") && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -416,7 +468,7 @@ export function CiclosEscolares() {
                         <CheckCircle className="h-3.5 w-3.5 mr-1" />Activar
                       </Button>
                     )}
-                    {ciclo.activo && (
+                    {estado === "activo" && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -426,7 +478,7 @@ export function CiclosEscolares() {
                         <Lock className="h-3.5 w-3.5 mr-1" />Cerrar ciclo
                       </Button>
                     )}
-                    {!ciclo.activo && !ciclo.cerrado && (
+                    {(estado === "proximo" || estado === "finalizado") && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -439,7 +491,7 @@ export function CiclosEscolares() {
                           : <Trash2 className="h-3.5 w-3.5 mr-1" />}Eliminar
                       </Button>
                     )}
-                    {ciclo.cerrado && (
+                    {estado === "cerrado" && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -451,7 +503,8 @@ export function CiclosEscolares() {
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -525,6 +578,58 @@ export function CiclosEscolares() {
               className="bg-[#D97706] hover:bg-[#B45309] text-white rounded-lg"
             >
               {cerrando ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cerrar ciclo"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog edición de ciclo */}
+      <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setCicloAEditar(null); }}>
+        <DialogContent className="rounded-3xl max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Ciclo Escolar</DialogTitle>
+            <DialogDescription>Modifica el nombre y las fechas del ciclo.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="editNombre">Nombre *</Label>
+              <Input
+                id="editNombre"
+                value={editData.nombre}
+                maxLength={20}
+                onChange={(e) => setEditData({ ...editData, nombre: e.target.value })}
+                className="rounded-lg"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="editFini">Fecha inicio *</Label>
+                <Input
+                  id="editFini"
+                  type="date"
+                  value={editData.fecha_inicio}
+                  onChange={(e) => setEditData({ ...editData, fecha_inicio: e.target.value })}
+                  className="rounded-lg"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editFfin">Fecha fin *</Label>
+                <Input
+                  id="editFfin"
+                  type="date"
+                  value={editData.fecha_fin}
+                  onChange={(e) => setEditData({ ...editData, fecha_fin: e.target.value })}
+                  className="rounded-lg"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="rounded-lg">
+              Cancelar
+            </Button>
+            <Button onClick={handleGuardarEdicion} disabled={editSaving} className="bg-[#1D4ED8] hover:bg-[#1E40AF] rounded-lg">
+              {editSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar cambios"}
             </Button>
           </DialogFooter>
         </DialogContent>

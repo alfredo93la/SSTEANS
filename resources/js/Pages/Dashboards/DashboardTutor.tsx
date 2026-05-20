@@ -4,6 +4,7 @@ import { usePage } from "@inertiajs/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../Components/ui/card";
 import { Button } from "../../Components/ui/button";
 import { Badge } from "../../Components/ui/badge";
+import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
 import {
   Bell,
   CalendarDays,
@@ -54,12 +55,12 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado }: DashboardTutorP
     axios.get(`/api/tutor/tareas/${hijoSeleccionado}`)
       .then(({ data }) => setTareasAlumno(data.tareas ?? []))
       .catch(() => {});
+    axios.get("/api/agenda/eventos", { params: { alumno_id: hijoSeleccionado } })
+      .then(({ data }) => setEventosAgenda(data.eventos ?? []))
+      .catch(() => {});
   }, [hijoSeleccionado]);
 
   useEffect(() => {
-    axios.get("/api/agenda/eventos")
-      .then(({ data }) => setEventosAgenda(data.eventos ?? []))
-      .catch(() => {});
     axios.get("/api/circulares")
       .then(({ data }) => setCircularesSinLeer((data.circulares ?? []).filter((c: { leida: boolean }) => !c.leida).length))
       .catch(() => {});
@@ -131,6 +132,8 @@ export function DashboardTutor({ onNavigate, hijoSeleccionado }: DashboardTutorP
           </div>
         </CardContent>
       </Card>
+
+      {hijoSeleccionado && <AlumnoInfoCard alumnoId={hijoSeleccionado} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
