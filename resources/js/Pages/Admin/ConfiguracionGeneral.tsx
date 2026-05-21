@@ -316,7 +316,7 @@ export function ConfiguracionGeneral() {
                 { key: "acceso_profesor",         label: "Acceso de profesores",               desc: "Los profesores pueden iniciar sesión en el sistema" },
                 { key: "acceso_trab_social",      label: "Acceso de trabajadores sociales",    desc: "Los trabajadores sociales pueden iniciar sesión" },
                 { key: "acceso_administrativo",   label: "Acceso de personal administrativo",  desc: "El personal administrativo puede iniciar sesión" },
-                { key: "registro_tutores_activo", label: "Auto-registro de tutores",           desc: "Permite que tutores se registren ellos mismos y sus hijos desde /register" },
+                // { key: "registro_tutores_activo", label: "Auto-registro de tutores",           desc: "Permite que tutores se registren ellos mismos y sus hijos desde /register" },
               ] as { key: keyof Config; label: string; desc: string }[]).map(({ key, label, desc }) => (
                 <div key={key} className="flex items-center justify-between p-3 rounded-xl border border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors">
                   <div>
