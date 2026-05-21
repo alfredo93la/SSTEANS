@@ -30,7 +30,7 @@ jobs:
         run: npm ci
 
       - name: Crear .env para build
-        run: echo "${{ secrets.ENV_PRODUCTION }}" > .env
+        run: echo '${{ secrets.ENV_PRODUCTION }}' > .env
 
       - name: Build frontend
         run: npm run build
@@ -55,7 +55,7 @@ jobs:
           script: |
             cd ${{ secrets.SSH_PATH }}
             cp -r public/build ./build
-            echo "${{ secrets.ENV_PRODUCTION }}" > .env
+            echo '${{ secrets.ENV_PRODUCTION }}' > .env
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
