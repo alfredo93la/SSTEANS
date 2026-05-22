@@ -68,7 +68,7 @@ class AlumnoAdminController extends Controller
             'sexo'            => ['required', Rule::in(['Masculino', 'Femenino', 'No especificado'])],
             'telefono'        => ['nullable', 'string', 'max:30'],
             'direccion'       => ['nullable', 'string', 'max:500'],
-            'estado'          => ['nullable', Rule::in(['Activo', 'Baja', 'Pendiente'])],
+            'estado'          => ['nullable', Rule::in(['Activo', 'Inactivo', 'Pendiente'])],
         ]);
 
         $alumno = DB::transaction(function () use ($validated): Alumno {
@@ -105,7 +105,7 @@ class AlumnoAdminController extends Controller
             'sexo'            => ['required', Rule::in(['Masculino', 'Femenino', 'No especificado'])],
             'telefono'        => ['nullable', 'string', 'max:30'],
             'direccion'       => ['nullable', 'string', 'max:500'],
-            'estado'          => ['required', Rule::in(['Activo', 'Baja', 'Pendiente'])],
+            'estado'          => ['required', Rule::in(['Activo', 'Inactivo', 'Pendiente'])],
         ]);
 
         $estadoAnterior = $alumno->estado;
@@ -130,7 +130,7 @@ class AlumnoAdminController extends Controller
                 $cicloActivoId = CicloEscolar::where('activo', true)->value('id');
 
                 if ($cicloActivoId) {
-                    $estadoAsignacion = $nuevoEstado === 'Baja' ? 'baja' : 'activo';
+                    $estadoAsignacion = $nuevoEstado === 'Inactivo' ? 'baja' : 'activo';
 
                     AsignacionGrupo::where('alumno_id', $alumno->id)
                         ->where('ciclo_escolar_id', $cicloActivoId)
@@ -186,14 +186,14 @@ class AlumnoAdminController extends Controller
             return response()->json(['message' => 'Contraseña incorrecta.'], 403);
         }
 
-        if ($alumno->estado === 'Baja') {
-            return response()->json(['message' => 'El alumno ya está dado de baja.'], 422);
+        if ($alumno->estado === 'Inactivo') {
+            return response()->json(['message' => 'El alumno ya está inactivo.'], 422);
         }
 
         DB::transaction(function () use ($alumno): void {
             $cicloActivoId = CicloEscolar::where('activo', true)->value('id');
 
-            $alumno->update(['estado' => 'Baja']);
+            $alumno->update(['estado' => 'Inactivo']);
 
             if ($cicloActivoId) {
                 AsignacionGrupo::where('alumno_id', $alumno->id)
@@ -203,7 +203,21 @@ class AlumnoAdminController extends Controller
         });
 
         return response()->json([
-            'message' => 'Alumno dado de baja.',
+            'message' => 'Alumno desactivado.',
+            'alumno'  => $alumno->fresh()->load('persona:id,nombre,apellidos,curp,telefono,direccion'),
+        ]);
+    }
+
+    public function reactivar(Alumno $alumno): JsonResponse
+    {
+        if ($alumno->estado !== 'Inactivo') {
+            return response()->json(['message' => 'El alumno no está inactivo.'], 422);
+        }
+
+        $alumno->update(['estado' => 'Activo']);
+
+        return response()->json([
+            'message' => 'Alumno reactivado.',
             'alumno'  => $alumno->fresh()->load('persona:id,nombre,apellidos,curp,telefono,direccion'),
         ]);
     }

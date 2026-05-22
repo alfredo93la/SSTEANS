@@ -186,7 +186,8 @@ Route::middleware(['auth', 'verified', 'permission:alumnos.manage'])
         Route::delete('/alumnos/{alumno}',              [AlumnoAdminController::class, 'destroy']);
         Route::post('/alumnos/{alumno}/aprobar',        [AlumnoAdminController::class, 'aprobar']);
         Route::post('/alumnos/{alumno}/rechazar',       [AlumnoAdminController::class, 'rechazar']);
-        Route::post('/alumnos/{alumno}/baja',           [AlumnoAdminController::class, 'baja']);
+        Route::post('/alumnos/{alumno}/desactivar',     [AlumnoAdminController::class, 'baja']);
+        Route::post('/alumnos/{alumno}/reactivar',      [AlumnoAdminController::class, 'reactivar']);
 
         Route::get('/asignaciones',                      [AsignacionGrupoController::class, 'index']);
         Route::post('/asignaciones',                     [AsignacionGrupoController::class, 'store']);

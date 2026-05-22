@@ -114,6 +114,7 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
   const [tutoresList, setTutoresList] = useState<TutorSimple[]>([]);
   const [loadingTutores, setLoadingTutores] = useState(false);
   const [eliminando, setEliminando] = useState<number | null>(null);
+  const [reactivando, setReactivando] = useState<number | null>(null);
   const [tutorBusq, setTutorBusq] = useState("");
   const [tutorSelId, setTutorSelId] = useState<number | null>(null);
   const [parentescoNuevo, setParentescoNuevo] = useState("");
@@ -262,15 +263,15 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
     if (!pendingBaja) return;
     setEliminando(pendingBaja.id);
     setReauthError("");
-    axios.post(`/api/administrativo/alumnos/${pendingBaja.id}/baja`, { password: reauthPassword })
+    axios.post(`/api/administrativo/alumnos/${pendingBaja.id}/desactivar`, { password: reauthPassword })
       .then(({ data }) => {
         setAlumnos((prev) => prev.map((a) => a.id === data.alumno.id ? data.alumno : a));
         setModalBaja(false);
         setPendingBaja(null);
-        toast.success("Alumno dado de baja.");
+        toast.success("Alumno desactivado.");
       })
       .catch((err) => {
-        const msg = err.response?.data?.message ?? "No se pudo dar de baja.";
+        const msg = err.response?.data?.message ?? "No se pudo desactivar.";
         if (err.response?.status === 403) {
           setReauthError(msg);
         } else {
@@ -279,6 +280,19 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
         }
       })
       .finally(() => setEliminando(null));
+  };
+
+  const handleReactivar = (alumno: Alumno) => {
+    if (!confirm(`¿Reactivar a ${alumno.persona.nombre} ${alumno.persona.apellidos}?`)) return;
+    setReactivando(alumno.id);
+    axios.post(`/api/administrativo/alumnos/${alumno.id}/reactivar`)
+      .then(({ data }) => {
+        setAlumnos((prev) => prev.map((a) => a.id === data.alumno.id ? data.alumno : a));
+        if (alumnoSel?.id === alumno.id) { setAlumnoSel(data.alumno); setModalDetalle(false); }
+        toast.success("Alumno reactivado.");
+      })
+      .catch((err) => toast.error(err.response?.data?.message ?? "No se pudo reactivar."))
+      .finally(() => setReactivando(null));
   };
 
   const abrirEditar = (alumno: Alumno) => {
@@ -353,7 +367,7 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
 
   const getEstadoColor = (estado: string) => {
     if (estado === "Activo")    return "bg-green-100 text-green-700 border-green-200";
-    if (estado === "Baja")      return "bg-red-100 text-red-700 border-red-200";
+    if (estado === "Inactivo")  return "bg-red-100 text-red-700 border-red-200";
     if (estado === "Pendiente") return "bg-amber-100 text-amber-700 border-amber-200";
     return "bg-gray-100 text-gray-700 border-gray-200";
   };
@@ -502,8 +516,8 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white rounded-xl"><UserMinus className="h-6 w-6 text-[#DC2626]" /></div>
               <div>
-                <p className="text-sm text-[#6B7280]">Bajas</p>
-                <p className="text-2xl font-bold text-[#DC2626]">{alumnos.filter((a) => a.estado === "Baja").length}</p>
+                <p className="text-sm text-[#6B7280]">Inactivos</p>
+                <p className="text-2xl font-bold text-[#DC2626]">{alumnos.filter((a) => a.estado === "Inactivo").length}</p>
               </div>
             </div>
           </CardContent>
@@ -546,7 +560,7 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="Activo">Activos</SelectItem>
-                  <SelectItem value="Baja">Bajas</SelectItem>
+                  <SelectItem value="Inactivo">Inactivos</SelectItem>
                   <SelectItem value="Pendiente">Pendientes</SelectItem>
                 </SelectContent>
               </Select>
@@ -641,6 +655,25 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
                               <XCircle className="h-4 w-4" />
                               Rechazar
                             </Button>
+                          </>
+                        ) : alumno.estado === "Inactivo" ? (
+                          <>
+                            <Button variant="outline" size="sm" onClick={() => abrirDetalle(alumno)}>
+                              <Eye className="h-4 w-4" />
+                              Ver detalle
+                            </Button>
+                            {permissions.includes("alumnos.manage") && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="hover:bg-green-50 hover:text-green-700"
+                                disabled={reactivando === alumno.id}
+                                onClick={() => handleReactivar(alumno)}
+                              >
+                                {reactivando === alumno.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+                                Reactivar
+                              </Button>
+                            )}
                           </>
                         ) : (
                           <>
@@ -762,13 +795,24 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
           )}
           <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2">
             <div>
-              {permissions.includes("alumnos.manage") && alumnoSel?.estado !== "Baja" && (
+              {permissions.includes("alumnos.manage") && alumnoSel?.estado === "Inactivo" && (
+                <Button
+                  variant="outline"
+                  className="border-green-200 text-green-700 hover:bg-green-50 w-full sm:w-auto"
+                  disabled={reactivando === alumnoSel?.id}
+                  onClick={() => handleReactivar(alumnoSel!)}
+                >
+                  {reactivando === alumnoSel?.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserCheck className="h-4 w-4 mr-2" />}
+                  Reactivar
+                </Button>
+              )}
+              {permissions.includes("alumnos.manage") && alumnoSel?.estado !== "Inactivo" && (
                 <Button
                   variant="outline"
                   className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 w-full sm:w-auto"
                   onClick={() => { setModalDetalle(false); handleEliminar(alumnoSel!); }}
                 >
-                  <UserMinus className="h-4 w-4 mr-2" />Dar de baja
+                  <UserMinus className="h-4 w-4 mr-2" />Desactivar
                 </Button>
               )}
             </div>
@@ -921,7 +965,7 @@ export function AlumnosAdmin({ permissions = [] }: AlumnosAdminProps) {
               className="bg-red-600 hover:bg-red-700 text-white"
               onClick={handleConfirmarBaja}
             >
-              {eliminando === pendingBaja?.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Dar de baja"}
+              {eliminando === pendingBaja?.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Desactivar"}
             </Button>
           </DialogFooter>
         </DialogContent>
