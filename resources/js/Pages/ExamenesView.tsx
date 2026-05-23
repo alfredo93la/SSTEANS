@@ -81,8 +81,6 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   const [loading, setLoading] = useState(true);
   const [filtroMateria, setFiltroMateria] = useState<string>("Todas las materias");
   const [busqueda, setBusqueda] = useState("");
-  const [pagina, setPagina] = useState(1);
-  useEffect(() => { setPagina(1); }, [busqueda, filtroMateria, vistaExamenes]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -91,6 +89,8 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   const [guardando, submitGuardar] = useSubmit();
   const [eliminando, setEliminando] = useState(false);
   const [vistaExamenes, setVistaExamenes] = useState<"proximos" | "pasados">("proximos");
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [busqueda, filtroMateria, vistaExamenes]);
   const [examenSeleccionado, setExamenSeleccionado] = useState<ExamenData | null>(null);
   const [modalDetalle, setModalDetalle] = useState(false);
 
