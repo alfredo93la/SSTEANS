@@ -25,6 +25,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../../Components/ui/alert-dialog";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../../Components/ui/pagination";
+
+const POR_PAGINA = 10;
 
 interface AlumnoData {
   id: number;
@@ -68,6 +71,7 @@ const initialForm: FormDataReporte = {
 export function ReportesTS() {
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  useEffect(() => { setPagina(1); }, [busqueda, filtroEstado]);
   const [modalNuevo, setModalNuevo] = useState(false);
   const [modalDetalle, setModalDetalle] = useState(false);
   const [reporteSeleccionado, setReporteSeleccionado] = useState<ReporteData | null>(null);
@@ -82,6 +86,7 @@ export function ReportesTS() {
   const [adjuntoEliminado, setAdjuntoEliminado] = useState(false);
   const [confirmarCrear, setConfirmarCrear] = useState(false);
   const [confirmarArchivar, setConfirmarArchivar] = useState<ReporteData | null>(null);
+  const [pagina, setPagina] = useState(1);
 
   useEffect(() => {
     cargarDatos();
@@ -202,7 +207,7 @@ export function ReportesTS() {
       case "abierto":
         return "Abierto";
       case "en_seguimiento":
-        return "En Seguimiento";
+        return "En seguimiento";
       case "cerrado":
         return "Cerrado";
       case "archivado":
@@ -374,6 +379,9 @@ export function ReportesTS() {
       );
     }
 
+    const totalPaginas = Math.ceil(lista.length / POR_PAGINA);
+    const paginados = lista.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
+
     return (
       <Card className="border-[#E5E7EB]">
         {tipoTab === "todos" && (
@@ -384,7 +392,7 @@ export function ReportesTS() {
         )}
         <CardContent className={tipoTab === "todos" ? undefined : "pt-6"}>
           <div className="space-y-3">
-            {lista.map((reporte) => (
+            {paginados.map((reporte) => (
               <div
                 key={reporte.id}
                 className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer"
@@ -438,6 +446,34 @@ export function ReportesTS() {
               </div>
             ))}
           </div>
+          {totalPaginas > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+              <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, lista.length)} de {lista.length}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }} className={pagina === 1 ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n); return acc;
+                    }, [])
+                    .map((item, idx) => item === "ellipsis" ? (
+                      <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink href="#" isActive={pagina === item} onClick={(e) => { e.preventDefault(); setPagina(item as number); }}>{item}</PaginationLink>
+                      </PaginationItem>
+                    ))}
+                  <PaginationItem>
+                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(totalPaginas, p + 1)); }} className={pagina === totalPaginas ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -561,7 +597,7 @@ export function ReportesTS() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="abierto">Abierto</SelectItem>
-                    <SelectItem value="en_seguimiento">En Seguimiento</SelectItem>
+                    <SelectItem value="en_seguimiento">En seguimiento</SelectItem>
                     <SelectItem value="cerrado">Cerrado</SelectItem>
                   </SelectContent>
                 </Select>
@@ -748,7 +784,7 @@ export function ReportesTS() {
                 <Clock className="h-6 w-6 text-[#1D4ED8]" />
               </div>
               <div>
-                <p className="text-sm text-[#6B7280]">En Seguimiento</p>
+                <p className="text-sm text-[#6B7280]">En seguimiento</p>
                 <p className="text-2xl font-bold text-[#1D4ED8]">{estadisticas.enSeguimiento}</p>
               </div>
             </div>
@@ -792,7 +828,7 @@ export function ReportesTS() {
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="abierto">Abiertos</SelectItem>
-                <SelectItem value="en_seguimiento">En Seguimiento</SelectItem>
+                <SelectItem value="en_seguimiento">En seguimiento</SelectItem>
                 <SelectItem value="cerrado">Cerrados</SelectItem>
                 <SelectItem value="archivado">Archivados</SelectItem>
               </SelectContent>
@@ -938,9 +974,6 @@ export function ReportesTS() {
               )}
 
               <div className="flex gap-2 justify-end pt-4 border-t">
-                <Button variant="outline" onClick={() => setModalDetalle(false)}>
-                  Cerrar
-                </Button>
                 {reporteSeleccionado.estatus.toLowerCase() !== "archivado" && (
                   <Button
                     variant="outline"

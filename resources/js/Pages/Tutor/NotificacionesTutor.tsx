@@ -9,6 +9,9 @@ import { Mail, MailOpen, Bell, Calendar, FileText, CheckCircle, Loader2, Users, 
 import { Label } from "../../Components/ui/label";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../../Components/ui/pagination";
+
+const POR_PAGINA = 10;
 
 interface Notificacion {
   id: number;
@@ -79,6 +82,9 @@ export function NotificacionesTutor({ alumnoId, notifIdParaAbrir, onNotifAbierta
     }
   };
 
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [filtroEstado, filtroCategoria]);
+
   const notificacionesFiltradas = notificaciones.filter((notif) => {
     const cumpleEstado =
       filtroEstado === "todas" ||
@@ -91,6 +97,8 @@ export function NotificacionesTutor({ alumnoId, notifIdParaAbrir, onNotifAbierta
       !alumnoId || notif.alumnoId === null || notif.alumnoId === alumnoId;
     return cumpleEstado && cumpleCategoria && cumpleAlumno;
   });
+  const totalPaginas = Math.ceil(notificacionesFiltradas.length / POR_PAGINA);
+  const notificacionesPaginadas = notificacionesFiltradas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   const notificacionesPorAlumno = notificaciones.filter(
     (n) => !alumnoId || n.alumnoId === null || n.alumnoId === alumnoId
@@ -243,7 +251,7 @@ export function NotificacionesTutor({ alumnoId, notifIdParaAbrir, onNotifAbierta
                 </CardContent>
               </Card>
             ) : (
-              notificacionesFiltradas.map((notif) => (
+              notificacionesPaginadas.map((notif) => (
                 <Card
                   key={notif.id}
                   className={`border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer ${
@@ -309,6 +317,34 @@ export function NotificacionesTutor({ alumnoId, notifIdParaAbrir, onNotifAbierta
               ))
             )}
           </div>
+          {totalPaginas > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+              <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, notificacionesFiltradas.length)} de {notificacionesFiltradas.length}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }} className={pagina === 1 ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n); return acc;
+                    }, [])
+                    .map((item, idx) => item === "ellipsis" ? (
+                      <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink href="#" isActive={pagina === item} onClick={(e) => { e.preventDefault(); setPagina(item as number); }}>{item}</PaginationLink>
+                      </PaginationItem>
+                    ))}
+                  <PaginationItem>
+                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(totalPaginas, p + 1)); }} className={pagina === totalPaginas ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
 

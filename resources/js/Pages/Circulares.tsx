@@ -15,6 +15,9 @@ import { Switch } from "../Components/ui/switch";
 import { FileText, Download, AlertCircle, Info, CheckCircle, Calendar, Tag, Plus, Edit, Trash2, Send, Eye, EyeOff, X, CalendarDays, TriangleAlert, Loader2 } from "lucide-react";
 import { PageTitle } from "../Layouts/PageTitle";
 import { ScrollText } from "lucide-react";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../Components/ui/pagination";
+
+const POR_PAGINA = 10;
 import { toast } from "sonner";
 
 interface CircularesProps {
@@ -94,6 +97,8 @@ export function Circulares({ permissions }: CircularesProps) {
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
   const [filtroPrioridad, setFiltroPrioridad] = useState<string>("todas");
   const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [filtroCategoria, filtroPrioridad, busqueda]);
 
   // Estado del modal CRUD
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -140,6 +145,8 @@ export function Circulares({ permissions }: CircularesProps) {
     );
 
   const circularesNoLeidas = circularesFiltradas.filter(c => !c.leida).length;
+  const totalPaginas = Math.ceil(circularesFiltradas.length / POR_PAGINA);
+  const circularesPaginadas = circularesFiltradas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   const marcarComoLeida = async (id: number) => {
     setCirculares(prev => prev.map(c => c.id === id ? { ...c, leida: true } : c));
@@ -425,7 +432,7 @@ export function Circulares({ permissions }: CircularesProps) {
                 </CardContent>
               </Card>
             ) : (
-              circularesFiltradas.map((circular) => {
+              circularesPaginadas.map((circular) => {
                 const PrioridadIcon = prioridadColors[circular.prioridad].icon;
 
                 return (
@@ -543,6 +550,34 @@ export function Circulares({ permissions }: CircularesProps) {
               })
             )}
           </div>
+          {totalPaginas > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+              <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, circularesFiltradas.length)} de {circularesFiltradas.length}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }} className={pagina === 1 ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n); return acc;
+                    }, [])
+                    .map((item, idx) => item === "ellipsis" ? (
+                      <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink href="#" isActive={pagina === item} onClick={(e) => { e.preventDefault(); setPagina(item as number); }}>{item}</PaginationLink>
+                      </PaginationItem>
+                    ))}
+                  <PaginationItem>
+                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(totalPaginas, p + 1)); }} className={pagina === totalPaginas ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
 

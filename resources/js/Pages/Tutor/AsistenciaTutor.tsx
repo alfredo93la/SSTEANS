@@ -29,7 +29,8 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
   useEffect(() => {
     axios.get("/api/ciclos-escolares")
       .then(({ data }) => {
-        const lista: CicloData[] = data.ciclos ?? [];
+        const todos: CicloData[] = data.ciclos ?? [];
+        const lista = todos.filter((c) => c.activo || c.cerrado);
         setCiclos(lista);
         const activo = lista.find((c) => c.activo);
         if (activo) setCicloSeleccionado(activo.id.toString());
@@ -50,7 +51,7 @@ export function AsistenciaTutor({ alumnoId }: AsistenciaTutorProps) {
   }, [alumnoId, cicloSeleccionado]);
 
   const cicloActivo = ciclos.find((c) => c.activo);
-  const esHistorico = cicloSeleccionado && cicloSeleccionado !== cicloActivo?.id.toString();
+  const esHistorico = !!cicloActivo && cicloSeleccionado !== cicloActivo.id.toString();
 
   // Materias únicas derivadas de los registros
   const materiasUnicas = Array.from(

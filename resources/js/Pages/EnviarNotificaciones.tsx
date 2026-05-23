@@ -16,6 +16,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../Components/ui/select";
 import { PageTitle } from "../Layouts/PageTitle";
 import { toast } from "sonner";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../Components/ui/pagination";
+
+const POR_PAGINA = 10;
 
 interface NotificacionEnviada {
   id: number;
@@ -77,6 +80,8 @@ export function Notificaciones() {
   const [enviando, setEnviando] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todas");
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [busqueda, filtroTipo]);
   const [modalEnviar, setModalEnviar] = useState(false);
   const [modalDetalle, setModalDetalle] = useState(false);
   const [notifSeleccionada, setNotifSeleccionada] = useState<NotificacionEnviada | null>(null);
@@ -202,6 +207,9 @@ export function Notificaciones() {
     const coincideCategoria = filtroTipo === "todas" || n.categoria === filtroTipo;
     return coincideBusqueda && coincideCategoria;
   });
+
+  const totalPaginas = Math.ceil(notificacionesFiltradas.length / POR_PAGINA);
+  const notificacionesPaginadas = notificacionesFiltradas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   const enviadas   = notificaciones.length;
   const leidas     = notificaciones.filter((n) => n.estado === "leída").length;
@@ -555,7 +563,7 @@ export function Notificaciones() {
             </div>
           ) : (
             <div className="space-y-3">
-              {notificacionesFiltradas.map((notif) => (
+              {notificacionesPaginadas.map((notif) => (
                 <div
                   key={notif.id}
                   className="p-4 rounded-lg border border-[#E5E7EB] hover:shadow-md transition-all cursor-pointer"
@@ -615,6 +623,34 @@ export function Notificaciones() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {totalPaginas > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+              <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, notificacionesFiltradas.length)} de {notificacionesFiltradas.length}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }} className={pagina === 1 ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n); return acc;
+                    }, [])
+                    .map((item, idx) => item === "ellipsis" ? (
+                      <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink href="#" isActive={pagina === item} onClick={(e) => { e.preventDefault(); setPagina(item as number); }}>{item}</PaginationLink>
+                      </PaginationItem>
+                    ))}
+                  <PaginationItem>
+                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(totalPaginas, p + 1)); }} className={pagina === totalPaginas ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </CardContent>

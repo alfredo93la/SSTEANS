@@ -8,6 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { CheckCircle2, Clock, AlertCircle, Calendar, FileText, ClipboardList, Download, Paperclip, Eye, EyeOff } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../../Components/ui/pagination";
+
+const POR_PAGINA = 10;
 
 interface TareaData { id: number; titulo: string; descripcion: string; materiaId: number; materia: string | null; fechaEntrega: string; estadoEntrega: string; fechaEntregaAlumno: string | null; archivos: string[]; }
 
@@ -35,6 +38,9 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
   }, [alumnoId]);
 
   // Filtrar tareas
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [materiaFiltro, estadoFiltro]);
+
   const tareasFiltradas = tareasConEstado.filter((tarea) => {
     const cumpleMateriaFiltro = materiaFiltro === "todas" || tarea.materiaId === parseInt(materiaFiltro);
     const cumpleEstadoFiltro = estadoFiltro === "todos" || tarea.estadoEntrega === estadoFiltro;
@@ -42,6 +48,9 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
   });
 
   // Estadísticas
+  const totalPaginas = Math.ceil(tareasFiltradas.length / POR_PAGINA);
+  const tareasPaginadas = tareasFiltradas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
+
   const totalTareas = tareasConEstado.length;
   const tareasEntregadas = tareasConEstado.filter((t) => t.estadoEntrega === "Entregada" || t.estadoEntrega === "Tarde").length;
   const tareasPendientes = tareasConEstado.filter((t) => t.estadoEntrega === "Pendiente").length;
@@ -184,7 +193,7 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
                 </CardContent>
               </Card>
             ) : (
-              tareasFiltradas.map((tarea) => {
+              tareasPaginadas.map((tarea) => {
                 const badge = getEstadoBadge(tarea.estadoEntrega);
                 const IconEstado = badge.icon;
                 const diasRestantes = calcularDiasRestantes(tarea.fechaEntrega);
@@ -227,6 +236,34 @@ export function TareasTutor({ alumnoId }: TareasTutorProps) {
               })
             )}
           </div>
+          {totalPaginas > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+              <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, tareasFiltradas.length)} de {tareasFiltradas.length}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }} className={pagina === 1 ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n); return acc;
+                    }, [])
+                    .map((item, idx) => item === "ellipsis" ? (
+                      <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink href="#" isActive={pagina === item} onClick={(e) => { e.preventDefault(); setPagina(item as number); }}>{item}</PaginationLink>
+                      </PaginationItem>
+                    ))}
+                  <PaginationItem>
+                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(totalPaginas, p + 1)); }} className={pagina === totalPaginas ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
 

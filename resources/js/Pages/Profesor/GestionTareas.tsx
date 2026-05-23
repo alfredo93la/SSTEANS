@@ -12,6 +12,9 @@ import { Label } from "../../Components/ui/label";
 import { toast } from "sonner";
 import { FileText, Calendar, Edit, Trash2, Users, CheckCircle, Clock, Plus, Save, X, BookOpen, ClipboardList, Paperclip, Download } from "lucide-react";
 import { PageTitle } from "../../Layouts/PageTitle";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../../Components/ui/pagination";
+
+const POR_PAGINA = 10;
 
 interface GrupoData { id: number; nombre: string; }
 interface MateriaData { id: number; nombre: string; }
@@ -155,9 +158,14 @@ export function GestionTareas() {
     }).catch(() => toast.error("Error al asignar la tarea"));
   };
 
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [filtroGrupo]);
+
   const tareasFiltradas = tareas.filter(t =>
     filtroGrupo === "todos" || t.grupoId === parseInt(filtroGrupo)
   );
+  const totalPaginas = Math.ceil(tareasFiltradas.length / POR_PAGINA);
+  const tareasPaginadas = tareasFiltradas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   const abrirEditar = (tarea: TareaData) => {
     setTareaEditar(tarea);
@@ -434,7 +442,7 @@ export function GestionTareas() {
                 </CardContent>
               </Card>
             ) : (
-              tareasFiltradas.map((tarea) => {
+              tareasPaginadas.map((tarea) => {
                 const porcentaje = calcularPorcentajeEntrega(tarea);
                 const diasRestantes = calcularDiasRestantes(tarea.fechaEntrega);
                 const revisadas = tarea.entregadasCount;
@@ -576,6 +584,34 @@ export function GestionTareas() {
               })
             )}
           </div>
+          {totalPaginas > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+              <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, tareasFiltradas.length)} de {tareasFiltradas.length}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }} className={pagina === 1 ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n); return acc;
+                    }, [])
+                    .map((item, idx) => item === "ellipsis" ? (
+                      <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink href="#" isActive={pagina === item} onClick={(e) => { e.preventDefault(); setPagina(item as number); }}>{item}</PaginationLink>
+                      </PaginationItem>
+                    ))}
+                  <PaginationItem>
+                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(totalPaginas, p + 1)); }} className={pagina === totalPaginas ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
 

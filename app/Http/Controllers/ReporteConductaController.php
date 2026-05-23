@@ -63,7 +63,7 @@ class ReporteConductaController extends Controller
             ...$validated,
             'reportado_por'   => $request->user()->id,
             'gravedad'        => $validated['gravedad'] ?? 'Media',
-            'estatus'         => $validated['estatus'] ?? 'Abierto',
+            'estatus'         => $this->normalizarEstatus($validated['estatus'] ?? 'Abierto'),
             'archivo_adjunto' => $archivoPath,
         ]);
 
@@ -99,6 +99,10 @@ class ReporteConductaController extends Controller
                 Storage::disk('public')->delete($reporte->archivo_adjunto);
             }
             $validated['archivo_adjunto'] = null;
+        }
+
+        if (isset($validated['estatus'])) {
+            $validated['estatus'] = $this->normalizarEstatus($validated['estatus']);
         }
 
         $reporte->update($validated);
@@ -138,7 +142,18 @@ class ReporteConductaController extends Controller
         return response()->json(['reportes' => $reportes]);
     }
 
-    // ─── Helper ──────────────────────────────────────────────────────────────
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    private function normalizarEstatus(string $estatus): string
+    {
+        return match (strtolower(str_replace([' ', '-'], '_', $estatus))) {
+            'en_seguimiento' => 'En seguimiento',
+            'abierto'        => 'Abierto',
+            'cerrado'        => 'Cerrado',
+            'archivado'      => 'Archivado',
+            default          => $estatus,
+        };
+    }
 
     private function formatReporte(ReporteConducta $r): array
     {
@@ -155,7 +170,7 @@ class ReporteConductaController extends Controller
             'observaciones'      => $r->observaciones ?? '',
             'archivoAdjunto'     => $r->archivo_adjunto ? asset('storage/' . $r->archivo_adjunto) : null,
             'fecha'              => $fecha,
-            'estatus'            => $r->estatus,
+            'estatus'            => $this->normalizarEstatus($r->estatus ?? 'Abierto'),
             'reportadoPor'       => $r->reportadoPor?->id ?? $r->reportado_por,
             'reportadoPorNombre' => $r->reportadoPor?->name ?? 'Desconocido',
         ];

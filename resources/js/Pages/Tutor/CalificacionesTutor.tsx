@@ -37,7 +37,8 @@ export function CalificacionesTutor({ alumnoId }: CalificacionesTutorProps) {
   useEffect(() => {
     axios.get("/api/ciclos-escolares")
       .then(({ data }) => {
-        const lista: CicloData[] = data.ciclos ?? [];
+        const todos: CicloData[] = data.ciclos ?? [];
+        const lista = todos.filter((c) => c.activo || c.cerrado);
         setCiclos(lista);
         const activo = lista.find((c) => c.activo);
         if (activo) setCicloSeleccionado(activo.id.toString());
@@ -83,7 +84,7 @@ export function CalificacionesTutor({ alumnoId }: CalificacionesTutorProps) {
   };
 
   const cicloActivo = ciclos.find((c) => c.activo);
-  const esHistorico = cicloSeleccionado && cicloSeleccionado !== cicloActivo?.id.toString();
+  const esHistorico = !!cicloActivo && cicloSeleccionado !== cicloActivo.id.toString();
 
   const conPromedio = calificacionesAlumno.filter((cal): cal is CalData & { promedio: number } => cal.promedio !== null);
   const promedio = conPromedio.length > 0

@@ -15,6 +15,9 @@ import { Calendar } from "../Components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../Components/ui/popover";
 import { PageTitle } from "../Layouts/PageTitle";
 import { toast } from "sonner";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../Components/ui/pagination";
+
+const POR_PAGINA = 10;
 
 interface ExamenData {
   id: number;
@@ -78,6 +81,8 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
   const [loading, setLoading] = useState(true);
   const [filtroMateria, setFiltroMateria] = useState<string>("Todas las materias");
   const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
+  useEffect(() => { setPagina(1); }, [busqueda, filtroMateria, vistaExamenes]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -186,6 +191,8 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
         ? a.fecha.localeCompare(b.fecha)
         : b.fecha.localeCompare(a.fecha)
     );
+  const totalPaginas = Math.ceil(examenesFiltrados.length / POR_PAGINA);
+  const examenesPaginados = examenesFiltrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   const getBadgeColor = (tipo: string) => {
     switch (tipo) {
@@ -436,7 +443,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
                 </CardContent>
               </Card>
             ) : examenesFiltrados.length > 0 ? (
-              examenesFiltrados.map((examen) => (
+              examenesPaginados.map((examen) => (
                 <Card
                   key={examen.id}
                   className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer"
@@ -549,6 +556,34 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
               </Card>
             )}
           </div>
+          {totalPaginas > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+              <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, examenesFiltrados.length)} de {examenesFiltrados.length}</span>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }} className={pagina === 1 ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 1)
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n); return acc;
+                    }, [])
+                    .map((item, idx) => item === "ellipsis" ? (
+                      <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink href="#" isActive={pagina === item} onClick={(e) => { e.preventDefault(); setPagina(item as number); }}>{item}</PaginationLink>
+                      </PaginationItem>
+                    ))}
+                  <PaginationItem>
+                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(totalPaginas, p + 1)); }} className={pagina === totalPaginas ? "pointer-events-none opacity-50" : ""} />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
 

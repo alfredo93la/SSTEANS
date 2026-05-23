@@ -9,6 +9,9 @@ import { AlertTriangle, FileText, User, Calendar, Paperclip, History, Clock, XCi
 import { Label } from "../../Components/ui/label";
 import { PageTitle } from "../../Layouts/PageTitle";
 import { AlumnoInfoCard } from "../../Components/AlumnoInfoCard";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../../Components/ui/pagination";
+
+const POR_PAGINA = 10;
 
 interface CicloData { id: number; nombre: string; activo: boolean; cerrado: boolean; }
 
@@ -38,6 +41,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
   const [dialogAbierto, setDialogAbierto] = useState(false);
   const [alumnoInfo, setAlumnoInfo] = useState<{ nombre: string; grupo: string } | null>(null);
   const [adjuntoExpandido, setAdjuntoExpandido] = useState<string | null>(null);
+  const [pagina, setPagina] = useState(1);
 
   useEffect(() => {
     if (!alumnoId) return;
@@ -54,7 +58,8 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
   useEffect(() => {
     axios.get("/api/ciclos-escolares")
       .then(({ data }) => {
-        const lista: CicloData[] = data.ciclos ?? [];
+        const todos: CicloData[] = data.ciclos ?? [];
+        const lista = todos.filter((c) => c.activo || c.cerrado);
         setCiclos(lista);
         const activo = lista.find((c) => c.activo);
         if (activo) setCicloSeleccionado(activo.id.toString());
@@ -69,17 +74,20 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
     axios.get(`/api/tutor/reportes-conducta/${alumnoId}`, {
       params: { ciclo_id: cicloSeleccionado },
     })
-      .then(({ data }) => setReportes(data.reportes ?? []))
+      .then(({ data }) => { setReportes(data.reportes ?? []); setPagina(1); })
       .catch(() => { });
   }, [alumnoId, cicloSeleccionado]);
 
   const cicloActivo = ciclos.find((c) => c.activo);
-  const esHistorico = cicloSeleccionado && cicloSeleccionado !== cicloActivo?.id.toString();
+  const esHistorico = !!cicloActivo && cicloSeleccionado !== cicloActivo.id.toString();
 
   // Estadísticas
   const totalReportes = reportes.length;
   const reportesEnSeguimiento = reportes.filter((r) => r.estatus === "En seguimiento").length;
   const reportesCerrados = reportes.filter((r) => r.estatus === "Cerrado").length;
+
+  const totalPaginas = Math.ceil(reportes.length / POR_PAGINA);
+  const reportesPaginados = reportes.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   const getEstatusBadge = (estatus: string) => {
     switch (estatus) {
@@ -192,7 +200,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                 <Clock className="h-6 w-6 text-[#D97706]" />
               </div>
               <div>
-                <p className="text-sm text-[#6B7280]">En Seguimiento</p>
+                <p className="text-sm text-[#6B7280]">En seguimiento</p>
                 <p className="text-2xl font-bold text-[#D97706]">{reportesEnSeguimiento}</p>
               </div>
             </div>
@@ -234,7 +242,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
             </Card>
           ) : (
             <div className="space-y-4">
-              {reportes.map((reporte) => {
+              {reportesPaginados.map((reporte) => {
                 const badge = getEstatusBadge(reporte.estatus);
                 const tipoColor = getTipoColor(reporte.tipoReporte);
                 const gravedadBadge = getGravedadBadge(reporte.gravedad);
@@ -244,31 +252,21 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                     <CardContent className="pt-6">
                       <div className="flex flex-col sm:flex-row gap-4">
                         <div className="shrink-0">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${reporte.estatus === "Cerrado" ? "bg-green-100" : "bg-red-100"
-                            }`}>
-                            <AlertTriangle className={`h-6 w-6 ${reporte.estatus === "Cerrado" ? "text-[#059669]" : "text-[#E11D48]"
-                              }`} />
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${reporte.estatus === "Cerrado" ? "bg-green-100" : "bg-red-100"}`}>
+                            <AlertTriangle className={`h-6 w-6 ${reporte.estatus === "Cerrado" ? "text-[#059669]" : "text-[#E11D48]"}`} />
                           </div>
                         </div>
-
                         <div className="flex-1 space-y-3">
                           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                             <div className="flex-1">
                               <div className="flex flex-wrap items-center gap-2 mb-2">
-                                <Badge variant="secondary" className={tipoColor}>
-                                  {reporte.tipoReporte}
-                                </Badge>
-                                <Badge className={gravedadBadge.className}>
-                                  Gravedad: {gravedadBadge.text}
-                                </Badge>
-                                <Badge className={badge.className}>
-                                  {badge.text}
-                                </Badge>
+                                <Badge variant="secondary" className={tipoColor}>{reporte.tipoReporte}</Badge>
+                                <Badge className={gravedadBadge.className}>Gravedad: {gravedadBadge.text}</Badge>
+                                <Badge className={badge.className}>{badge.text}</Badge>
                               </div>
                               <h3 className="font-semibold text-[#111827]">{reporte.descripcion}</h3>
                             </div>
                           </div>
-
                           <div className="flex flex-wrap gap-4 text-sm text-[#6B7280]">
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4" />
@@ -285,13 +283,40 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                               </div>
                             )}
                           </div>
-
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 );
               })}
+              {totalPaginas > 1 && (
+                <div className="mt-4 flex items-center justify-between text-sm text-[#6B7280]">
+                  <span>Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, reportes.length)} de {reportes.length}</span>
+                  <Pagination className="w-auto mx-0">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.max(1, p - 1)); }} className={pagina === 1 ? "pointer-events-none opacity-50" : ""} />
+                      </PaginationItem>
+                      {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                        .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 1)
+                        .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                          if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                          acc.push(n); return acc;
+                        }, [])
+                        .map((item, idx) => item === "ellipsis" ? (
+                          <PaginationItem key={`e-${idx}`}><PaginationEllipsis /></PaginationItem>
+                        ) : (
+                          <PaginationItem key={item}>
+                            <PaginationLink href="#" isActive={pagina === item} onClick={(e) => { e.preventDefault(); setPagina(item as number); }}>{item}</PaginationLink>
+                          </PaginationItem>
+                        ))}
+                      <PaginationItem>
+                        <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setPagina((p) => Math.min(totalPaginas, p + 1)); }} className={pagina === totalPaginas ? "pointer-events-none opacity-50" : ""} />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

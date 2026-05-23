@@ -113,7 +113,8 @@ export function PerfilAlumnoTS({ alumnoId, onNavigate }: PerfilAlumnoTSProps) {
   useEffect(() => {
     axios.get("/api/ciclos-escolares")
       .then(({ data }) => {
-        const lista: CicloData[] = data.ciclos ?? [];
+        const todos: CicloData[] = data.ciclos ?? [];
+        const lista = todos.filter((c) => c.activo || c.cerrado);
         setCiclos(lista);
         const activo = lista.find((c) => c.activo);
         if (activo) setCicloSeleccionado(activo.id.toString());
@@ -177,7 +178,7 @@ export function PerfilAlumnoTS({ alumnoId, onNavigate }: PerfilAlumnoTSProps) {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const cicloActivo = ciclos.find((c) => c.activo);
-  const esHistorico = cicloSeleccionado && cicloSeleccionado !== cicloActivo?.id.toString();
+  const esHistorico = !!cicloActivo && cicloSeleccionado !== cicloActivo.id.toString();
   const cicloNombreActual = ciclos.find((c) => c.id.toString() === cicloSeleccionado)?.nombre ?? "";
 
   const promedioGeneral = calificaciones.filter((c) => c.promedio !== null).length > 0
@@ -358,11 +359,6 @@ export function PerfilAlumnoTS({ alumnoId, onNavigate }: PerfilAlumnoTSProps) {
           <TabsTrigger value="reportes" className="rounded-lg gap-2">
             <AlertTriangle className="h-4 w-4" />
             Reportes
-            {reportes.length > 0 && (
-              <Badge className="ml-1 h-4 px-1.5 text-xs bg-[#E11D48] text-white border-0">
-                {reportes.length}
-              </Badge>
-            )}
           </TabsTrigger>
         </TabsList>
 
@@ -538,7 +534,7 @@ export function PerfilAlumnoTS({ alumnoId, onNavigate }: PerfilAlumnoTSProps) {
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-[#D97706]" />
                   <div>
-                    <p className="text-xs text-[#6B7280]">Seguimiento</p>
+                    <p className="text-xs text-[#6B7280]">En seguimiento</p>
                     <p className="text-xl font-bold text-[#D97706]">
                       {reportes.filter((r) => r.estatus === "En seguimiento").length}
                     </p>
