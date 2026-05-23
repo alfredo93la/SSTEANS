@@ -91,30 +91,26 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
 
   const getEstatusBadge = (estatus: string) => {
     switch (estatus) {
+      case "Abierto":
+        return { className: "bg-red-100 text-red-700 border-red-200", text: "Abierto" };
       case "En seguimiento":
-        return { className: "bg-[#D97706] text-white", text: "En seguimiento" };
+        return { className: "bg-blue-100 text-blue-700 border-blue-200", text: "En seguimiento" };
       case "Cerrado":
-        return { className: "bg-[#059669] text-white", text: "Cerrado" };
+        return { className: "bg-gray-100 text-gray-700 border-gray-200", text: "Cerrado" };
+      case "Archivado":
+        return { className: "bg-amber-100 text-amber-700 border-amber-200", text: "Archivado" };
       default:
-        return { className: "bg-[#6B7280] text-white", text: estatus };
+        return { className: "bg-gray-100 text-gray-700 border-gray-200", text: estatus };
     }
   };
 
-  const getTipoColor = (tipo: string) => {
-    switch (tipo) {
-      case "Disciplina": return "text-[#E11D48] bg-red-100";
-      case "Material": return "text-[#D97706] bg-amber-100";
-      case "Asistencia": return "text-[#1D4ED8] bg-blue-100";
-      default: return "text-[#6B7280] bg-gray-100";
-    }
-  };
 
   const getGravedadBadge = (gravedad: string) => {
-    switch (gravedad) {
-      case "Alta": return { className: "bg-[#E11D48] text-white", text: "Alta" };
-      case "Media": return { className: "bg-[#D97706] text-white", text: "Media" };
-      case "Baja": return { className: "bg-[#059669] text-white", text: "Baja" };
-      default: return { className: "bg-[#6B7280] text-white", text: gravedad };
+    switch (gravedad.toLowerCase()) {
+      case "alta":   return "bg-orange-100 text-orange-700 border-orange-200";
+      case "media":  return "bg-yellow-100 text-yellow-700 border-yellow-200";
+      case "baja":   return "bg-green-100 text-green-700 border-green-200";
+      default:       return "bg-gray-100 text-gray-700 border-gray-200";
     }
   };
 
@@ -244,45 +240,32 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
             <div className="space-y-4">
               {reportesPaginados.map((reporte) => {
                 const badge = getEstatusBadge(reporte.estatus);
-                const tipoColor = getTipoColor(reporte.tipoReporte);
-                const gravedadBadge = getGravedadBadge(reporte.gravedad);
 
                 return (
                   <Card key={reporte.id} className="border-[#E5E7EB] hover:shadow-lg transition-all cursor-pointer" onClick={() => verDetalle(reporte)}>
                     <CardContent className="pt-6">
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="shrink-0">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${reporte.estatus === "Cerrado" ? "bg-green-100" : "bg-red-100"}`}>
-                            <AlertTriangle className={`h-6 w-6 ${reporte.estatus === "Cerrado" ? "text-[#059669]" : "text-[#E11D48]"}`} />
-                          </div>
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="secondary">{reporte.tipoReporte}</Badge>
+                          <Badge className={getGravedadBadge(reporte.gravedad)}>{reporte.gravedad}</Badge>
+                          <Badge className={badge.className}>{badge.text}</Badge>
                         </div>
-                        <div className="flex-1 space-y-3">
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                            <div className="flex-1">
-                              <div className="flex flex-wrap items-center gap-2 mb-2">
-                                <Badge variant="secondary" className={tipoColor}>{reporte.tipoReporte}</Badge>
-                                <Badge className={gravedadBadge.className}>Gravedad: {gravedadBadge.text}</Badge>
-                                <Badge className={badge.className}>{badge.text}</Badge>
-                              </div>
-                              <h3 className="font-semibold text-[#111827]">{reporte.descripcion}</h3>
-                            </div>
+                        <h3 className="font-semibold text-[#111827]">{reporte.descripcion}</h3>
+                        <div className="flex flex-wrap gap-4 text-sm text-[#6B7280]">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            <span>{reporte.fecha}</span>
                           </div>
-                          <div className="flex flex-wrap gap-4 text-sm text-[#6B7280]">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4" />
-                              <span>{reporte.fecha}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4" />
-                              <span>Reportado por: {reporte.reportadoPorNombre}</span>
-                            </div>
-                            {reporte.archivoAdjunto && (
-                              <div className="flex items-center gap-2 text-[#6B7280]">
-                                <Paperclip className="h-4 w-4" />
-                                <span>{nombreArchivo(reporte.archivoAdjunto)}</span>
-                              </div>
-                            )}
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            <span>Reportado por: {reporte.reportadoPorNombre}</span>
                           </div>
+                          {reporte.archivoAdjunto && (
+                            <div className="flex items-center gap-2">
+                              <Paperclip className="h-4 w-4" />
+                              <span>{nombreArchivo(reporte.archivoAdjunto)}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -355,7 +338,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
                 <div>
                   <Label className="text-[#6B7280]">Nivel de Gravedad</Label>
                   <div className="mt-1">
-                    <Badge className={getGravedadBadge(reporteSeleccionado.gravedad).className}>
+                    <Badge className={getGravedadBadge(reporteSeleccionado.gravedad)}>
                       {reporteSeleccionado.gravedad}
                     </Badge>
                   </div>

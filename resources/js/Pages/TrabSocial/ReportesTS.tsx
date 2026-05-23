@@ -145,7 +145,6 @@ export function ReportesTS() {
         gravedadVista: reporte.gravedad.toLowerCase(),
         estadoVista: reporte.estatus.toLowerCase().replace(/\s+/g, "_"),
         acciones: reporte.observaciones,
-        seguimientos: reporte.observaciones ? 1 : 0,
       };
     });
   }, [alumnos, reportes]);
@@ -416,10 +415,7 @@ export function ReportesTS() {
                         {reporte.fecha} - {reporte.reportadoPorNombre}
                       </span>
                     </div>
-                    <p className="text-sm text-[#6B7280] mb-2">{reporte.descripcion}</p>
-                    <div className="flex items-center gap-4 text-xs text-[#6B7280]">
-                      <span>{reporte.seguimientos} seguimiento(s)</span>
-                    </div>
+                    <p className="text-sm text-[#6B7280]">{reporte.descripcion}</p>
                   </div>
                   <div className="flex gap-1">
                     <Button
