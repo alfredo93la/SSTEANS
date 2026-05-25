@@ -224,7 +224,7 @@ DROP TABLE IF EXISTS `circulares`;
 CREATE TABLE `circulares` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `titulo` varchar(255) NOT NULL,
-  `descripcion` varchar(255) NOT NULL,
+  `descripcion` text NOT NULL,
   `contenido` text DEFAULT NULL,
   `categoria` varchar(255) NOT NULL,
   `prioridad` varchar(255) NOT NULL,

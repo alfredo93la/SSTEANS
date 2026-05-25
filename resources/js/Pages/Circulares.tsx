@@ -145,6 +145,11 @@ export function Circulares({ permissions }: CircularesProps) {
     );
 
   const circularesNoLeidas = circularesFiltradas.filter(c => !c.leida).length;
+  const mesActual = new Date().toLocaleDateString("es-MX", { month: "2-digit", year: "numeric" });
+  const publicadasEsteMes = circulares.filter(c => {
+    const [, mes, anio] = c.fechaPublicacion.split("/");
+    return `${mes}/${anio}` === mesActual;
+  }).length;
   const totalPaginas = Math.ceil(circularesFiltradas.length / POR_PAGINA);
   const circularesPaginadas = circularesFiltradas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
@@ -268,9 +273,9 @@ export function Circulares({ permissions }: CircularesProps) {
       setDialogOpen(false);
       resetDialog();
     } catch (error: any) {
-      const msg = error?.response?.data?.message ?? error?.response?.data?.errors
+      const msg = error?.response?.data?.errors
         ? Object.values(error.response.data.errors as Record<string, string[]>).flat().join(" | ")
-        : null;
+        : (error?.response?.data?.message ?? null);
       toast.error(msg ?? "No se pudo guardar la circular");
     }
     });
@@ -346,9 +351,11 @@ export function Circulares({ permissions }: CircularesProps) {
               </div>
               <div>
                 <p className="text-sm text-[#6B7280]">
-                  {esPublicador ? "Pendientes de revisión" : "Sin leer"}
+                  {esPublicador ? "Publicadas este mes" : "Sin leer"}
                 </p>
-                <p className="text-2xl font-bold text-[#1D4ED8]">{circularesNoLeidas}</p>
+                <p className="text-2xl font-bold text-[#1D4ED8]">
+                  {esPublicador ? publicadasEsteMes : circularesNoLeidas}
+                </p>
               </div>
             </div>
           </CardContent>
