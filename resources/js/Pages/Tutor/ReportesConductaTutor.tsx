@@ -82,12 +82,13 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
   const esHistorico = !!cicloActivo && cicloSeleccionado !== cicloActivo.id.toString();
 
   // Estadísticas
-  const totalReportes = reportes.length;
-  const reportesEnSeguimiento = reportes.filter((r) => r.estatus === "En seguimiento").length;
-  const reportesCerrados = reportes.filter((r) => r.estatus === "Cerrado").length;
+  const reportesActivos = reportes.filter((r) => r.estatus !== "Archivado");
+  const totalReportes = reportesActivos.length;
+  const reportesEnSeguimiento = reportesActivos.filter((r) => r.estatus === "En seguimiento").length;
+  const reportesCerrados = reportesActivos.filter((r) => r.estatus === "Cerrado").length;
 
-  const totalPaginas = Math.ceil(reportes.length / POR_PAGINA);
-  const reportesPaginados = reportes.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
+  const totalPaginas = Math.ceil(reportesActivos.length / POR_PAGINA);
+  const reportesPaginados = reportesActivos.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   const getEstatusBadge = (estatus: string) => {
     switch (estatus) {
@@ -225,7 +226,7 @@ export function ReportesConductaTutor({ alumnoId }: ReportesConductaTutorProps) 
           <CardDescription>Selecciona un reporte de conducta para ver su detalle</CardDescription>
         </CardHeader>
         <CardContent>
-          {reportes.length === 0 ? (
+          {reportesActivos.length === 0 ? (
             <Card className="border-[#E5E7EB]">
               <CardContent className="py-12 text-center">
                 <FileText className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />

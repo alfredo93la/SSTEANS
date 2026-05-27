@@ -158,7 +158,7 @@ export function ReportesTS() {
 
       if (!coincideBusqueda) return false;
 
-      if (filtroEstado === "todos") return true;
+      if (filtroEstado === "todos") return reporte.estadoVista !== "archivado";
 
       return reporte.estadoVista === filtroEstado;
     });

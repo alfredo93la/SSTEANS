@@ -80,6 +80,7 @@ function getEstatusBadge(estatus: string) {
   switch (estatus) {
     case "En seguimiento": return { className: "bg-[#D97706] text-white", text: "En seguimiento" };
     case "Cerrado":        return { className: "bg-[#059669] text-white", text: "Cerrado" };
+    case "Archivado":      return { className: "bg-[#6B7280] text-white", text: "Archivado" };
     default:               return { className: "bg-[#6B7280] text-white", text: estatus };
   }
 }
