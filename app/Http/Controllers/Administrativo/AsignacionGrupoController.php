@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AsignacionGrupo;
 use App\Models\CicloEscolar;
 use App\Models\Grupo;
+use App\Models\TareaEntrega;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -59,6 +60,14 @@ class AsignacionGrupoController extends Controller
 
         // Reutilizar registro previo en baja si existe (evita violación de unique key)
         if ($existente) {
+            // Si cambia de grupo, limpiar entregas del grupo anterior (corrección de asignación)
+            if ($existente->grupo_id !== $validated['grupo_id']) {
+                $grupoAnteriorId = $existente->grupo_id;
+                TareaEntrega::where('alumno_id', $validated['alumno_id'])
+                    ->whereHas('tarea', fn ($q) => $q->where('grupo_id', $grupoAnteriorId))
+                    ->delete();
+            }
+
             $existente->update([
                 'grupo_id'         => $validated['grupo_id'],
                 'fecha_asignacion' => now()->toDateString(),
