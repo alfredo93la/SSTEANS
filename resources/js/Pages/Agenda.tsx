@@ -162,6 +162,12 @@ export function Agenda({ permissions }: AgendaProps) {
     void cargarEventos();
   }, []);
 
+  useEffect(() => {
+    if (filterTipo !== "todos" || filterDestinatario !== "todos" || fechaFiltro !== null) {
+      setMostrarPasados(true);
+    }
+  }, [filterTipo, filterDestinatario, fechaFiltro]);
+
   // Funciones del calendario
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -294,8 +300,10 @@ export function Agenda({ permissions }: AgendaProps) {
     );
   }
 
+  const TIPOS_EXAMEN = ["Examen", "Parcial", "Final", "Extraordinario"];
+
   const eventosFiltrados = eventos
-    .filter(e => filterTipo === "todos" || e.tipo === filterTipo)
+    .filter(e => filterTipo === "todos" || (filterTipo === "Examen" ? TIPOS_EXAMEN.includes(e.tipo) : e.tipo === filterTipo))
     .filter(e => filterDestinatario === "todos" || e.destinatarios.includes(filterDestinatario))
     .filter(e => !fechaFiltro || (e.fecha <= fechaFiltro && (e.fechaFin ? e.fechaFin >= fechaFiltro : e.fecha === fechaFiltro)));
 

@@ -43,14 +43,14 @@ class ConfigurarAdmin extends Command
         // ── Contraseña ───────────────────────────────────────────
         $this->info('');
         $this->line('  <fg=cyan>Contraseña:</> déjala en blanco para generar una segura automáticamente.');
-        $password = $this->secret('  Nueva contraseña (mín. 8 caracteres)');
+        $password = $this->secret('  Nueva contraseña (mín. 12 caracteres)');
 
         $generada = false;
         if (empty($password)) {
             $password = Str::password(16);
             $generada = true;
-        } elseif (strlen($password) < 8) {
-            $this->error('  La contraseña debe tener al menos 8 caracteres.');
+        } elseif (strlen($password) < 12) {
+            $this->error('  La contraseña debe tener al menos 12 caracteres.');
             return self::FAILURE;
         }
 

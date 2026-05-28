@@ -66,7 +66,7 @@ const categoriaColors: Record<string, string> = {
 
 const ROLES_DESTINATARIOS = ["Tutor", "Profesor", "Trabajador Social"];
 
-const TIPOS_EVENTO = ["Junta", "Suspensión", "Día Cívico / Festivo", "Actividad Cultural", "Actividad Deportiva", "Campaña", "Concurso", "Convocatoria"];
+const TIPOS_EVENTO = ["Junta", "Suspensión", "Día Cívico / Festivo", "Actividad Cultural", "Actividad Deportiva", "Campaña", "Concurso", "Convocatoria", "Plática"];
 
 const circularVacia = {
   titulo: "",
