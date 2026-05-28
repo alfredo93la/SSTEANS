@@ -192,7 +192,9 @@ export default function App() {
 
         {/* Exámenes: view → tutor, manage → profesor */}
         {currentRoute === "#/examenes" && (
-          <ExamenesView permissions={permissions} />
+          has("examenes.view")
+            ? <ExamenesView permissions={permissions} alumnoId={hijoSeleccionado || 1} />
+            : <ExamenesView permissions={permissions} />
         )}
 
         {/* Reportes: view → tutor, manage → trabajador social */}

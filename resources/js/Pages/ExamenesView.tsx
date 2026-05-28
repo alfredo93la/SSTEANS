@@ -14,6 +14,7 @@ import { FileText, Clock, BookOpen, Plus, Search, Filter, Edit2, Trash2, Clipboa
 import { Calendar } from "../Components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../Components/ui/popover";
 import { PageTitle } from "../Layouts/PageTitle";
+import { AlumnoInfoCard } from "../Components/AlumnoInfoCard";
 import { toast } from "sonner";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "../Components/ui/pagination";
 
@@ -36,6 +37,7 @@ interface ExamenData {
 
 interface ExamenesViewProps {
   permissions: string[];
+  alumnoId?: number;
 }
 
 const TIPOS_EXAMEN = ["Parcial", "Final", "Extraordinario", "Examen"];
@@ -72,7 +74,7 @@ const formaVacia = {
   descripcion: "",
 };
 
-export function ExamenesView({ permissions }: ExamenesViewProps) {
+export function ExamenesView({ permissions, alumnoId }: ExamenesViewProps) {
   const puedeGestionar =
     permissions.includes("examenes.manage") ||
     permissions.includes("agenda.manage");
@@ -103,7 +105,9 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
 
   const cargarExamenes = async () => {
     try {
-      const { data } = await axios.get<{ eventos: any[] }>("/api/agenda/eventos");
+      const { data } = await axios.get<{ eventos: any[] }>("/api/agenda/eventos", {
+        params: alumnoId ? { alumno_id: alumnoId } : undefined,
+      });
       const soloExamenes = (data.eventos || []).filter((e) =>
         TIPOS_EXAMEN.includes(e.tipo)
       );
@@ -132,7 +136,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
 
   useEffect(() => {
     void cargarExamenes();
-  }, []);
+  }, [alumnoId]);
 
   // Cargar grupos asignados al profesor cuando abre el dialog
   useEffect(() => {
@@ -295,6 +299,7 @@ export function ExamenesView({ permissions }: ExamenesViewProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {alumnoId && <AlumnoInfoCard alumnoId={alumnoId} />}
       <PageTitle
         icon={ClipboardCheck}
         title="Exámenes Programados"
